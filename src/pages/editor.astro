@@ -1,0 +1,226 @@
+---
+import Base from '../layouts/Base.astro';
+---
+
+<Base title="エディタ">
+  <link rel="stylesheet" href="/drawflow.min.css" />
+  <style is:global>
+    #drawflow {
+      width: 100vw;
+      height: calc(100vh - 48px);
+      background: #1a1a2e;
+    }
+    .toolbar {
+      height: 48px;
+      background: #16213e;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 12px;
+    }
+    .toolbar button {
+      padding: 6px 14px;
+      background: #3b82f6;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+    .toolbar button:hover { background: #2563eb; }
+    .toolbar button.secondary { background: #4b5563; }
+    .toolbar button.secondary:hover { background: #6b7280; }
+
+    /* エージェントカード */
+    .agent-card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 10px;
+      min-width: 180px;
+      color: #e2e8f0;
+      font-family: -apple-system, sans-serif;
+    }
+    .agent-card .agent-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .agent-card .agent-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: #3b82f6;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+    .agent-card .agent-name {
+      font-weight: bold;
+      font-size: 14px;
+    }
+    .agent-card .agent-role {
+      font-size: 11px;
+      color: #94a3b8;
+      margin-bottom: 6px;
+    }
+    .agent-card .agent-model {
+      font-size: 10px;
+      color: #64748b;
+      background: #0f172a;
+      padding: 2px 6px;
+      border-radius: 4px;
+      display: inline-block;
+    }
+
+    /* Drawflow overrides */
+    .drawflow .drawflow-node {
+      background: transparent !important;
+      border: none !important;
+      padding: 0 !important;
+      min-width: auto !important;
+    }
+    .drawflow .drawflow-node.selected .agent-card {
+      border-color: #3b82f6;
+      box-shadow: 0 0 12px rgba(59, 130, 246, 0.4);
+    }
+    .drawflow .connection .main-path {
+      stroke: #64748b !important;
+      stroke-width: 2 !important;
+    }
+    .drawflow .drawflow-node .input, .drawflow .drawflow-node .output {
+      background: #3b82f6 !important;
+    }
+
+    #export-result {
+      position: fixed;
+      bottom: 12px;
+      right: 12px;
+      max-width: 500px;
+      max-height: 300px;
+      overflow: auto;
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 12px;
+      font-family: monospace;
+      font-size: 11px;
+      color: #94a3b8;
+      display: none;
+      z-index: 100;
+    }
+    #export-result.visible { display: block; }
+  </style>
+
+  <div class="toolbar">
+    <button id="btn-add-agent">+ エージェント追加</button>
+    <button id="btn-auto-layout" class="secondary">⬡ 自動整列</button>
+    <button id="btn-export" class="secondary">📤 エクスポート</button>
+    <button id="btn-clear" class="secondary">🗑 クリア</button>
+  </div>
+  <div id="drawflow"></div>
+  <div id="export-result"></div>
+
+  <script src="/drawflow.min.js" is:inline></script>
+  <script src="https://cdn.jsdelivr.net/npm/dagre@0.8.5/dist/dagre.min.js" is:inline></script>
+  <script is:inline>
+    // --- Drawflow 初期化 ---
+    const container = document.getElementById('drawflow');
+    const editor = new Drawflow(container);
+    editor.reroute = true;
+    editor.start();
+
+    let agentCounter = 0;
+    const agentNames = ['PM', 'エンジニア', 'リサーチャー', 'デザイナー', 'レビュアー', 'QA'];
+    const agentIcons = ['👔', '⚙️', '🔬', '🎨', '👁️', '🧪'];
+    const agentModels = ['claude-opus-4-6', 'gpt-5.3-codex', 'claude-sonnet-4', 'gemini-2.5-pro'];
+
+    function createAgentHTML(idx) {
+      const name = agentNames[idx % agentNames.length];
+      const icon = agentIcons[idx % agentIcons.length];
+      const model = agentModels[idx % agentModels.length];
+      return `
+        <div class="agent-card" data-agent-idx="${idx}">
+          <div class="agent-header">
+            <div class="agent-icon">${icon}</div>
+            <div class="agent-name">${name}</div>
+          </div>
+          <div class="agent-role">役割: ${name}担当</div>
+          <div class="agent-model">${model}</div>
+        </div>
+      `;
+    }
+
+    // --- エージェント追加 ---
+    document.getElementById('btn-add-agent').addEventListener('click', () => {
+      const html = createAgentHTML(agentCounter);
+      const x = 100 + (agentCounter % 4) * 250;
+      const y = 100 + Math.floor(agentCounter / 4) * 200;
+      editor.addNode(
+        `agent-${agentCounter}`,
+        1, 1, x, y,
+        `agent-node`,
+        { agentIdx: agentCounter },
+        html
+      );
+      agentCounter++;
+    });
+
+    // --- dagre 自動整列 ---
+    document.getElementById('btn-auto-layout').addEventListener('click', () => {
+      const data = editor.export().drawflow.Home.data;
+      const nodeIds = Object.keys(data);
+      if (nodeIds.length === 0) return;
+
+      const g = new dagre.graphlib.Graph();
+      g.setGraph({ rankdir: 'TB', nodesep: 80, ranksep: 120 });
+      g.setDefaultEdgeLabel(() => ({}));
+
+      nodeIds.forEach(id => {
+        g.setNode(id, { width: 200, height: 100 });
+      });
+
+      nodeIds.forEach(id => {
+        const node = data[id];
+        Object.values(node.outputs || {}).forEach(output => {
+          (output.connections || []).forEach(conn => {
+            g.setEdge(id, conn.node);
+          });
+        });
+      });
+
+      dagre.layout(g);
+
+      nodeIds.forEach(id => {
+        const pos = g.node(id);
+        data[id].pos_x = pos.x - 100;
+        data[id].pos_y = pos.y - 50;
+      });
+
+      editor.import({ drawflow: { Home: { data } } });
+    });
+
+    // --- エクスポート ---
+    document.getElementById('btn-export').addEventListener('click', () => {
+      const data = editor.export();
+      const resultEl = document.getElementById('export-result');
+      resultEl.textContent = JSON.stringify(data, null, 2);
+      resultEl.classList.toggle('visible');
+    });
+
+    // --- クリア ---
+    document.getElementById('btn-clear').addEventListener('click', () => {
+      if (confirm('全ノードを削除しますか？')) {
+        editor.clear();
+        agentCounter = 0;
+      }
+    });
+
+    // 初期デモ: 3つのエージェントを配置
+    ['btn-add-agent', 'btn-add-agent', 'btn-add-agent'].forEach(() => {
+      document.getElementById('btn-add-agent').click();
+    });
+  </script>
+</Base>

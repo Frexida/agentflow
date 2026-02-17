@@ -9,12 +9,10 @@
     "astro": "astro"
   },
   "dependencies": {
-    "@astrojs/cloudflare": "^12.6.12",
     "@types/dagre": "^0.7.53",
     "astro": "^5.17.1",
     "dagre": "^0.8.5",
-    "htmx.org": "^2.0.8",
-    "wrangler": "^4.65.0"
+    "htmx.org": "^2.0.8"
   },
   "devDependencies": {
     "tsx": "^4.21.0"

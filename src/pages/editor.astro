@@ -219,6 +219,18 @@ import Base from '../layouts/Base.astro';
       </select>
     </div>
     <div class="field"><label>システムプロンプト</label><textarea id="edit-prompt" style="min-height:120px"></textarea></div>
+    <div class="field"><label>ツールプロファイル</label>
+      <select id="edit-tools">
+        <option value="">デフォルト</option>
+        <option value="minimal">minimal — 基本ツールのみ</option>
+        <option value="coding">coding — コーディング向け</option>
+        <option value="messaging">messaging — メッセージング向け</option>
+        <option value="full">full — 全ツール</option>
+      </select>
+    </div>
+    <div class="field"><label>初期記憶 (MEMORY.md)</label><textarea id="edit-memory" style="min-height:80px" placeholder="エージェントの初期知識や記憶..."></textarea></div>
+    <hr style="border-color:#333;margin:16px 0" />
+    <button id="btn-delete-agent" style="width:100%;padding:8px;background:#dc2626;color:white;border:none;border-radius:6px;cursor:pointer;font-size:13px">🗑 このエージェントを削除</button>
   </div>
 
   <div class="toast" id="toast"></div>
@@ -308,6 +320,8 @@ import Base from '../layouts/Base.astro';
         icon: agentData?.icon || DEFAULT_ICONS[org.agents.length % DEFAULT_ICONS.length],
         model: agentData?.model || MODELS[0],
         systemPrompt: agentData?.systemPrompt || '',
+        toolsProfile: agentData?.toolsProfile || '',
+        memory: agentData?.memory || '',
       };
       org.agents.push(agent);
 
@@ -350,6 +364,8 @@ import Base from '../layouts/Base.astro';
       document.getElementById('edit-personality').value = agent.personality || '';
       document.getElementById('edit-model').value = agent.model || MODELS[0];
       document.getElementById('edit-prompt').value = agent.systemPrompt || '';
+      document.getElementById('edit-tools').value = agent.toolsProfile || '';
+      document.getElementById('edit-memory').value = agent.memory || '';
       panel.classList.add('open');
     }
 
@@ -361,7 +377,7 @@ import Base from '../layouts/Base.astro';
     document.getElementById('panel-close').addEventListener('click', closePanel);
 
     // Live editing
-    ['edit-icon', 'edit-name', 'edit-role', 'edit-personality', 'edit-model', 'edit-prompt'].forEach(id => {
+    ['edit-icon', 'edit-name', 'edit-role', 'edit-personality', 'edit-model', 'edit-prompt', 'edit-tools', 'edit-memory'].forEach(id => {
       document.getElementById(id).addEventListener('input', () => {
         if (!editingAgentId) return;
         const agent = agentById(editingAgentId);
@@ -372,9 +388,21 @@ import Base from '../layouts/Base.astro';
         agent.personality = document.getElementById('edit-personality').value;
         agent.model = document.getElementById('edit-model').value;
         agent.systemPrompt = document.getElementById('edit-prompt').value;
+        agent.toolsProfile = document.getElementById('edit-tools').value;
+        agent.memory = document.getElementById('edit-memory').value;
         updateNodeHTML(editingAgentId);
         scheduleSave();
       });
+    });
+
+    // --- Delete agent from panel ---
+    document.getElementById('btn-delete-agent').addEventListener('click', () => {
+      if (!editingAgentId) return;
+      const agent = agentById(editingAgentId);
+      if (!confirm(`「${agent?.name || editingAgentId}」を削除しますか？`)) return;
+      const nid = nodeIdForAgent(editingAgentId);
+      if (nid) editor.removeNodeId('node-' + nid);
+      closePanel();
     });
 
     // --- Connection / Link management ---
@@ -505,7 +533,36 @@ import Base from '../layouts/Base.astro';
     });
 
     // --- Export ---
+    function validateOrg(org) {
+      const warnings = [];
+      const errors = [];
+      if (org.agents.length === 0) errors.push('エージェントが1つもありません');
+      const names = org.agents.map(a => a.name);
+      const dupes = names.filter((n, i) => names.indexOf(n) !== i);
+      if (dupes.length) errors.push(`重複名: ${[...new Set(dupes)].join(', ')}`);
+      for (const a of org.agents) {
+        if (!a.name || a.name.trim() === '') errors.push(`名前未設定のエージェントがあります (${a.id})`);
+        if (!a.role || a.role.trim() === '') warnings.push(`${a.name}: 役割が未設定`);
+        if (!a.systemPrompt || a.systemPrompt.trim() === '') warnings.push(`${a.name}: システムプロンプトが空`);
+      }
+      // Check for orphan agents (no connections)
+      const connectedIds = new Set(org.links.flatMap(l => [l.source, l.target]));
+      const orphans = org.agents.filter(a => !connectedIds.has(a.id));
+      if (orphans.length > 0 && org.agents.length > 1) {
+        warnings.push(`接続なし: ${orphans.map(a => a.name).join(', ')}`);
+      }
+      return { errors, warnings };
+    }
+
     document.getElementById('btn-export').addEventListener('click', () => {
+      const { errors, warnings } = validateOrg(org);
+      if (errors.length > 0) {
+        alert('❌ エクスポートエラー:\n' + errors.join('\n'));
+        return;
+      }
+      if (warnings.length > 0) {
+        if (!confirm('⚠️ 警告:\n' + warnings.join('\n') + '\n\n続行しますか？')) return;
+      }
       const result = exportToOpenClaw(org);
       // Download config JSON (schema-compliant, for config.apply)
       const configBlob = new Blob([JSON.stringify(result.config, null, 2)], { type: 'application/json' });
@@ -589,6 +646,7 @@ import Base from '../layouts/Base.astro';
         if (agent.model && agent.model !== primaryModel) entry.model = agent.model;
         if (agent.icon) entry.identity.avatar = agent.icon;
         if (authTargets.length > 0) entry.subagents = { allowAgents: authTargets };
+        if (agent.toolsProfile) entry.tools = { profile: agent.toolsProfile };
         return entry;
       });
 

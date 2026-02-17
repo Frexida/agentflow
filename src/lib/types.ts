@@ -25,6 +25,8 @@ export interface Agent {
   memory?: string;
   /** 使用可能ツールのリスト */
   tools?: string[];
+  /** ツールプロファイル (minimal/coding/messaging/full) */
+  toolsProfile?: 'minimal' | 'coding' | 'messaging' | 'full';
 }
 
 /** エージェント間の関係（MOISE+ Link） */

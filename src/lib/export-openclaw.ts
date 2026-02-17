@@ -281,6 +281,11 @@ export function exportToOpenClaw(org: Organization): ExportResult {
       entry.subagents = { allowAgents: authorityTargets };
     }
 
+    // Tools profile
+    if (agent.tools && agent.tools.length > 0) {
+      entry.tools = { profile: agent.tools[0] as any };
+    }
+
     agentList.push(entry);
 
     // Workspace files for this agent

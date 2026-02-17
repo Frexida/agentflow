@@ -2,21 +2,33 @@
 import Base from '../layouts/Base.astro';
 ---
 
-<Base title="エディタ">
+<Base title="AgentFlow エディタ">
   <link rel="stylesheet" href="/drawflow.min.css" />
   <style is:global>
+    body { background: #0f0f0f; }
+
     #drawflow {
       width: 100vw;
       height: calc(100vh - 48px);
-      background: #1a1a2e;
+      background: #0f0f0f;
     }
     .toolbar {
       height: 48px;
-      background: #16213e;
+      background: #1a1a1a;
       display: flex;
       align-items: center;
       gap: 8px;
       padding: 0 12px;
+      border-bottom: 1px solid #2a2a2a;
+    }
+    .toolbar .org-name {
+      color: #9ca3af;
+      font-size: 13px;
+      margin-right: 8px;
+      padding: 4px 8px;
+      background: #1f1f1f;
+      border-radius: 4px;
+      border: 1px solid #333;
     }
     .toolbar button {
       padding: 6px 14px;
@@ -26,32 +38,37 @@ import Base from '../layouts/Base.astro';
       border-radius: 6px;
       cursor: pointer;
       font-size: 13px;
+      transition: background 150ms;
     }
     .toolbar button:hover { background: #2563eb; }
-    .toolbar button.secondary { background: #4b5563; }
-    .toolbar button.secondary:hover { background: #6b7280; }
+    .toolbar button.secondary { background: #333; }
+    .toolbar button.secondary:hover { background: #444; }
+    .toolbar button.danger { background: #dc2626; }
+    .toolbar button.danger:hover { background: #b91c1c; }
+    .toolbar .spacer { flex: 1; }
 
     /* エージェントカード */
     .agent-card {
-      background: #1e293b;
-      border: 1px solid #334155;
+      background: #1a1a1a;
+      border: 1px solid #333;
       border-radius: 8px;
       padding: 10px;
       min-width: 180px;
       color: #e2e8f0;
       font-family: -apple-system, sans-serif;
+      transition: border-color 150ms;
     }
     .agent-card .agent-header {
       display: flex;
       align-items: center;
       gap: 8px;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
     }
     .agent-card .agent-icon {
       width: 32px;
       height: 32px;
       border-radius: 50%;
-      background: #3b82f6;
+      background: #2a2a2a;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -63,13 +80,13 @@ import Base from '../layouts/Base.astro';
     }
     .agent-card .agent-role {
       font-size: 11px;
-      color: #94a3b8;
-      margin-bottom: 6px;
+      color: #6b7280;
+      margin-bottom: 4px;
     }
     .agent-card .agent-model {
       font-size: 10px;
-      color: #64748b;
-      background: #0f172a;
+      color: #555;
+      background: #111;
       padding: 2px 6px;
       border-radius: 4px;
       display: inline-block;
@@ -84,115 +101,398 @@ import Base from '../layouts/Base.astro';
     }
     .drawflow .drawflow-node.selected .agent-card {
       border-color: #3b82f6;
-      box-shadow: 0 0 12px rgba(59, 130, 246, 0.4);
+      box-shadow: 0 0 12px rgba(59, 130, 246, 0.3);
     }
     .drawflow .connection .main-path {
-      stroke: #64748b !important;
+      stroke: #ef4444 !important;
       stroke-width: 2 !important;
     }
+    .drawflow .connection.link-communication .main-path {
+      stroke: #3b82f6 !important;
+    }
+    .drawflow .connection.link-review .main-path {
+      stroke: #f59e0b !important;
+    }
     .drawflow .drawflow-node .input, .drawflow .drawflow-node .output {
-      background: #3b82f6 !important;
+      background: #555 !important;
+      border: 1px solid #777 !important;
     }
 
-    #export-result {
+    /* サイドパネル */
+    #side-panel {
       position: fixed;
-      bottom: 12px;
-      right: 12px;
-      max-width: 500px;
-      max-height: 300px;
-      overflow: auto;
-      background: #0f172a;
-      border: 1px solid #334155;
-      border-radius: 8px;
-      padding: 12px;
-      font-family: monospace;
-      font-size: 11px;
-      color: #94a3b8;
-      display: none;
-      z-index: 100;
+      top: 48px;
+      right: 0;
+      width: 360px;
+      height: calc(100vh - 48px);
+      background: #141414;
+      border-left: 1px solid #2a2a2a;
+      transform: translateX(100%);
+      transition: transform 150ms ease;
+      z-index: 200;
+      overflow-y: auto;
+      padding: 20px;
     }
-    #export-result.visible { display: block; }
+    #side-panel.open { transform: translateX(0); }
+    #side-panel h3 {
+      font-size: 16px;
+      margin-bottom: 16px;
+      color: #e5e7eb;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    #side-panel .close-btn {
+      background: none;
+      border: none;
+      color: #6b7280;
+      font-size: 20px;
+      cursor: pointer;
+    }
+    #side-panel .close-btn:hover { color: #fff; }
+    .field { margin-bottom: 14px; }
+    .field label {
+      display: block;
+      font-size: 12px;
+      color: #6b7280;
+      margin-bottom: 4px;
+    }
+    .field input, .field select, .field textarea {
+      width: 100%;
+      padding: 8px 10px;
+      background: #1f1f1f;
+      border: 1px solid #333;
+      border-radius: 6px;
+      color: #e5e7eb;
+      font-size: 13px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 150ms;
+    }
+    .field input:focus, .field select:focus, .field textarea:focus {
+      border-color: #3b82f6;
+    }
+    .field textarea { min-height: 80px; resize: vertical; }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: #1a1a1a;
+      border: 1px solid #333;
+      color: #e5e7eb;
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      z-index: 300;
+      opacity: 0;
+      transition: opacity 150ms;
+    }
+    .toast.show { opacity: 1; }
   </style>
 
   <div class="toolbar">
+    <span class="org-name" id="org-name-display">無題の組織</span>
+    <button id="btn-new-org" class="secondary">🏢 新規組織</button>
     <button id="btn-add-agent">+ エージェント追加</button>
     <button id="btn-auto-layout" class="secondary">⬡ 自動整列</button>
+    <div class="spacer"></div>
     <button id="btn-export" class="secondary">📤 エクスポート</button>
-    <button id="btn-clear" class="secondary">🗑 クリア</button>
+    <button id="btn-save" class="secondary">💾 保存</button>
+    <button id="btn-clear" class="danger">🗑 クリア</button>
   </div>
   <div id="drawflow"></div>
-  <div id="export-result"></div>
+
+  <div id="side-panel">
+    <h3>エージェント編集 <button class="close-btn" id="panel-close">✕</button></h3>
+    <div class="field"><label>アイコン (絵文字)</label><input type="text" id="edit-icon" maxlength="4" /></div>
+    <div class="field"><label>名前</label><input type="text" id="edit-name" /></div>
+    <div class="field"><label>役割</label><input type="text" id="edit-role" /></div>
+    <div class="field"><label>性格</label><textarea id="edit-personality"></textarea></div>
+    <div class="field"><label>モデル</label>
+      <select id="edit-model">
+        <option value="anthropic/claude-opus-4-6">claude-opus-4-6</option>
+        <option value="openai/gpt-5.3-codex">gpt-5.3-codex</option>
+        <option value="anthropic/claude-sonnet-4">claude-sonnet-4</option>
+        <option value="google/gemini-2.5-pro">gemini-2.5-pro</option>
+      </select>
+    </div>
+    <div class="field"><label>システムプロンプト</label><textarea id="edit-prompt" style="min-height:120px"></textarea></div>
+  </div>
+
+  <div class="toast" id="toast"></div>
 
   <script src="/drawflow.min.js" is:inline></script>
   <script src="https://cdn.jsdelivr.net/npm/dagre@0.8.5/dist/dagre.min.js" is:inline></script>
   <script is:inline>
-    // --- Drawflow 初期化 ---
+  (function() {
+    'use strict';
+
+    const STORAGE_KEY = 'agentflow_org';
+    const MODELS = [
+      'anthropic/claude-opus-4-6',
+      'openai/gpt-5.3-codex',
+      'anthropic/claude-sonnet-4',
+      'google/gemini-2.5-pro'
+    ];
+    const LINK_TYPES = ['authority', 'communication', 'review'];
+    const LINK_COLORS = { authority: '#ef4444', communication: '#3b82f6', review: '#f59e0b' };
+    const DEFAULT_ICONS = ['👔', '⚙️', '🔬', '🎨', '👁️', '🧪', '📊', '🛡️'];
+
+    // --- Organization State ---
+    let org = {
+      id: crypto.randomUUID(),
+      name: '無題の組織',
+      description: '',
+      version: 'v1',
+      agents: [],
+      links: [],
+      groups: []
+    };
+
+    // nodeId (drawflow int) -> agentId mapping
+    let nodeToAgent = {};
+    // connectionId -> linkType
+    let connectionTypes = {};
+
+    // --- Drawflow init ---
     const container = document.getElementById('drawflow');
     const editor = new Drawflow(container);
     editor.reroute = true;
     editor.start();
 
-    let agentCounter = 0;
-    const agentNames = ['PM', 'エンジニア', 'リサーチャー', 'デザイナー', 'レビュアー', 'QA'];
-    const agentIcons = ['👔', '⚙️', '🔬', '🎨', '👁️', '🧪'];
-    const agentModels = ['claude-opus-4-6', 'gpt-5.3-codex', 'claude-sonnet-4', 'gemini-2.5-pro'];
+    // --- Helpers ---
+    function uid() { return 'a' + crypto.randomUUID().slice(0, 8); }
 
-    function createAgentHTML(idx) {
-      const name = agentNames[idx % agentNames.length];
-      const icon = agentIcons[idx % agentIcons.length];
-      const model = agentModels[idx % agentModels.length];
-      return `
-        <div class="agent-card" data-agent-idx="${idx}">
-          <div class="agent-header">
-            <div class="agent-icon">${icon}</div>
-            <div class="agent-name">${name}</div>
-          </div>
-          <div class="agent-role">役割: ${name}担当</div>
-          <div class="agent-model">${model}</div>
-        </div>
-      `;
+    function toast(msg) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.classList.add('show');
+      setTimeout(() => el.classList.remove('show'), 2000);
     }
 
-    // --- エージェント追加 ---
-    document.getElementById('btn-add-agent').addEventListener('click', () => {
-      const html = createAgentHTML(agentCounter);
-      const x = 100 + (agentCounter % 4) * 250;
-      const y = 100 + Math.floor(agentCounter / 4) * 200;
-      editor.addNode(
-        `agent-${agentCounter}`,
-        1, 1, x, y,
-        `agent-node`,
-        { agentIdx: agentCounter },
-        html
+    function agentById(id) { return org.agents.find(a => a.id === id); }
+    function nodeIdForAgent(agentId) {
+      return Object.keys(nodeToAgent).find(k => nodeToAgent[k] === agentId);
+    }
+
+    function createAgentHTML(agent) {
+      return `<div class="agent-card" data-agent-id="${agent.id}">
+        <div class="agent-header">
+          <div class="agent-icon">${agent.icon || '🤖'}</div>
+          <div class="agent-name">${agent.name}</div>
+        </div>
+        <div class="agent-role">${agent.role || '未設定'}</div>
+        <div class="agent-model">${(agent.model || MODELS[0]).split('/').pop()}</div>
+      </div>`;
+    }
+
+    function updateNodeHTML(agentId) {
+      const agent = agentById(agentId);
+      const nid = nodeIdForAgent(agentId);
+      if (!agent || !nid) return;
+      const nodeEl = container.querySelector(`#node-${nid}`);
+      if (!nodeEl) return;
+      const content = nodeEl.querySelector('.drawflow_content_node');
+      if (content) content.innerHTML = createAgentHTML(agent);
+    }
+
+    // --- Add Agent ---
+    function addAgent(agentData, x, y) {
+      const agent = {
+        id: agentData?.id || uid(),
+        name: agentData?.name || `Agent ${org.agents.length + 1}`,
+        role: agentData?.role || '',
+        personality: agentData?.personality || '',
+        icon: agentData?.icon || DEFAULT_ICONS[org.agents.length % DEFAULT_ICONS.length],
+        model: agentData?.model || MODELS[0],
+        systemPrompt: agentData?.systemPrompt || '',
+      };
+      org.agents.push(agent);
+
+      const px = x ?? 100 + (org.agents.length % 4) * 260;
+      const py = y ?? 80 + Math.floor(org.agents.length / 4) * 200;
+      const nodeId = editor.addNode(
+        agent.id, 1, 1, px, py, 'agent-node', { agentId: agent.id }, createAgentHTML(agent)
       );
-      agentCounter++;
+      nodeToAgent[nodeId] = agent.id;
+      scheduleSave();
+      return agent;
+    }
+
+    document.getElementById('btn-add-agent').addEventListener('click', () => {
+      addAgent();
     });
 
-    // --- dagre 自動整列 ---
+    // --- Double-click → side panel ---
+    let editingAgentId = null;
+    const panel = document.getElementById('side-panel');
+
+    editor.on('nodeSelected', function(nodeId) {
+      // single click - no action
+    });
+
+    container.addEventListener('dblclick', (e) => {
+      const card = e.target.closest('.agent-card');
+      if (!card) return;
+      const agentId = card.dataset.agentId;
+      openPanel(agentId);
+    });
+
+    function openPanel(agentId) {
+      const agent = agentById(agentId);
+      if (!agent) return;
+      editingAgentId = agentId;
+      document.getElementById('edit-icon').value = agent.icon || '';
+      document.getElementById('edit-name').value = agent.name || '';
+      document.getElementById('edit-role').value = agent.role || '';
+      document.getElementById('edit-personality').value = agent.personality || '';
+      document.getElementById('edit-model').value = agent.model || MODELS[0];
+      document.getElementById('edit-prompt').value = agent.systemPrompt || '';
+      panel.classList.add('open');
+    }
+
+    function closePanel() {
+      panel.classList.remove('open');
+      editingAgentId = null;
+    }
+
+    document.getElementById('panel-close').addEventListener('click', closePanel);
+
+    // Live editing
+    ['edit-icon', 'edit-name', 'edit-role', 'edit-personality', 'edit-model', 'edit-prompt'].forEach(id => {
+      document.getElementById(id).addEventListener('input', () => {
+        if (!editingAgentId) return;
+        const agent = agentById(editingAgentId);
+        if (!agent) return;
+        agent.icon = document.getElementById('edit-icon').value;
+        agent.name = document.getElementById('edit-name').value;
+        agent.role = document.getElementById('edit-role').value;
+        agent.personality = document.getElementById('edit-personality').value;
+        agent.model = document.getElementById('edit-model').value;
+        agent.systemPrompt = document.getElementById('edit-prompt').value;
+        updateNodeHTML(editingAgentId);
+        scheduleSave();
+      });
+    });
+
+    // --- Connection / Link management ---
+    editor.on('connectionCreated', function(info) {
+      const srcAgentId = nodeToAgent[info.output_id];
+      const tgtAgentId = nodeToAgent[info.input_id];
+      if (!srcAgentId || !tgtAgentId) return;
+
+      const linkId = uid();
+      org.links.push({
+        id: linkId,
+        source: srcAgentId,
+        target: tgtAgentId,
+        type: 'authority',
+      });
+
+      // Store connection key -> link mapping
+      const connKey = `${info.output_id}_${info.input_id}`;
+      connectionTypes[connKey] = { linkId, type: 'authority' };
+      applyConnectionColor(info.output_id, info.input_id, 'authority');
+      scheduleSave();
+    });
+
+    editor.on('connectionRemoved', function(info) {
+      const connKey = `${info.output_id}_${info.input_id}`;
+      const ct = connectionTypes[connKey];
+      if (ct) {
+        org.links = org.links.filter(l => l.id !== ct.linkId);
+        delete connectionTypes[connKey];
+      }
+      scheduleSave();
+    });
+
+    editor.on('nodeRemoved', function(nodeId) {
+      const agentId = nodeToAgent[nodeId];
+      if (agentId) {
+        org.agents = org.agents.filter(a => a.id !== agentId);
+        org.links = org.links.filter(l => l.source !== agentId && l.target !== agentId);
+        delete nodeToAgent[nodeId];
+        if (editingAgentId === agentId) closePanel();
+      }
+      // Clean connectionTypes
+      for (const key of Object.keys(connectionTypes)) {
+        if (key.startsWith(nodeId + '_') || key.endsWith('_' + nodeId)) {
+          delete connectionTypes[key];
+        }
+      }
+      scheduleSave();
+    });
+
+    function applyConnectionColor(outId, inId, type) {
+      // Find the SVG connection element
+      setTimeout(() => {
+        const connections = container.querySelectorAll('.connection');
+        connections.forEach(conn => {
+          const classes = conn.classList;
+          const path = conn.querySelector('.main-path');
+          if (!path) return;
+          // Match by node ids in class
+          if (classes.contains(`node_out_node-${outId}`) && classes.contains(`node_in_node-${inId}`)) {
+            conn.classList.remove('link-authority', 'link-communication', 'link-review');
+            conn.classList.add('link-' + type);
+            path.style.stroke = LINK_COLORS[type];
+          }
+        });
+      }, 50);
+    }
+
+    function applyAllConnectionColors() {
+      for (const [key, ct] of Object.entries(connectionTypes)) {
+        const [outId, inId] = key.split('_');
+        applyConnectionColor(outId, inId, ct.type);
+      }
+    }
+
+    // Click on connection to cycle link type
+    container.addEventListener('click', (e) => {
+      const path = e.target.closest('.main-path');
+      if (!path) return;
+      const conn = path.closest('.connection');
+      if (!conn) return;
+
+      // Find which connection this is
+      for (const [key, ct] of Object.entries(connectionTypes)) {
+        const [outId, inId] = key.split('_');
+        if (conn.classList.contains(`node_out_node-${outId}`) && conn.classList.contains(`node_in_node-${inId}`)) {
+          const idx = LINK_TYPES.indexOf(ct.type);
+          const newType = LINK_TYPES[(idx + 1) % LINK_TYPES.length];
+          ct.type = newType;
+          const link = org.links.find(l => l.id === ct.linkId);
+          if (link) link.type = newType;
+          applyConnectionColor(outId, inId, newType);
+          toast(`リンクタイプ: ${newType}`);
+          scheduleSave();
+          break;
+        }
+      }
+    });
+
+    // --- Auto Layout (dagre) ---
     document.getElementById('btn-auto-layout').addEventListener('click', () => {
       const data = editor.export().drawflow.Home.data;
       const nodeIds = Object.keys(data);
       if (nodeIds.length === 0) return;
 
       const g = new dagre.graphlib.Graph();
-      g.setGraph({ rankdir: 'TB', nodesep: 80, ranksep: 120 });
+      g.setGraph({ rankdir: 'TB', nodesep: 80, ranksep: 140 });
       g.setDefaultEdgeLabel(() => ({}));
 
-      nodeIds.forEach(id => {
-        g.setNode(id, { width: 200, height: 100 });
-      });
-
+      nodeIds.forEach(id => g.setNode(id, { width: 200, height: 100 }));
       nodeIds.forEach(id => {
         const node = data[id];
         Object.values(node.outputs || {}).forEach(output => {
-          (output.connections || []).forEach(conn => {
-            g.setEdge(id, conn.node);
-          });
+          (output.connections || []).forEach(conn => g.setEdge(id, conn.node));
         });
       });
 
       dagre.layout(g);
-
       nodeIds.forEach(id => {
         const pos = g.node(id);
         data[id].pos_x = pos.x - 100;
@@ -200,27 +500,168 @@ import Base from '../layouts/Base.astro';
       });
 
       editor.import({ drawflow: { Home: { data } } });
+      // Re-apply colors after import
+      setTimeout(applyAllConnectionColors, 100);
     });
 
-    // --- エクスポート ---
+    // --- Export ---
     document.getElementById('btn-export').addEventListener('click', () => {
-      const data = editor.export();
-      const resultEl = document.getElementById('export-result');
-      resultEl.textContent = JSON.stringify(data, null, 2);
-      resultEl.classList.toggle('visible');
+      const json = exportToJSON(org);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${org.name || 'agentflow'}-config.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast('エクスポート完了');
     });
 
-    // --- クリア ---
-    document.getElementById('btn-clear').addEventListener('click', () => {
-      if (confirm('全ノードを削除しますか？')) {
-        editor.clear();
-        agentCounter = 0;
+    // Inline export function (avoids module import issues in inline script)
+    function exportToJSON(org) {
+      function slugify(s) {
+        return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'unnamed';
       }
+      function buildPrompt(agent) {
+        const parts = [];
+        if (agent.personality) parts.push('# Personality\n' + agent.personality);
+        if (agent.role) parts.push('# Role\n' + agent.role);
+        if (agent.systemPrompt) parts.push(agent.systemPrompt);
+        return parts.length > 0 ? parts.join('\n\n') : undefined;
+      }
+      function getAuthTargets(agentId) {
+        return org.links.filter(l => l.source === agentId && l.type === 'authority').map(l => l.target);
+      }
+
+      const guildId = 'GUILD_' + slugify(org.name).toUpperCase();
+      const primaryModel = (org.agents[0]?.model) || 'anthropic/claude-opus-4-6';
+      const configs = {};
+      const channels = {};
+
+      for (const agent of org.agents) {
+        const prompt = buildPrompt(agent);
+        configs[agent.id] = {
+          name: agent.name,
+          ...(agent.model && { model: { primary: agent.model } }),
+          ...(prompt && { systemPrompt: prompt }),
+        };
+        const chId = 'CH_' + slugify(agent.name).toUpperCase();
+        const targets = getAuthTargets(agent.id);
+        channels[chId] = {
+          name: agent.name,
+          agentId: agent.id,
+          ...(targets.length > 0 && { sessions_send: targets }),
+        };
+      }
+
+      return JSON.stringify({
+        _meta: {
+          exportedFrom: 'agentflow',
+          version: 'v1',
+          organizationId: org.id,
+          organizationName: org.name,
+          exportedAt: new Date().toISOString(),
+        },
+        agents: {
+          defaults: { model: { primary: primaryModel }, workspace: '/path/to/workspace' },
+          configs,
+        },
+        channels: {
+          discord: {
+            enabled: true,
+            guilds: {
+              [guildId]: { name: org.name, channels },
+            },
+          },
+        },
+      }, null, 2);
+    }
+
+    // --- Save / Load ---
+    let saveTimer = null;
+    function scheduleSave() {
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(saveToStorage, 5000);
+    }
+
+    function saveToStorage() {
+      const drawflowData = editor.export();
+      const state = { org, nodeToAgent, connectionTypes, drawflow: drawflowData };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      updateOrgDisplay();
+      toast('保存しました');
+    }
+
+    function loadFromStorage() {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return false;
+      try {
+        const state = JSON.parse(raw);
+        org = state.org;
+        nodeToAgent = state.nodeToAgent || {};
+        connectionTypes = state.connectionTypes || {};
+        if (state.drawflow) {
+          editor.import(state.drawflow);
+          setTimeout(applyAllConnectionColors, 100);
+        }
+        updateOrgDisplay();
+        return true;
+      } catch (e) {
+        console.error('Failed to load:', e);
+        return false;
+      }
+    }
+
+    function updateOrgDisplay() {
+      document.getElementById('org-name-display').textContent = org.name;
+    }
+
+    document.getElementById('btn-save').addEventListener('click', () => {
+      clearTimeout(saveTimer);
+      saveToStorage();
     });
 
-    // 初期デモ: 3つのエージェントを配置
-    ['btn-add-agent', 'btn-add-agent', 'btn-add-agent'].forEach(() => {
-      document.getElementById('btn-add-agent').click();
+    // --- New Organization ---
+    document.getElementById('btn-new-org').addEventListener('click', () => {
+      const name = prompt('組織名を入力:');
+      if (!name) return;
+      editor.clear();
+      org = {
+        id: crypto.randomUUID(),
+        name,
+        description: '',
+        version: 'v1',
+        agents: [],
+        links: [],
+        groups: []
+      };
+      nodeToAgent = {};
+      connectionTypes = {};
+      closePanel();
+      updateOrgDisplay();
+      saveToStorage();
     });
+
+    // --- Clear ---
+    document.getElementById('btn-clear').addEventListener('click', () => {
+      if (!confirm('全ノードを削除しますか？')) return;
+      editor.clear();
+      org.agents = [];
+      org.links = [];
+      org.groups = [];
+      nodeToAgent = {};
+      connectionTypes = {};
+      closePanel();
+      scheduleSave();
+    });
+
+    // --- Init: load from storage or create demo ---
+    if (!loadFromStorage()) {
+      addAgent({ name: 'PM', role: 'プロジェクト管理', icon: '👔', model: MODELS[0] });
+      addAgent({ name: 'エンジニア', role: '実装担当', icon: '⚙️', model: MODELS[1] });
+      addAgent({ name: 'レビュアー', role: 'コードレビュー', icon: '👁️', model: MODELS[2] });
+    }
+
+  })();
   </script>
 </Base>

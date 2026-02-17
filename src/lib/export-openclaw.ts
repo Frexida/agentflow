@@ -2,27 +2,12 @@
  * OpenClaw Config Exporter v1
  *
  * Organization → OpenClaw config JSON 変換
- *
- * MVP検証基準（倫理アンチ承認済み）:
- * 1. config.apply で通る
- * 2. エージェントがセッションを持てる
- * 3. sessions_send で組織図通りの指示関係が動く
+ * マルチエージェント組織をDiscord guild+channels構造で表現
  */
 
-import type { Organization, Agent, Link } from './types';
+import type { Organization, Agent, Link, Group } from './types';
 
-/** OpenClaw agent config の型（エクスポート用） */
-export interface OpenClawAgentConfig {
-  name: string;
-  model?: { primary: string };
-  systemPrompt?: string;
-  workspace?: string;
-}
-
-/** OpenClaw config 全体の型 */
 export interface OpenClawConfig {
-  agents: Record<string, OpenClawAgentConfig>;
-  // TODO: channels, gateway 等の設定
   _meta: {
     exportedFrom: 'agentflow';
     version: 'v1';
@@ -30,29 +15,127 @@ export interface OpenClawConfig {
     organizationName: string;
     exportedAt: string;
   };
+  agents: {
+    defaults: {
+      model: { primary: string };
+      workspace: string;
+    };
+    configs: Record<string, {
+      name: string;
+      model?: { primary: string };
+      systemPrompt?: string;
+      soul?: string;
+    }>;
+  };
+  channels: {
+    discord: {
+      enabled: boolean;
+      guilds: Record<string, {
+        name: string;
+        categories: Record<string, {
+          name: string;
+          channels: Record<string, {
+            name: string;
+            agentId: string;
+            sessions_send?: string[];
+          }>;
+        }>;
+        channels: Record<string, {
+          name: string;
+          agentId: string;
+          sessions_send?: string[];
+        }>;
+      }>;
+    };
+  };
 }
 
-/**
- * Organization を OpenClaw config JSON に変換する
- *
- * TODO: 以下を実装
- * - Agent → agents config マッピング
- * - Link (authority) → sessions_send 許可設定
- * - Link (communication) → channel 設定
- * - Group → channel/workspace 構造
- */
-export function exportToOpenClawConfig(org: Organization): OpenClawConfig {
-  const agents: Record<string, OpenClawAgentConfig> = {};
+function slugify(s: string): string {
+  return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'unnamed';
+}
 
+function buildSystemPrompt(agent: Agent): string | undefined {
+  const parts: string[] = [];
+  if (agent.personality) parts.push(`# Personality\n${agent.personality}`);
+  if (agent.role) parts.push(`# Role\n${agent.role}`);
+  if (agent.systemPrompt) parts.push(agent.systemPrompt);
+  return parts.length > 0 ? parts.join('\n\n') : undefined;
+}
+
+function getAuthorityTargets(agentId: string, links: Link[]): string[] {
+  return links
+    .filter(l => l.source === agentId && l.type === 'authority')
+    .map(l => l.target);
+}
+
+export function exportToOpenClawConfig(org: Organization): OpenClawConfig {
+  const guildId = `GUILD_${slugify(org.name).toUpperCase()}`;
+  
+  // Find primary model (most common or first)
+  const models = org.agents.map(a => a.model).filter(Boolean);
+  const primaryModel = models[0] || 'anthropic/claude-opus-4-6';
+
+  // Agent configs
+  const agentConfigs: OpenClawConfig['agents']['configs'] = {};
   for (const agent of org.agents) {
-    agents[agent.id] = mapAgent(agent);
+    const prompt = buildSystemPrompt(agent);
+    agentConfigs[agent.id] = {
+      name: agent.name,
+      ...(agent.model && { model: { primary: agent.model } }),
+      ...(prompt && { systemPrompt: prompt }),
+      ...(agent.personality && { soul: agent.personality }),
+    };
   }
 
-  // TODO: Link の authority 関係を設定に反映
-  // TODO: Group をチャンネル構造に反映
+  // Group agents by group
+  const groupMap = new Map<string, Group>();
+  for (const g of org.groups) groupMap.set(g.id, g);
+  
+  const agentToGroup = new Map<string, string>();
+  for (const g of org.groups) {
+    for (const aid of g.agentIds) agentToGroup.set(aid, g.id);
+  }
+
+  // Build channel structure
+  const categories: OpenClawConfig['channels']['discord']['guilds'][string]['categories'] = {};
+  const ungroupedChannels: OpenClawConfig['channels']['discord']['guilds'][string]['channels'] = {};
+
+  // Create categories from groups
+  for (const group of org.groups) {
+    const catId = `CAT_${slugify(group.name).toUpperCase()}`;
+    const catChannels: Record<string, { name: string; agentId: string; sessions_send?: string[] }> = {};
+    
+    for (const agentId of group.agentIds) {
+      const agent = org.agents.find(a => a.id === agentId);
+      if (!agent) continue;
+      const chId = `CH_${slugify(agent.name).toUpperCase()}`;
+      const targets = getAuthorityTargets(agent.id, org.links);
+      catChannels[chId] = {
+        name: agent.name,
+        agentId: agent.id,
+        ...(targets.length > 0 && { sessions_send: targets }),
+      };
+    }
+    
+    categories[catId] = {
+      name: group.name,
+      channels: catChannels,
+    };
+  }
+
+  // Ungrouped agents
+  for (const agent of org.agents) {
+    if (agentToGroup.has(agent.id)) continue;
+    const chId = `CH_${slugify(agent.name).toUpperCase()}`;
+    const targets = getAuthorityTargets(agent.id, org.links);
+    ungroupedChannels[chId] = {
+      name: agent.name,
+      agentId: agent.id,
+      ...(targets.length > 0 && { sessions_send: targets }),
+    };
+  }
 
   return {
-    agents,
     _meta: {
       exportedFrom: 'agentflow',
       version: 'v1',
@@ -60,33 +143,28 @@ export function exportToOpenClawConfig(org: Organization): OpenClawConfig {
       organizationName: org.name,
       exportedAt: new Date().toISOString(),
     },
+    agents: {
+      defaults: {
+        model: { primary: primaryModel },
+        workspace: '/path/to/workspace',
+      },
+      configs: agentConfigs,
+    },
+    channels: {
+      discord: {
+        enabled: true,
+        guilds: {
+          [guildId]: {
+            name: org.name,
+            categories,
+            channels: ungroupedChannels,
+          },
+        },
+      },
+    },
   };
 }
 
-/** Agent → OpenClaw agent config 変換 */
-function mapAgent(agent: Agent): OpenClawAgentConfig {
-  const config: OpenClawAgentConfig = {
-    name: agent.name,
-  };
-
-  if (agent.model) {
-    config.model = { primary: agent.model };
-  }
-
-  // personality + systemPrompt を結合してシステムプロンプトに
-  const promptParts: string[] = [];
-  if (agent.personality) promptParts.push(agent.personality);
-  if (agent.systemPrompt) promptParts.push(agent.systemPrompt);
-  if (promptParts.length > 0) {
-    config.systemPrompt = promptParts.join('\n\n');
-  }
-
-  return config;
-}
-
-/**
- * エクスポートしたconfigをJSON文字列として返す
- */
 export function exportToJSON(org: Organization): string {
   return JSON.stringify(exportToOpenClawConfig(org), null, 2);
 }

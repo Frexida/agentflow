@@ -276,6 +276,8 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     <button id="btn-groups" class="secondary">📁 グループ</button>
     <button id="btn-templates" class="secondary">📋 テンプレート</button>
     <div class="spacer"></div>
+    <button id="btn-import" class="secondary">📥 インポート</button>
+    <input type="file" id="import-file" accept=".json" style="display:none" />
     <button id="btn-export" class="secondary">📤 エクスポート</button>
     <button id="btn-save" class="secondary">💾 保存</button>
     <button id="btn-clear" class="danger">🗑 クリア</button>
@@ -1191,6 +1193,115 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 
     function updateOrgDisplay() {
       document.getElementById('org-name-display').textContent = org.name;
+    }
+
+    // --- Config Import ---
+    document.getElementById('btn-import').addEventListener('click', () => {
+      document.getElementById('import-file').click();
+    });
+
+    document.getElementById('import-file').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        try {
+          const json = JSON.parse(ev.target.result);
+          importConfig(json);
+        } catch (err) {
+          toast('JSONの読み込みに失敗しました: ' + err.message);
+        }
+      };
+      reader.readAsText(file);
+      e.target.value = ''; // reset for re-import
+    });
+
+    function importConfig(config) {
+      // Support both OpenClaw config and AgentFlow full export
+      const agents = config.agents?.list || config.org?.agents || [];
+      const isOpenClawConfig = !!config.agents?.list;
+      const isAgentFlowExport = !!config.org;
+
+      if (agents.length === 0) {
+        toast('エージェントが見つかりません');
+        return;
+      }
+
+      if (org.agents.length > 0 && !confirm('現在の組織を置換しますか？インポートすると現在のデータは失われます。')) return;
+
+      // Clear current
+      editor.clear();
+      org.agents = [];
+      org.links = [];
+      org.groups = [];
+      nodeToAgent = {};
+      connectionTypes = {};
+      closePanel();
+
+      if (isAgentFlowExport && config.org) {
+        // AgentFlow full export — restore directly
+        org.name = config.org.name || 'Imported Org';
+        org.description = config.org.description || '';
+        for (const a of config.org.agents || []) {
+          addAgent(a, null, null);
+        }
+        // Restore links
+        for (const link of config.org.links || []) {
+          const srcAgent = agentById(link.source);
+          const tgtAgent = agentById(link.target);
+          if (srcAgent && tgtAgent) {
+            connectAgents(srcAgent, tgtAgent, link.type || 'authority');
+          }
+        }
+        // Restore groups
+        org.groups = config.org.groups || [];
+
+      } else if (isOpenClawConfig) {
+        // OpenClaw config format
+        org.name = 'OpenClaw Import';
+        const bindings = config.bindings || [];
+        const defaults = config.agents?.defaults || {};
+
+        for (const agentDef of agents) {
+          const model = agentDef.model || defaults.model?.primary || '';
+          const binding = bindings.find(b => b.agentId === agentDef.id);
+          const channelInfo = binding ? `${binding.match?.channel || ''} ${binding.match?.peer?.id || ''}`.trim() : '';
+
+          addAgent({
+            id: agentDef.id,
+            name: agentDef.identity?.name || agentDef.name || agentDef.id,
+            role: agentDef.id,
+            icon: agentDef.identity?.avatar || '🤖',
+            model: model,
+            personality: '',
+            systemPrompt: channelInfo ? `Channel binding: ${channelInfo}` : '',
+            toolsProfile: '',
+            memory: '',
+          }, null, null);
+        }
+
+        // Create authority links from subagents.allowAgents
+        for (const agentDef of agents) {
+          const allowAgents = agentDef.subagents?.allowAgents || [];
+          const srcAgent = org.agents.find(a => a.id === agentDef.id);
+          if (!srcAgent) continue;
+          for (const subId of allowAgents) {
+            const tgtAgent = org.agents.find(a => a.id === subId);
+            if (tgtAgent) {
+              connectAgents(srcAgent, tgtAgent, 'authority');
+            }
+          }
+        }
+      }
+
+      // Auto-layout after import
+      setTimeout(() => {
+        document.getElementById('btn-auto-layout').click();
+        renderGroupOverlays();
+        updateOrgDisplay();
+        scheduleSave();
+        toast(`${org.agents.length}エージェントをインポートしました`);
+      }, 100);
     }
 
     document.getElementById('btn-save').addEventListener('click', () => {

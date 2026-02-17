@@ -1831,6 +1831,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     // --- Gateway Connection & Live Monitor ---
     // ==============================================
     const gw = new GatewayClient();
+    window.gatewayClient = gw;
     const gwBtn = document.getElementById('btn-gateway');
     const gwModal = document.getElementById('gateway-modal');
     const gwOverlay = document.getElementById('gateway-overlay');

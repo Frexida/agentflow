@@ -456,7 +456,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
           <div class="agent-name">${agent.name}</div>
         </div>
         <div class="agent-role">${agent.role || '未設定'}</div>
-        <div class="agent-model">${(agent.model || MODELS[0]).split('/').pop()}</div>
+        <div class="agent-model">${(typeof agent.model === 'string' ? agent.model : agent.model?.primary || MODELS[0]).split('/').pop()}</div>
       </div>`;
     }
 
@@ -1263,7 +1263,8 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
         const defaults = config.agents?.defaults || {};
 
         for (const agentDef of agents) {
-          const model = agentDef.model || defaults.model?.primary || '';
+          const rawModel = agentDef.model || defaults.model || '';
+          const model = typeof rawModel === 'string' ? rawModel : rawModel?.primary || '';
           const binding = bindings.find(b => b.agentId === agentDef.id);
           const channelInfo = binding ? `${binding.match?.channel || ''} ${binding.match?.peer?.id || ''}`.trim() : '';
 

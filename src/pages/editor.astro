@@ -266,6 +266,127 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       margin-left: 8px;
     }
     .hints-overlay .hint-close:hover { color: #e2e8f0; }
+
+    /* Export preview modal */
+    #export-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:599; }
+    #export-modal {
+      display: none;
+      position: fixed;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 12px;
+      padding: 24px;
+      z-index: 600;
+      width: 700px;
+      max-width: 95vw;
+      max-height: 85vh;
+      display: none;
+      flex-direction: column;
+    }
+    #export-modal h3 {
+      color: #e5e7eb;
+      margin: 0 0 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 16px;
+    }
+    .export-tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 12px;
+    }
+    .export-tabs button {
+      padding: 6px 14px;
+      background: #252525;
+      color: #9ca3af;
+      border: 1px solid #333;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 150ms;
+    }
+    .export-tabs button.active {
+      background: #3b82f6;
+      color: white;
+      border-color: #3b82f6;
+    }
+    #export-preview {
+      flex: 1;
+      overflow: auto;
+      background: #111;
+      border: 1px solid #2a2a2a;
+      border-radius: 8px;
+      padding: 16px;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 12px;
+      color: #a5f3fc;
+      white-space: pre-wrap;
+      word-break: break-word;
+      min-height: 300px;
+      max-height: 50vh;
+      line-height: 1.5;
+    }
+    .export-stats {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 12px;
+      color: #6b7280;
+      font-size: 12px;
+    }
+    .export-stats span { display:flex; align-items:center; gap:4px; }
+    .export-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 16px;
+    }
+    .export-actions button {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: background 150ms;
+    }
+    .export-actions .btn-download { background: #3b82f6; color: white; }
+    .export-actions .btn-download:hover { background: #2563eb; }
+    .export-actions .btn-copy { background: #333; color: #e5e7eb; }
+    .export-actions .btn-copy:hover { background: #444; }
+    .export-actions .btn-close { background: #252525; color: #9ca3af; margin-left: auto; }
+
+    /* Mobile responsive */
+    @media (max-width: 768px) {
+      .toolbar {
+        flex-wrap: wrap;
+        height: auto;
+        padding: 8px;
+        gap: 6px;
+      }
+      .toolbar .spacer { display: none; }
+      .toolbar button { padding: 5px 10px; font-size: 12px; }
+      .toolbar .org-name { font-size: 12px; width: 100%; margin-bottom: 4px; }
+      #side-panel { width: 100vw; }
+      #group-panel { width: 100vw; }
+      #drawflow { height: calc(100vh - 90px); }
+      .hints-overlay {
+        flex-wrap: wrap;
+        width: 90vw;
+        gap: 8px;
+        padding: 10px 14px;
+        font-size: 12px;
+      }
+      #export-modal { width: 95vw; padding: 16px; }
+      #export-preview { font-size: 11px; min-height: 200px; }
+    }
+    @media (max-width: 480px) {
+      .toolbar button { padding: 4px 8px; font-size: 11px; }
+      .agent-card { min-width: 140px; padding: 8px; }
+      .agent-card .agent-header { gap: 6px; }
+      .agent-card .agent-icon { width: 26px; height: 26px; font-size: 14px; }
+      .agent-card .agent-name { font-size: 13px; }
+    }
   </style>
 
   <div class="toolbar">
@@ -351,6 +472,29 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     </div>
   </div>
   <div id="link-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:399"></div>
+
+  <!-- Export preview modal -->
+  <div id="export-overlay"></div>
+  <div id="export-modal">
+    <h3>📤 エクスポートプレビュー <button id="export-modal-close" style="background:none;border:none;color:#6b7280;font-size:20px;cursor:pointer">✕</button></h3>
+    <div class="export-stats">
+      <span>👥 エージェント: <strong id="export-stat-agents">0</strong></span>
+      <span>🔗 接続: <strong id="export-stat-links">0</strong></span>
+      <span>📁 グループ: <strong id="export-stat-groups">0</strong></span>
+    </div>
+    <div class="export-tabs">
+      <button class="active" data-tab="config">⚙️ OpenClaw Config</button>
+      <button data-tab="full">📦 Full Export</button>
+      <button data-tab="script">🖥️ Setup Script</button>
+    </div>
+    <pre id="export-preview"></pre>
+    <div class="export-actions">
+      <button class="btn-download" id="export-dl-current">⬇️ ダウンロード</button>
+      <button class="btn-download" id="export-dl-all" style="background:#059669">⬇️ 全ファイル</button>
+      <button class="btn-copy" id="export-copy">📋 コピー</button>
+      <button class="btn-close" id="export-close">閉じる</button>
+    </div>
+  </div>
 
   <!-- Template modal -->
   <div id="template-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:499"></div>
@@ -953,6 +1097,77 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       return { errors, warnings };
     }
 
+    // --- Export preview modal ---
+    let exportResult = null;
+    let exportScript = '';
+    let currentExportTab = 'config';
+
+    const exportModal = document.getElementById('export-modal');
+    const exportOverlay = document.getElementById('export-overlay');
+    const exportPreview = document.getElementById('export-preview');
+
+    function getExportContent(tab) {
+      if (tab === 'config') return JSON.stringify(exportResult.config, null, 2);
+      if (tab === 'full') return JSON.stringify(exportResult, null, 2);
+      if (tab === 'script') return exportScript;
+      return '';
+    }
+
+    function showExportTab(tab) {
+      currentExportTab = tab;
+      document.querySelectorAll('.export-tabs button').forEach(b => {
+        b.classList.toggle('active', b.dataset.tab === tab);
+      });
+      exportPreview.textContent = getExportContent(tab);
+    }
+
+    function openExportModal() {
+      exportModal.style.display = 'flex';
+      exportOverlay.style.display = 'block';
+      document.getElementById('export-stat-agents').textContent = org.agents.length;
+      document.getElementById('export-stat-links').textContent = org.links.length;
+      document.getElementById('export-stat-groups').textContent = org.groups.length;
+      showExportTab('config');
+    }
+
+    function closeExportModal() {
+      exportModal.style.display = 'none';
+      exportOverlay.style.display = 'none';
+    }
+
+    document.querySelectorAll('.export-tabs button').forEach(btn => {
+      btn.addEventListener('click', () => showExportTab(btn.dataset.tab));
+    });
+
+    document.getElementById('export-modal-close').addEventListener('click', closeExportModal);
+    document.getElementById('export-close').addEventListener('click', closeExportModal);
+    exportOverlay.addEventListener('click', closeExportModal);
+
+    document.getElementById('export-copy').addEventListener('click', () => {
+      navigator.clipboard.writeText(getExportContent(currentExportTab)).then(() => toast('📋 コピーしました'));
+    });
+
+    document.getElementById('export-dl-current').addEventListener('click', () => {
+      const tab = currentExportTab;
+      const name = org.name || 'agentflow';
+      if (tab === 'config') {
+        downloadBlob(new Blob([JSON.stringify(exportResult.config, null, 2)], { type: 'application/json' }), `${name}-openclaw.json`);
+      } else if (tab === 'full') {
+        downloadBlob(new Blob([JSON.stringify(exportResult, null, 2)], { type: 'application/json' }), `${name}-full-export.json`);
+      } else {
+        downloadBlob(new Blob([exportScript], { type: 'text/x-shellscript' }), `${name}-setup.sh`);
+      }
+      toast('⬇️ ダウンロード開始');
+    });
+
+    document.getElementById('export-dl-all').addEventListener('click', () => {
+      const name = org.name || 'agentflow';
+      downloadBlob(new Blob([JSON.stringify(exportResult.config, null, 2)], { type: 'application/json' }), `${name}-openclaw.json`);
+      downloadBlob(new Blob([JSON.stringify(exportResult, null, 2)], { type: 'application/json' }), `${name}-full-export.json`);
+      downloadBlob(new Blob([exportScript], { type: 'text/x-shellscript' }), `${name}-setup.sh`);
+      toast('エクスポート完了（3ファイル）');
+    });
+
     document.getElementById('btn-export').addEventListener('click', () => {
       const { errors, warnings } = validateOrg(org);
       if (errors.length > 0) {
@@ -962,18 +1177,9 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       if (warnings.length > 0) {
         if (!confirm('⚠️ 警告:\n' + warnings.join('\n') + '\n\n続行しますか？')) return;
       }
-      const result = exportToOpenClaw(org);
-      // Download config JSON (schema-compliant, for config.apply)
-      const configBlob = new Blob([JSON.stringify(result.config, null, 2)], { type: 'application/json' });
-      downloadBlob(configBlob, `${org.name || 'agentflow'}-openclaw.json`);
-      // Download full export (config + meta + workspace files)
-      const fullBlob = new Blob([JSON.stringify(result, null, 2)], { type: 'application/json' });
-      downloadBlob(fullBlob, `${org.name || 'agentflow'}-full-export.json`);
-      // Download workspace setup script
-      const script = generateSetupScript(org, result);
-      const scriptBlob = new Blob([script], { type: 'text/x-shellscript' });
-      downloadBlob(scriptBlob, `${org.name || 'agentflow'}-setup.sh`);
-      toast('エクスポート完了（3ファイル）');
+      exportResult = exportToOpenClaw(org);
+      exportScript = generateSetupScript(org, exportResult);
+      openExportModal();
     });
 
     function generateSetupScript(org, result) {

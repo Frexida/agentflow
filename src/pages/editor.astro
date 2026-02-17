@@ -617,6 +617,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       <button class="btn-download" id="export-dl-current">⬇️ Download</button>
       <button class="btn-download" id="export-dl-all" style="background:#059669">⬇️ All Files</button>
       <button class="btn-copy" id="export-copy">📋 Copy</button>
+      <button class="btn-download" id="export-apply-gw" style="background:#f59e0b;color:#000;display:none">⚡ Apply to Gateway</button>
       <button class="btn-close" id="export-close">Close</button>
     </div>
   </div>
@@ -1254,6 +1255,9 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       document.getElementById('export-stat-agents').textContent = org.agents.length;
       document.getElementById('export-stat-links').textContent = org.links.length;
       document.getElementById('export-stat-groups').textContent = org.groups.length;
+      // Show/hide Apply to Gateway button
+      const applyBtn = document.getElementById('export-apply-gw');
+      applyBtn.style.display = window.gatewayClient?.connected ? 'inline-block' : 'none';
       showExportTab('config');
     }
 
@@ -1293,6 +1297,22 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       downloadBlob(new Blob([JSON.stringify(exportResult, null, 2)], { type: 'application/json' }), `${name}-full-export.json`);
       downloadBlob(new Blob([exportScript], { type: 'text/x-shellscript' }), `${name}-setup.sh`);
       toast('Export complete (3 files)');
+    });
+
+    document.getElementById('export-apply-gw').addEventListener('click', async () => {
+      if (!window.gatewayClient?.connected) {
+        toast('❌ Gateway not connected');
+        return;
+      }
+      if (!confirm('⚠️ Apply this config to your running OpenClaw Gateway?\n\nThis will overwrite the current config and restart the gateway.\n\nAre you sure?')) return;
+      try {
+        toast('Applying config to Gateway...');
+        await window.gatewayClient.rpc('config.apply', { raw: JSON.stringify(exportResult.config, null, 2) });
+        toast('✅ Config applied! Gateway restarting...');
+        closeExportModal();
+      } catch (err) {
+        toast('❌ Apply failed: ' + err.message);
+      }
     });
 
     document.getElementById('btn-export').addEventListener('click', () => {

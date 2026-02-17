@@ -98,15 +98,64 @@ function slugify(s: string): string {
 }
 
 /**
- * Build SOUL.md content from agent definition
+ * Build SOUL.md content from agent definition + org relationships
  */
-function buildSoulMd(agent: Agent): string | undefined {
+function buildSoulMd(agent: Agent, org: Organization): string {
   const parts: string[] = [];
-  if (agent.name) parts.push(`# ${agent.name}`);
+  parts.push(`# ${agent.name || agent.id}`);
   if (agent.personality) parts.push(`## Personality\n${agent.personality}`);
   if (agent.role) parts.push(`## Role\n${agent.role}`);
   if (agent.systemPrompt) parts.push(`## Instructions\n${agent.systemPrompt}`);
-  return parts.length > 0 ? parts.join('\n\n') + '\n' : undefined;
+
+  // Org relationship context from links
+  const relationships: string[] = [];
+
+  // Who gives me orders (authority links targeting me)
+  const superiors = org.links
+    .filter(l => l.target === agent.id && l.type === 'authority')
+    .map(l => org.agents.find(a => a.id === l.source)?.name || l.source);
+  if (superiors.length > 0) {
+    relationships.push(`- **Reports to:** ${superiors.join(', ')} — prioritize their instructions`);
+  }
+
+  // Who I can give orders to (authority links from me)
+  const subordinates = org.links
+    .filter(l => l.source === agent.id && l.type === 'authority')
+    .map(l => org.agents.find(a => a.id === l.target)?.name || l.target);
+  if (subordinates.length > 0) {
+    relationships.push(`- **Manages:** ${subordinates.join(', ')} — can delegate tasks via sessions_spawn`);
+  }
+
+  // Communication peers
+  const commPeers = org.links
+    .filter(l => (l.source === agent.id || l.target === agent.id) && l.type === 'communication')
+    .map(l => {
+      const peerId = l.source === agent.id ? l.target : l.source;
+      return org.agents.find(a => a.id === peerId)?.name || peerId;
+    });
+  if (commPeers.length > 0) {
+    relationships.push(`- **Communicates with:** ${commPeers.join(', ')}`);
+  }
+
+  // Review relationships
+  const reviewTargets = org.links
+    .filter(l => l.source === agent.id && l.type === 'review')
+    .map(l => org.agents.find(a => a.id === l.target)?.name || l.target);
+  if (reviewTargets.length > 0) {
+    relationships.push(`- **Reviews work of:** ${reviewTargets.join(', ')}`);
+  }
+  const reviewedBy = org.links
+    .filter(l => l.target === agent.id && l.type === 'review')
+    .map(l => org.agents.find(a => a.id === l.source)?.name || l.source);
+  if (reviewedBy.length > 0) {
+    relationships.push(`- **Reviewed by:** ${reviewedBy.join(', ')}`);
+  }
+
+  if (relationships.length > 0) {
+    parts.push(`## Organization\n${relationships.join('\n')}`);
+  }
+
+  return parts.join('\n\n') + '\n';
 }
 
 /**
@@ -115,6 +164,50 @@ function buildSoulMd(agent: Agent): string | undefined {
 function buildMemoryMd(agent: Agent): string | undefined {
   if (!agent.memory) return undefined;
   return `# Initial Memory\n\n${agent.memory}\n`;
+}
+
+/**
+ * Build AGENTS.md — org chart context for the agent
+ */
+function buildAgentsMd(agent: Agent, org: Organization): string {
+  const lines: string[] = [];
+  lines.push(`# AGENTS.md — Organization Context for ${agent.name || agent.id}`);
+  lines.push('');
+  lines.push(`## Organization: ${org.name}`);
+  if (org.description) lines.push(`\n${org.description}`);
+  lines.push('');
+  lines.push('## Team Members');
+  for (const a of org.agents) {
+    const marker = a.id === agent.id ? ' **(you)**' : '';
+    lines.push(`- **${a.name || a.id}**${marker}: ${a.role || 'No role defined'}`);
+  }
+  lines.push('');
+  lines.push('## Authority Structure');
+  const authorityLinks = org.links.filter(l => l.type === 'authority');
+  if (authorityLinks.length > 0) {
+    for (const l of authorityLinks) {
+      const src = org.agents.find(a => a.id === l.source)?.name || l.source;
+      const tgt = org.agents.find(a => a.id === l.target)?.name || l.target;
+      lines.push(`- ${src} → ${tgt} (authority)`);
+    }
+  } else {
+    lines.push('- Flat structure (no authority links defined)');
+  }
+
+  // Groups
+  if (org.groups.length > 0) {
+    lines.push('');
+    lines.push('## Groups');
+    for (const g of org.groups) {
+      const members = g.agentIds
+        .map(id => org.agents.find(a => a.id === id)?.name || id)
+        .join(', ');
+      lines.push(`- **${g.name}**: ${members}`);
+    }
+  }
+
+  lines.push('');
+  return lines.join('\n');
 }
 
 /**
@@ -171,14 +264,12 @@ export function exportToOpenClaw(org: Organization): ExportResult {
 
     // Workspace files for this agent
     const files: Record<string, string> = {};
-    const soul = buildSoulMd(agent);
-    if (soul) files['SOUL.md'] = soul;
+    files['SOUL.md'] = buildSoulMd(agent, org);
+    files['AGENTS.md'] = buildAgentsMd(agent, org);
     const memory = buildMemoryMd(agent);
     if (memory) files['MEMORY.md'] = memory;
 
-    if (Object.keys(files).length > 0) {
-      workspaceFiles[agent.id] = files;
-    }
+    workspaceFiles[agent.id] = files;
   }
 
   // Build bindings (agent → Discord channel)

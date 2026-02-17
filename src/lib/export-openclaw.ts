@@ -1,52 +1,95 @@
 /**
- * OpenClaw Config Exporter v1
+ * OpenClaw Config Exporter v2
  *
- * Organization → OpenClaw config JSON 変換
- * マルチエージェント組織をDiscord guild+channels構造で表現
+ * Organization → OpenClaw config JSON (schema-compliant)
+ * agents.list[] + bindings[] + channels.discord.guilds 構造
  */
 
 import type { Organization, Agent, Link, Group } from './types';
 
-export interface OpenClawConfig {
-  _meta: {
-    exportedFrom: 'agentflow';
-    version: 'v1';
-    organizationId: string;
-    organizationName: string;
-    exportedAt: string;
+// --- OpenClaw config types (schema-compliant subset) ---
+
+interface AgentIdentity {
+  name?: string;
+  emoji?: string;
+  avatar?: string;
+}
+
+interface AgentEntry {
+  id: string;
+  name?: string;
+  model?: string | { primary: string; fallbacks?: string[] };
+  workspace?: string;
+  identity?: AgentIdentity;
+  subagents?: {
+    allowAgents?: string[];
   };
+  tools?: {
+    profile?: 'minimal' | 'coding' | 'messaging' | 'full';
+  };
+}
+
+interface Binding {
+  agentId: string;
+  match: {
+    channel: string;
+    guildId?: string;
+    peer?: {
+      kind: 'direct' | 'group' | 'channel' | 'dm';
+      id: string;
+    };
+  };
+}
+
+interface DiscordChannelConfig {
+  allow?: boolean;
+  requireMention?: boolean;
+  systemPrompt?: string;
+}
+
+interface DiscordGuildConfig {
+  requireMention?: boolean;
+  users?: string[];
+  channels?: Record<string, DiscordChannelConfig>;
+}
+
+interface OpenClawConfig {
   agents: {
     defaults: {
-      model: { primary: string };
+      model: { primary: string; fallbacks?: string[] };
       workspace: string;
     };
-    configs: Record<string, {
-      name: string;
-      model?: { primary: string };
-      systemPrompt?: string;
-      soul?: string;
-    }>;
+    list: AgentEntry[];
   };
+  bindings: Binding[];
   channels: {
     discord: {
       enabled: boolean;
-      guilds: Record<string, {
-        name: string;
-        categories: Record<string, {
-          name: string;
-          channels: Record<string, {
-            name: string;
-            agentId: string;
-            sessions_send?: string[];
-          }>;
-        }>;
-        channels: Record<string, {
-          name: string;
-          agentId: string;
-          sessions_send?: string[];
-        }>;
-      }>;
+      groupPolicy: 'open' | 'disabled' | 'allowlist';
+      guilds: Record<string, DiscordGuildConfig>;
     };
+  };
+  commands: {
+    native: 'auto' | boolean;
+    nativeSkills: 'auto' | boolean;
+  };
+}
+
+/** AgentFlow metadata (separate from OpenClaw config) */
+export interface ExportResult {
+  /** Schema-compliant OpenClaw config (can be fed to config.apply) */
+  config: OpenClawConfig;
+  /** AgentFlow metadata for reference */
+  meta: {
+    exportedFrom: 'agentflow';
+    version: 'v2';
+    organizationId: string;
+    organizationName: string;
+    exportedAt: string;
+    /** Workspace files to create per agent (SOUL.md, AGENTS.md, etc.) */
+    workspaceFiles: Record<string, Record<string, string>>;
+    /** Organization links for documentation */
+    links: Array<{ source: string; target: string; type: string; label?: string }>;
   };
 }
 
@@ -54,117 +97,173 @@ function slugify(s: string): string {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'unnamed';
 }
 
-function buildSystemPrompt(agent: Agent): string | undefined {
+/**
+ * Build SOUL.md content from agent definition
+ */
+function buildSoulMd(agent: Agent): string | undefined {
   const parts: string[] = [];
-  if (agent.personality) parts.push(`# Personality\n${agent.personality}`);
-  if (agent.role) parts.push(`# Role\n${agent.role}`);
-  if (agent.systemPrompt) parts.push(agent.systemPrompt);
-  return parts.length > 0 ? parts.join('\n\n') : undefined;
+  if (agent.name) parts.push(`# ${agent.name}`);
+  if (agent.personality) parts.push(`## Personality\n${agent.personality}`);
+  if (agent.role) parts.push(`## Role\n${agent.role}`);
+  if (agent.systemPrompt) parts.push(`## Instructions\n${agent.systemPrompt}`);
+  return parts.length > 0 ? parts.join('\n\n') + '\n' : undefined;
 }
 
+/**
+ * Build MEMORY.md content from agent initial memory
+ */
+function buildMemoryMd(agent: Agent): string | undefined {
+  if (!agent.memory) return undefined;
+  return `# Initial Memory\n\n${agent.memory}\n`;
+}
+
+/**
+ * Get authority targets (agents this agent can delegate to via sessions_spawn)
+ */
 function getAuthorityTargets(agentId: string, links: Link[]): string[] {
   return links
     .filter(l => l.source === agentId && l.type === 'authority')
     .map(l => l.target);
 }
 
-export function exportToOpenClawConfig(org: Organization): OpenClawConfig {
-  const guildId = `GUILD_${slugify(org.name).toUpperCase()}`;
-  
-  // Find primary model (most common or first)
+export function exportToOpenClaw(org: Organization): ExportResult {
+  // Placeholder IDs — user must replace with real Discord IDs
+  const GUILD_PLACEHOLDER = 'REPLACE_WITH_GUILD_ID';
+  const channelPlaceholder = (agentId: string) => `REPLACE_WITH_CHANNEL_ID_FOR_${slugify(agentId).toUpperCase()}`;
+
+  // Find primary model
   const models = org.agents.map(a => a.model).filter(Boolean);
   const primaryModel = models[0] || 'anthropic/claude-opus-4-6';
 
-  // Agent configs
-  const agentConfigs: OpenClawConfig['agents']['configs'] = {};
+  // Base workspace path
+  const baseWorkspace = '/home/user/.openclaw/workspace';
+
+  // Build agents.list
+  const agentList: AgentEntry[] = [];
+  const workspaceFiles: Record<string, Record<string, string>> = {};
+
   for (const agent of org.agents) {
-    const prompt = buildSystemPrompt(agent);
-    agentConfigs[agent.id] = {
+    const agentSlug = slugify(agent.name || agent.id);
+    const agentWorkspace = `${baseWorkspace}/${agentSlug}`;
+    const authorityTargets = getAuthorityTargets(agent.id, org.links);
+
+    const entry: AgentEntry = {
+      id: agent.id,
       name: agent.name,
-      ...(agent.model && { model: { primary: agent.model } }),
-      ...(prompt && { systemPrompt: prompt }),
-      ...(agent.personality && { soul: agent.personality }),
-    };
-  }
-
-  // Group agents by group
-  const groupMap = new Map<string, Group>();
-  for (const g of org.groups) groupMap.set(g.id, g);
-  
-  const agentToGroup = new Map<string, string>();
-  for (const g of org.groups) {
-    for (const aid of g.agentIds) agentToGroup.set(aid, g.id);
-  }
-
-  // Build channel structure
-  const categories: OpenClawConfig['channels']['discord']['guilds'][string]['categories'] = {};
-  const ungroupedChannels: OpenClawConfig['channels']['discord']['guilds'][string]['channels'] = {};
-
-  // Create categories from groups
-  for (const group of org.groups) {
-    const catId = `CAT_${slugify(group.name).toUpperCase()}`;
-    const catChannels: Record<string, { name: string; agentId: string; sessions_send?: string[] }> = {};
-    
-    for (const agentId of group.agentIds) {
-      const agent = org.agents.find(a => a.id === agentId);
-      if (!agent) continue;
-      const chId = `CH_${slugify(agent.name).toUpperCase()}`;
-      const targets = getAuthorityTargets(agent.id, org.links);
-      catChannels[chId] = {
+      workspace: agentWorkspace,
+      identity: {
         name: agent.name,
-        agentId: agent.id,
-        ...(targets.length > 0 && { sessions_send: targets }),
-      };
+        ...(agent.icon && { avatar: agent.icon }),
+      },
+    };
+
+    // Per-agent model override (only if different from default)
+    if (agent.model && agent.model !== primaryModel) {
+      entry.model = agent.model;
     }
-    
-    categories[catId] = {
-      name: group.name,
-      channels: catChannels,
-    };
+
+    // Authority links → subagents.allowAgents
+    if (authorityTargets.length > 0) {
+      entry.subagents = { allowAgents: authorityTargets };
+    }
+
+    agentList.push(entry);
+
+    // Workspace files for this agent
+    const files: Record<string, string> = {};
+    const soul = buildSoulMd(agent);
+    if (soul) files['SOUL.md'] = soul;
+    const memory = buildMemoryMd(agent);
+    if (memory) files['MEMORY.md'] = memory;
+
+    if (Object.keys(files).length > 0) {
+      workspaceFiles[agent.id] = files;
+    }
   }
 
-  // Ungrouped agents
-  for (const agent of org.agents) {
-    if (agentToGroup.has(agent.id)) continue;
-    const chId = `CH_${slugify(agent.name).toUpperCase()}`;
-    const targets = getAuthorityTargets(agent.id, org.links);
-    ungroupedChannels[chId] = {
-      name: agent.name,
-      agentId: agent.id,
-      ...(targets.length > 0 && { sessions_send: targets }),
-    };
-  }
-
-  return {
-    _meta: {
-      exportedFrom: 'agentflow',
-      version: 'v1',
-      organizationId: org.id,
-      organizationName: org.name,
-      exportedAt: new Date().toISOString(),
+  // Build bindings (agent → Discord channel)
+  const bindings: Binding[] = org.agents.map(agent => ({
+    agentId: agent.id,
+    match: {
+      channel: 'discord',
+      guildId: GUILD_PLACEHOLDER,
+      peer: {
+        kind: 'channel' as const,
+        id: channelPlaceholder(agent.id),
+      },
     },
+  }));
+
+  // Build Discord guild channels config
+  const channelConfigs: Record<string, DiscordChannelConfig> = {};
+  for (const agent of org.agents) {
+    channelConfigs[channelPlaceholder(agent.id)] = {
+      allow: true,
+      requireMention: false,
+    };
+  }
+
+  const config: OpenClawConfig = {
     agents: {
       defaults: {
         model: { primary: primaryModel },
-        workspace: '/path/to/workspace',
+        workspace: baseWorkspace,
       },
-      configs: agentConfigs,
+      list: agentList,
     },
+    bindings,
     channels: {
       discord: {
         enabled: true,
+        groupPolicy: 'allowlist',
         guilds: {
-          [guildId]: {
-            name: org.name,
-            categories,
-            channels: ungroupedChannels,
-          },
+          [GUILD_PLACEHOLDER]: {
+            requireMention: true,
+            users: ['*'],
+            channels: channelConfigs,
+          } as DiscordGuildConfig,
         },
       },
+    },
+    commands: {
+      native: 'auto',
+      nativeSkills: 'auto',
+    },
+  };
+
+  return {
+    config,
+    meta: {
+      exportedFrom: 'agentflow',
+      version: 'v2',
+      organizationId: org.id,
+      organizationName: org.name,
+      exportedAt: new Date().toISOString(),
+      workspaceFiles,
+      links: org.links.map(l => ({
+        source: l.source,
+        target: l.target,
+        type: l.type,
+        ...(l.label && { label: l.label }),
+      })),
     },
   };
 }
 
-export function exportToJSON(org: Organization): string {
-  return JSON.stringify(exportToOpenClawConfig(org), null, 2);
+/**
+ * Export OpenClaw config JSON only (for config.apply)
+ */
+export function exportConfigJSON(org: Organization): string {
+  const result = exportToOpenClaw(org);
+  return JSON.stringify(result.config, null, 2);
 }
+
+/**
+ * Export full result (config + meta + workspace files)
+ */
+export function exportFullJSON(org: Organization): string {
+  return JSON.stringify(exportToOpenClaw(org), null, 2);
+}
+
+// Legacy compat
+export const exportToJSON = exportFullJSON;

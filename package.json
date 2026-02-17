@@ -15,5 +15,8 @@
     "dagre": "^0.8.5",
     "htmx.org": "^2.0.8",
     "wrangler": "^4.65.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.21.0"
   }
 }

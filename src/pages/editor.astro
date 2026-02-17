@@ -1310,6 +1310,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
         // Get current full config
         const currentResult = await window.gatewayClient.rpc('config.get', {});
         const currentConfig = currentResult?.config || currentResult || {};
+        const baseHash = currentResult?.baseHash || currentResult?.hash || '';
 
         // Merge: only replace agents section, keep everything else
         const newExport = exportResult.config;
@@ -1321,7 +1322,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
         };
 
         toast('Applying merged config...');
-        await window.gatewayClient.rpc('config.apply', { raw: JSON.stringify(merged, null, 2) });
+        await window.gatewayClient.rpc('config.apply', { raw: JSON.stringify(merged, null, 2), baseHash });
         toast('✅ Agent config applied! Gateway restarting...');
         closeExportModal();
       } catch (err) {

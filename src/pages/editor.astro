@@ -618,6 +618,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       <button class="btn-download" id="export-dl-all" style="background:#059669">⬇️ All Files</button>
       <button class="btn-copy" id="export-copy">📋 Copy</button>
       <button class="btn-download" id="export-apply-gw" style="background:#f59e0b;color:#000;display:none">⚡ Apply to Gateway</button>
+      <button class="btn-download" id="export-revert-gw" style="background:#dc2626;color:#fff;display:none">↩️ Revert</button>
       <button class="btn-close" id="export-close">Close</button>
     </div>
   </div>
@@ -1255,9 +1256,13 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       document.getElementById('export-stat-agents').textContent = org.agents.length;
       document.getElementById('export-stat-links').textContent = org.links.length;
       document.getElementById('export-stat-groups').textContent = org.groups.length;
-      // Show/hide Apply to Gateway button
+      // Show/hide Apply/Revert buttons
       const applyBtn = document.getElementById('export-apply-gw');
-      applyBtn.style.display = window.gatewayClient?.connected ? 'inline-block' : 'none';
+      const revertBtn = document.getElementById('export-revert-gw');
+      const gwConnected = window.gatewayClient?.connected;
+      const hasBackup = !!localStorage.getItem('agentflow-config-backup');
+      applyBtn.style.display = gwConnected ? 'inline-block' : 'none';
+      revertBtn.style.display = (gwConnected && hasBackup) ? 'inline-block' : 'none';
       showExportTab('config');
     }
 
@@ -1312,6 +1317,16 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
         const currentConfig = currentResult?.config || currentResult || {};
         const baseHash = currentResult?.baseHash || currentResult?.hash || '';
 
+        // Backup current config before apply
+        const backupKey = 'agentflow-config-backup';
+        const backup = {
+          config: currentConfig,
+          baseHash,
+          timestamp: new Date().toISOString(),
+        };
+        localStorage.setItem(backupKey, JSON.stringify(backup));
+        console.log('[AgentFlow] Config backup saved to localStorage');
+
         // Merge: only replace agents section, keep everything else
         const newExport = exportResult.config;
         const merged = { ...currentConfig };
@@ -1323,10 +1338,35 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 
         toast('Applying merged config...');
         await window.gatewayClient.rpc('config.apply', { raw: JSON.stringify(merged, null, 2), baseHash });
-        toast('✅ Agent config applied! Gateway restarting...');
+        toast('✅ Config applied! Backup saved. Use Revert if needed.');
         closeExportModal();
       } catch (err) {
         toast('❌ Apply failed: ' + err.message);
+      }
+    });
+
+    document.getElementById('export-revert-gw').addEventListener('click', async () => {
+      if (!window.gatewayClient?.connected) {
+        toast('❌ Gateway not connected');
+        return;
+      }
+      const backupRaw = localStorage.getItem('agentflow-config-backup');
+      if (!backupRaw) {
+        toast('❌ No backup found');
+        return;
+      }
+      const backup = JSON.parse(backupRaw);
+      if (!confirm(`↩️ Revert to config backup from ${backup.timestamp}?\n\nThis will restore the previous config and restart the gateway.`)) return;
+      try {
+        // Get fresh baseHash for the revert
+        const freshResult = await window.gatewayClient.rpc('config.get', {});
+        const freshHash = freshResult?.baseHash || freshResult?.hash || '';
+        await window.gatewayClient.rpc('config.apply', { raw: JSON.stringify(backup.config, null, 2), baseHash: freshHash });
+        toast('✅ Config reverted! Gateway restarting...');
+        localStorage.removeItem('agentflow-config-backup');
+        closeExportModal();
+      } catch (err) {
+        toast('❌ Revert failed: ' + err.message);
       }
     });
 

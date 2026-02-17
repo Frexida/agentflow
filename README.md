@@ -14,6 +14,13 @@
 
 ---
 
+<div align="center">
+  <img src="docs/screenshots/editor-demo.png" alt="AgentFlow Editor" width="800" />
+  <p><em>Design your agent organization visually — drag, connect, export.</em></p>
+</div>
+
+---
+
 ## Why AgentFlow?
 
 OpenClaw lets you run multi-agent teams — but designing them means hand-editing YAML/JSON configs. AgentFlow gives you a **visual drag-and-drop editor** to design your agent org, then exports a ready-to-use OpenClaw config.

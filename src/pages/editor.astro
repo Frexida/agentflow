@@ -1396,7 +1396,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       const GUILD_PH = 'REPLACE_WITH_GUILD_ID';
       const chPH = (id) => 'REPLACE_WITH_CHANNEL_ID_FOR_' + slugify(id).toUpperCase();
       const primaryModel = (org.agents[0]?.model) || 'anthropic/claude-opus-4-6';
-      const baseWorkspace = '/home/user/.openclaw/workspace';
+      const baseWorkspace = org._importedWorkspace || '/home/user/.openclaw/workspace';
 
       // agents.list
       const list = org.agents.map(agent => {
@@ -1651,6 +1651,9 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
         org.name = 'OpenClaw Import';
         const bindings = config.bindings || [];
         const defaults = config.agents?.defaults || {};
+        // Detect workspace base path from defaults or first agent
+        const defaultWs = defaults.workspace || agents[0]?.workspace || '';
+        if (defaultWs) org._importedWorkspace = defaultWs;
 
         for (const agentDef of agents) {
           const rawModel = agentDef.model || defaults.model || '';

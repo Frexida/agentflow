@@ -506,75 +506,149 @@ import Base from '../layouts/Base.astro';
 
     // --- Export ---
     document.getElementById('btn-export').addEventListener('click', () => {
-      const json = exportToJSON(org);
-      const blob = new Blob([json], { type: 'application/json' });
+      const result = exportToOpenClaw(org);
+      // Download config JSON (schema-compliant, for config.apply)
+      const configBlob = new Blob([JSON.stringify(result.config, null, 2)], { type: 'application/json' });
+      downloadBlob(configBlob, `${org.name || 'agentflow'}-openclaw.json`);
+      // Download full export (config + meta + workspace files)
+      const fullBlob = new Blob([JSON.stringify(result, null, 2)], { type: 'application/json' });
+      downloadBlob(fullBlob, `${org.name || 'agentflow'}-full-export.json`);
+      toast('エクスポート完了（2ファイル）');
+    });
+
+    function downloadBlob(blob, filename) {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${org.name || 'agentflow'}-config.json`;
+      a.download = filename;
       a.click();
       URL.revokeObjectURL(url);
-      toast('エクスポート完了');
-    });
+    }
 
-    // Inline export function (avoids module import issues in inline script)
-    function exportToJSON(org) {
+    // Inline export function v2 — OpenClaw config schema compliant
+    function exportToOpenClaw(org) {
       function slugify(s) {
         return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'unnamed';
       }
-      function buildPrompt(agent) {
-        const parts = [];
-        if (agent.personality) parts.push('# Personality\n' + agent.personality);
-        if (agent.role) parts.push('# Role\n' + agent.role);
-        if (agent.systemPrompt) parts.push(agent.systemPrompt);
-        return parts.length > 0 ? parts.join('\n\n') : undefined;
-      }
-      function getAuthTargets(agentId) {
-        return org.links.filter(l => l.source === agentId && l.type === 'authority').map(l => l.target);
-      }
+      function findAgent(id) { return org.agents.find(a => a.id === id); }
+      function agentName(id) { return findAgent(id)?.name || id; }
 
-      const guildId = 'GUILD_' + slugify(org.name).toUpperCase();
+      const GUILD_PH = 'REPLACE_WITH_GUILD_ID';
+      const chPH = (id) => 'REPLACE_WITH_CHANNEL_ID_FOR_' + slugify(id).toUpperCase();
       const primaryModel = (org.agents[0]?.model) || 'anthropic/claude-opus-4-6';
-      const configs = {};
-      const channels = {};
+      const baseWorkspace = '/home/user/.openclaw/workspace';
 
+      // agents.list
+      const list = org.agents.map(agent => {
+        const agentSlug = slugify(agent.name || agent.id);
+        const authTargets = org.links
+          .filter(l => l.source === agent.id && l.type === 'authority')
+          .map(l => l.target);
+        const entry = {
+          id: agent.id,
+          name: agent.name,
+          workspace: baseWorkspace + '/' + agentSlug,
+          identity: { name: agent.name },
+        };
+        if (agent.model && agent.model !== primaryModel) entry.model = agent.model;
+        if (agent.icon) entry.identity.avatar = agent.icon;
+        if (authTargets.length > 0) entry.subagents = { allowAgents: authTargets };
+        return entry;
+      });
+
+      // bindings
+      const bindings = org.agents.map(agent => ({
+        agentId: agent.id,
+        match: { channel: 'discord', guildId: GUILD_PH, peer: { kind: 'channel', id: chPH(agent.id) } },
+      }));
+
+      // channels
+      const channelConfigs = {};
       for (const agent of org.agents) {
-        const prompt = buildPrompt(agent);
-        configs[agent.id] = {
-          name: agent.name,
-          ...(agent.model && { model: { primary: agent.model } }),
-          ...(prompt && { systemPrompt: prompt }),
-        };
-        const chId = 'CH_' + slugify(agent.name).toUpperCase();
-        const targets = getAuthTargets(agent.id);
-        channels[chId] = {
-          name: agent.name,
-          agentId: agent.id,
-          ...(targets.length > 0 && { sessions_send: targets }),
-        };
+        channelConfigs[chPH(agent.id)] = { allow: true, requireMention: false };
       }
 
-      return JSON.stringify({
-        _meta: {
-          exportedFrom: 'agentflow',
-          version: 'v1',
-          organizationId: org.id,
-          organizationName: org.name,
-          exportedAt: new Date().toISOString(),
-        },
+      const config = {
         agents: {
-          defaults: { model: { primary: primaryModel }, workspace: '/path/to/workspace' },
-          configs,
+          defaults: { model: { primary: primaryModel }, workspace: baseWorkspace },
+          list,
         },
+        bindings,
         channels: {
           discord: {
             enabled: true,
-            guilds: {
-              [guildId]: { name: org.name, channels },
-            },
+            groupPolicy: 'allowlist',
+            guilds: { [GUILD_PH]: { requireMention: true, users: ['*'], channels: channelConfigs } },
           },
         },
-      }, null, 2);
+        commands: { native: 'auto', nativeSkills: 'auto' },
+      };
+
+      // workspace files (SOUL.md + AGENTS.md per agent)
+      const workspaceFiles = {};
+      for (const agent of org.agents) {
+        const files = {};
+        // SOUL.md
+        const soulParts = ['# ' + (agent.name || agent.id)];
+        if (agent.personality) soulParts.push('## Personality\n' + agent.personality);
+        if (agent.role) soulParts.push('## Role\n' + agent.role);
+        if (agent.systemPrompt) soulParts.push('## Instructions\n' + agent.systemPrompt);
+        // Org relationships in SOUL.md
+        const rels = [];
+        const superiors = org.links.filter(l => l.target === agent.id && l.type === 'authority').map(l => agentName(l.source));
+        if (superiors.length) rels.push('- **Reports to:** ' + superiors.join(', ') + ' — prioritize their instructions');
+        const subs = org.links.filter(l => l.source === agent.id && l.type === 'authority').map(l => agentName(l.target));
+        if (subs.length) rels.push('- **Manages:** ' + subs.join(', ') + ' — can delegate tasks via sessions_spawn');
+        const comms = org.links.filter(l => (l.source === agent.id || l.target === agent.id) && l.type === 'communication')
+          .map(l => agentName(l.source === agent.id ? l.target : l.source));
+        if (comms.length) rels.push('- **Communicates with:** ' + comms.join(', '));
+        const reviewTargets = org.links.filter(l => l.source === agent.id && l.type === 'review').map(l => agentName(l.target));
+        if (reviewTargets.length) rels.push('- **Reviews work of:** ' + reviewTargets.join(', '));
+        const reviewedBy = org.links.filter(l => l.target === agent.id && l.type === 'review').map(l => agentName(l.source));
+        if (reviewedBy.length) rels.push('- **Reviewed by:** ' + reviewedBy.join(', '));
+        if (rels.length) soulParts.push('## Organization\n' + rels.join('\n'));
+        files['SOUL.md'] = soulParts.join('\n\n') + '\n';
+
+        // AGENTS.md
+        const agLines = ['# AGENTS.md — Organization Context for ' + (agent.name || agent.id), ''];
+        agLines.push('## Organization: ' + org.name);
+        if (org.description) agLines.push('\n' + org.description);
+        agLines.push('', '## Team Members');
+        for (const a of org.agents) {
+          const marker = a.id === agent.id ? ' **(you)**' : '';
+          agLines.push('- **' + (a.name || a.id) + '**' + marker + ': ' + (a.role || 'No role defined'));
+        }
+        agLines.push('', '## Authority Structure');
+        const authLinks = org.links.filter(l => l.type === 'authority');
+        if (authLinks.length) {
+          for (const l of authLinks) agLines.push('- ' + agentName(l.source) + ' → ' + agentName(l.target) + ' (authority)');
+        } else {
+          agLines.push('- Flat structure (no authority links defined)');
+        }
+        if (org.groups.length) {
+          agLines.push('', '## Groups');
+          for (const g of org.groups) {
+            agLines.push('- **' + g.name + '**: ' + g.agentIds.map(id => agentName(id)).join(', '));
+          }
+        }
+        files['AGENTS.md'] = agLines.join('\n') + '\n';
+
+        if (agent.memory) files['MEMORY.md'] = '# Initial Memory\n\n' + agent.memory + '\n';
+        workspaceFiles[agent.id] = files;
+      }
+
+      return {
+        config,
+        meta: {
+          exportedFrom: 'agentflow',
+          version: 'v2',
+          organizationId: org.id,
+          organizationName: org.name,
+          exportedAt: new Date().toISOString(),
+          workspaceFiles,
+          links: org.links.map(l => ({ source: l.source, target: l.target, type: l.type, ...(l.label && { label: l.label }) })),
+        },
+      };
     }
 
     // --- Save / Load ---

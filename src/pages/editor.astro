@@ -1304,11 +1304,25 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
         toast('❌ Gateway not connected');
         return;
       }
-      if (!confirm('⚠️ Apply this config to your running OpenClaw Gateway?\n\nThis will overwrite the current config and restart the gateway.\n\nAre you sure?')) return;
+      if (!confirm('⚠️ Apply agent config to your running OpenClaw Gateway?\n\nThis will update the agents section and restart the gateway.\nOther settings (Discord, auth, etc.) will be preserved.\n\nAre you sure?')) return;
       try {
-        toast('Applying config to Gateway...');
-        await window.gatewayClient.rpc('config.apply', { raw: JSON.stringify(exportResult.config, null, 2) });
-        toast('✅ Config applied! Gateway restarting...');
+        toast('Fetching current config from Gateway...');
+        // Get current full config
+        const currentResult = await window.gatewayClient.rpc('config.get', {});
+        const currentConfig = currentResult?.config || currentResult || {};
+
+        // Merge: only replace agents section, keep everything else
+        const newExport = exportResult.config;
+        const merged = { ...currentConfig };
+        merged.agents = {
+          ...currentConfig.agents,
+          defaults: newExport.agents?.defaults || currentConfig.agents?.defaults,
+          list: newExport.agents?.list || []
+        };
+
+        toast('Applying merged config...');
+        await window.gatewayClient.rpc('config.apply', { raw: JSON.stringify(merged, null, 2) });
+        toast('✅ Agent config applied! Gateway restarting...');
         closeExportModal();
       } catch (err) {
         toast('❌ Apply failed: ' + err.message);

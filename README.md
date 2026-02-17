@@ -105,6 +105,52 @@ Saves to localStorage every 5 seconds. Manual save button available.
 
 ---
 
+## How to Use
+
+### 1. Design your org
+
+Add agents with the **+ エージェント追加** button. Drag them to arrange your hierarchy. Connect nodes by dragging from output ports to input ports.
+
+### 2. Configure agents
+
+Double-click any node to open the side panel. Set name, role, personality (becomes `SOUL.md`), model, tools profile, and initial memory (becomes `MEMORY.md`).
+
+### 3. Define relationships
+
+- **Drag** between nodes to create connections (default: authority)
+- **Click** a connection line to cycle types: authority → communication → review
+- **Double-click** a connection for detailed editing (type + label)
+
+### 4. Export to OpenClaw
+
+Click **📤 エクスポート** to generate:
+
+```
+my-org/
+├── config.json          ← paste into openclaw config.apply
+├── full-export.json     ← backup with metadata
+└── setup.sh             ← creates agent workspaces:
+    ├── agent-1/SOUL.md
+    ├── agent-1/MEMORY.md
+    ├── agent-2/SOUL.md
+    └── ...
+```
+
+### 5. Apply the config
+
+```bash
+# Run the setup script to create workspace files
+chmod +x setup.sh && ./setup.sh
+
+# Apply the config to your OpenClaw instance
+# Replace REPLACE_WITH_* placeholders with actual Discord/channel IDs
+openclaw config apply < config.json
+```
+
+That's it — your agents are live with the org structure you designed.
+
+---
+
 ## Self-Hosting
 
 ### Environment Variables

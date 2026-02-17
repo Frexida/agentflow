@@ -3,7 +3,7 @@ import Base from '../layouts/Base.astro';
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 ---
 
-<Base title="AgentFlow エディタ">
+<Base title="AgentFlow Editor">
   <link rel="stylesheet" href={`${base}/drawflow.min.css`} />
   <style is:global>
     body { background: #0f0f0f; }
@@ -48,7 +48,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     .toolbar button.danger:hover { background: #b91c1c; }
     .toolbar .spacer { flex: 1; }
 
-    /* エージェントカード */
+    /* Agent card */
     .agent-card {
       background: #1a1a1a;
       border: 1px solid #333;
@@ -150,7 +150,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       bottom: auto !important;
     }
 
-    /* サイドパネル */
+    /* Side panel */
     #side-panel {
       position: fixed;
       top: 48px;
@@ -390,18 +390,18 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
   </style>
 
   <div class="toolbar">
-    <span class="org-name" id="org-name-display">無題の組織</span>
-    <button id="btn-new-org" class="secondary">🏢 新規組織</button>
-    <button id="btn-add-agent">+ エージェント追加</button>
-    <button id="btn-auto-layout" class="secondary">⬡ 自動整列</button>
-    <button id="btn-groups" class="secondary">📁 グループ</button>
-    <button id="btn-templates" class="secondary">📋 テンプレート</button>
+    <span class="org-name" id="org-name-display">Untitled Organization</span>
+    <button id="btn-new-org" class="secondary">🏢 New</button>
+    <button id="btn-add-agent">+ Add Agent</button>
+    <button id="btn-auto-layout" class="secondary">⬡ Auto Layout</button>
+    <button id="btn-groups" class="secondary">📁 Groups</button>
+    <button id="btn-templates" class="secondary">📋 Templates</button>
     <div class="spacer"></div>
-    <button id="btn-import" class="secondary">📥 インポート</button>
+    <button id="btn-import" class="secondary">📥 Import</button>
     <input type="file" id="import-file" accept=".json" style="display:none" />
-    <button id="btn-export" class="secondary">📤 エクスポート</button>
-    <button id="btn-save" class="secondary">💾 保存</button>
-    <button id="btn-clear" class="danger">🗑 クリア</button>
+    <button id="btn-export" class="secondary">📤 Export</button>
+    <button id="btn-save" class="secondary">💾 Save</button>
+    <button id="btn-clear" class="danger">🗑 Clear</button>
   </div>
   <svg style="position:absolute;width:0;height:0">
     <defs>
@@ -419,12 +419,12 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
   <div id="drawflow"></div>
 
   <div id="side-panel">
-    <h3>エージェント編集 <button class="close-btn" id="panel-close">✕</button></h3>
-    <div class="field"><label>アイコン (絵文字)</label><input type="text" id="edit-icon" maxlength="4" /></div>
-    <div class="field"><label>名前</label><input type="text" id="edit-name" /></div>
-    <div class="field"><label>役割</label><input type="text" id="edit-role" /></div>
-    <div class="field"><label>性格</label><textarea id="edit-personality"></textarea></div>
-    <div class="field"><label>モデル</label>
+    <h3>Edit Agent <button class="close-btn" id="panel-close">✕</button></h3>
+    <div class="field"><label>Icon (emoji)</label><input type="text" id="edit-icon" maxlength="4" /></div>
+    <div class="field"><label>Name</label><input type="text" id="edit-name" /></div>
+    <div class="field"><label>Role</label><input type="text" id="edit-role" /></div>
+    <div class="field"><label>Personality</label><textarea id="edit-personality"></textarea></div>
+    <div class="field"><label>Model</label>
       <select id="edit-model">
         <option value="anthropic/claude-opus-4-6">claude-opus-4-6</option>
         <option value="openai/gpt-5.3-codex">gpt-5.3-codex</option>
@@ -432,43 +432,43 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
         <option value="google/gemini-2.5-pro">gemini-2.5-pro</option>
       </select>
     </div>
-    <div class="field"><label>システムプロンプト</label><textarea id="edit-prompt" style="min-height:120px"></textarea></div>
-    <div class="field"><label>ツールプロファイル</label>
+    <div class="field"><label>System Prompt</label><textarea id="edit-prompt" style="min-height:120px"></textarea></div>
+    <div class="field"><label>Tool Profile</label>
       <select id="edit-tools">
-        <option value="">デフォルト</option>
-        <option value="minimal">minimal — 基本ツールのみ</option>
-        <option value="coding">coding — コーディング向け</option>
-        <option value="messaging">messaging — メッセージング向け</option>
-        <option value="full">full — 全ツール</option>
+        <option value="">Default</option>
+        <option value="minimal">minimal — Basic tools only</option>
+        <option value="coding">coding — For coding</option>
+        <option value="messaging">messaging — For messaging</option>
+        <option value="full">full — All tools</option>
       </select>
     </div>
-    <div class="field"><label>初期記憶 (MEMORY.md)</label><textarea id="edit-memory" style="min-height:80px" placeholder="エージェントの初期知識や記憶..."></textarea></div>
+    <div class="field"><label>Initial Memory (MEMORY.md)</label><textarea id="edit-memory" style="min-height:80px" placeholder="Initial knowledge or memories for this agent..."></textarea></div>
     <hr style="border-color:#333;margin:16px 0" />
-    <button id="btn-delete-agent" style="width:100%;padding:8px;background:#dc2626;color:white;border:none;border-radius:6px;cursor:pointer;font-size:13px">🗑 このエージェントを削除</button>
+    <button id="btn-delete-agent" style="width:100%;padding:8px;background:#dc2626;color:white;border:none;border-radius:6px;cursor:pointer;font-size:13px">🗑 Delete This Agent</button>
   </div>
 
   <div id="group-panel" style="position:fixed;top:48px;left:0;width:320px;height:calc(100vh - 48px);background:#141414;border-right:1px solid #2a2a2a;transform:translateX(-100%);transition:transform 150ms ease;z-index:200;overflow-y:auto;padding:20px">
     <h3 style="color:#e5e7eb;font-size:16px;margin:0 0 16px;display:flex;justify-content:space-between;align-items:center">
-      グループ管理 <button id="group-panel-close" style="background:none;border:none;color:#6b7280;font-size:20px;cursor:pointer">✕</button>
+      Group Management <button id="group-panel-close" style="background:none;border:none;color:#6b7280;font-size:20px;cursor:pointer">✕</button>
     </h3>
-    <button id="btn-add-group" style="width:100%;padding:8px;background:#3b82f6;color:white;border:none;border-radius:6px;cursor:pointer;font-size:13px;margin-bottom:16px">+ グループ追加</button>
+    <button id="btn-add-group" style="width:100%;padding:8px;background:#3b82f6;color:white;border:none;border-radius:6px;cursor:pointer;font-size:13px;margin-bottom:16px">+ Add Group</button>
     <div id="group-list"></div>
   </div>
 
   <div id="link-modal" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#1a1a1a;border:1px solid #333;border-radius:10px;padding:20px;z-index:400;min-width:300px">
-    <h3 style="color:#e5e7eb;margin:0 0 16px;font-size:15px">リンク編集</h3>
-    <div class="field"><label>タイプ</label>
+    <h3 style="color:#e5e7eb;margin:0 0 16px;font-size:15px">Edit Link</h3>
+    <div class="field"><label>Type</label>
       <select id="link-type">
-        <option value="authority">🔴 authority（指揮）</option>
-        <option value="communication">🔵 communication（通信）</option>
-        <option value="review">🟡 review（レビュー）</option>
+        <option value="authority">🔴 Authority (command)</option>
+        <option value="communication">🔵 Communication</option>
+        <option value="review">🟡 Review</option>
       </select>
     </div>
-    <div class="field"><label>ラベル（説明）</label><input type="text" id="link-label" placeholder="例: コードレビュー依頼" /></div>
+    <div class="field"><label>Label (description)</label><input type="text" id="link-label" placeholder="e.g. Code review request" /></div>
     <div style="display:flex;gap:8px;margin-top:12px">
-      <button id="link-modal-save" style="flex:1;padding:8px;background:#3b82f6;color:white;border:none;border-radius:6px;cursor:pointer">保存</button>
-      <button id="link-modal-delete" style="padding:8px 12px;background:#dc2626;color:white;border:none;border-radius:6px;cursor:pointer">削除</button>
-      <button id="link-modal-close" style="padding:8px 12px;background:#333;color:white;border:none;border-radius:6px;cursor:pointer">閉じる</button>
+      <button id="link-modal-save" style="flex:1;padding:8px;background:#3b82f6;color:white;border:none;border-radius:6px;cursor:pointer">Save</button>
+      <button id="link-modal-delete" style="padding:8px 12px;background:#dc2626;color:white;border:none;border-radius:6px;cursor:pointer">Delete</button>
+      <button id="link-modal-close" style="padding:8px 12px;background:#333;color:white;border:none;border-radius:6px;cursor:pointer">Close</button>
     </div>
   </div>
   <div id="link-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:399"></div>
@@ -476,11 +476,11 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
   <!-- Export preview modal -->
   <div id="export-overlay"></div>
   <div id="export-modal">
-    <h3>📤 エクスポートプレビュー <button id="export-modal-close" style="background:none;border:none;color:#6b7280;font-size:20px;cursor:pointer">✕</button></h3>
+    <h3>📤 Export Preview <button id="export-modal-close" style="background:none;border:none;color:#6b7280;font-size:20px;cursor:pointer">✕</button></h3>
     <div class="export-stats">
-      <span>👥 エージェント: <strong id="export-stat-agents">0</strong></span>
-      <span>🔗 接続: <strong id="export-stat-links">0</strong></span>
-      <span>📁 グループ: <strong id="export-stat-groups">0</strong></span>
+      <span>👥 Agents: <strong id="export-stat-agents">0</strong></span>
+      <span>🔗 Links: <strong id="export-stat-links">0</strong></span>
+      <span>📁 Groups: <strong id="export-stat-groups">0</strong></span>
     </div>
     <div class="export-tabs">
       <button class="active" data-tab="config">⚙️ OpenClaw Config</button>
@@ -489,10 +489,10 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     </div>
     <pre id="export-preview"></pre>
     <div class="export-actions">
-      <button class="btn-download" id="export-dl-current">⬇️ ダウンロード</button>
-      <button class="btn-download" id="export-dl-all" style="background:#059669">⬇️ 全ファイル</button>
-      <button class="btn-copy" id="export-copy">📋 コピー</button>
-      <button class="btn-close" id="export-close">閉じる</button>
+      <button class="btn-download" id="export-dl-current">⬇️ Download</button>
+      <button class="btn-download" id="export-dl-all" style="background:#059669">⬇️ All Files</button>
+      <button class="btn-copy" id="export-copy">📋 Copy</button>
+      <button class="btn-close" id="export-close">Close</button>
     </div>
   </div>
 
@@ -500,39 +500,39 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
   <div id="template-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:499"></div>
   <div id="template-modal" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#1a1a1a;border:1px solid #333;border-radius:12px;padding:24px;z-index:500;width:520px;max-width:90vw;max-height:80vh;overflow-y:auto">
     <h3 style="color:#e5e7eb;margin:0 0 16px;display:flex;justify-content:space-between;align-items:center">
-      📋 組織テンプレート
+      📋 Organization Templates
       <button id="template-modal-close" style="background:none;border:none;color:#6b7280;font-size:20px;cursor:pointer">✕</button>
     </h3>
-    <p style="color:#9ca3af;font-size:13px;margin:0 0 16px">テンプレートを選択すると、現在のキャンバスが置換されます。</p>
+    <p style="color:#9ca3af;font-size:13px;margin:0 0 16px">Selecting a template will replace the current canvas.</p>
     <div style="display:flex;flex-direction:column;gap:12px">
       <button class="template-card" data-template="startup" style="text-align:left;padding:16px;background:#1f1f1f;border:1px solid #333;border-radius:8px;color:#e5e7eb;cursor:pointer;transition:border-color 150ms">
-        <div style="font-size:15px;font-weight:bold;margin-bottom:4px">🚀 スタートアップ型</div>
-        <div style="font-size:12px;color:#9ca3af">CEO → PM → Dev×2 のシンプルな構造。少人数で素早く動くチーム向け。</div>
-        <div style="font-size:11px;color:#6b7280;margin-top:6px">4エージェント / authority + communication</div>
+        <div style="font-size:15px;font-weight:bold;margin-bottom:4px">🚀 Startup</div>
+        <div style="font-size:12px;color:#9ca3af">CEO → PM → Dev×2. Lean team structure for fast-moving startups.</div>
+        <div style="font-size:11px;color:#6b7280;margin-top:6px">4 agents / authority + communication</div>
       </button>
       <button class="template-card" data-template="hierarchy" style="text-align:left;padding:16px;background:#1f1f1f;border:1px solid #333;border-radius:8px;color:#e5e7eb;cursor:pointer;transition:border-color 150ms">
-        <div style="font-size:15px;font-weight:bold;margin-bottom:4px">🏢 階層型</div>
-        <div style="font-size:12px;color:#9ca3af">Director → Manager×2 → Member×4 の縦型組織。大規模プロジェクト向け。</div>
-        <div style="font-size:11px;color:#6b7280;margin-top:6px">7エージェント / authority + review</div>
+        <div style="font-size:15px;font-weight:bold;margin-bottom:4px">🏢 Hierarchical</div>
+        <div style="font-size:12px;color:#9ca3af">Director → Manager×2 → Member×4. Vertical structure for large projects.</div>
+        <div style="font-size:11px;color:#6b7280;margin-top:6px">7 agents / authority + review</div>
       </button>
       <button class="template-card" data-template="flat" style="text-align:left;padding:16px;background:#1f1f1f;border:1px solid #333;border-radius:8px;color:#e5e7eb;cursor:pointer;transition:border-color 150ms">
-        <div style="font-size:15px;font-weight:bold;margin-bottom:4px">🤝 フラット型</div>
-        <div style="font-size:12px;color:#9ca3af">Lead + Member×3 の横並び構造。全員が対等に協力するチーム向け。</div>
-        <div style="font-size:11px;color:#6b7280;margin-top:6px">4エージェント / communication</div>
+        <div style="font-size:15px;font-weight:bold;margin-bottom:4px">🤝 Flat</div>
+        <div style="font-size:12px;color:#9ca3af">Lead + Member×3. Equal collaboration for small teams.</div>
+        <div style="font-size:11px;color:#6b7280;margin-top:6px">4 agents / communication</div>
       </button>
     </div>
   </div>
 
   <div class="hints-overlay" id="hints-overlay" style="display:none;">
-    <span class="hint-item"><span class="hint-key">ダブルクリック</span> エージェント編集</span>
-    <span class="hint-item"><span class="hint-key">ドラッグ</span> ノード間接続</span>
-    <span class="hint-item"><span class="hint-key">クリック</span> リンクタイプ切替</span>
+    <span class="hint-item"><span class="hint-key">Double-click</span> Edit agent</span>
+    <span class="hint-item"><span class="hint-key">Drag</span> Connect nodes</span>
+    <span class="hint-item"><span class="hint-key">Click</span> Change link type</span>
     <span class="hint-item" style="margin-left:12px;border-left:1px solid #444;padding-left:12px">
-      <span style="color:#ef4444">━━▶</span> 指揮
-      <span style="color:#3b82f6;margin-left:8px">╌╌▶</span> 通信
-      <span style="color:#f59e0b;margin-left:8px">···▶</span> レビュー
+      <span style="color:#ef4444">━━▶</span> Command
+      <span style="color:#3b82f6;margin-left:8px">╌╌▶</span> Comm
+      <span style="color:#f59e0b;margin-left:8px">···▶</span> Review
     </span>
-    <button class="hint-close" id="hints-close" title="閉じる">✕</button>
+    <button class="hint-close" id="hints-close" title="Close">✕</button>
   </div>
   <div class="toast" id="toast"></div>
 
@@ -556,7 +556,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     // --- Organization State ---
     let org = {
       id: crypto.randomUUID(),
-      name: '無題の組織',
+      name: 'Untitled Organization',
       description: '',
       version: 'v1',
       agents: [],
@@ -599,7 +599,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
           <div class="agent-icon">${agent.icon || '🤖'}</div>
           <div class="agent-name">${agent.name}</div>
         </div>
-        <div class="agent-role">${agent.role || '未設定'}</div>
+        <div class="agent-role">${agent.role || '(no role)'}</div>
         <div class="agent-model">${(typeof agent.model === 'string' ? agent.model : agent.model?.primary || MODELS[0]).split('/').pop()}</div>
       </div>`;
     }
@@ -787,7 +787,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     document.getElementById('btn-delete-agent').addEventListener('click', () => {
       if (!editingAgentId) return;
       const agent = agentById(editingAgentId);
-      if (!confirm(`「${agent?.name || editingAgentId}」を削除しますか？`)) return;
+      if (!confirm(`「${agent?.name || editingAgentId}」 — delete this agent?`)) return;
       const nid = nodeIdForAgent(editingAgentId);
       if (nid) editor.removeNodeId('node-' + nid);
       closePanel();
@@ -887,7 +887,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
           const link = org.links.find(l => l.id === ct.linkId);
           if (link) link.type = newType;
           applyConnectionColor(outId, inId, newType);
-          toast(`リンクタイプ: ${newType}`);
+          toast(`Link type: ${newType}`);
           scheduleSave();
           break;
         }
@@ -933,7 +933,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       ct.type = newType;
       const [outId, inId] = editingConnKey.split('_');
       applyConnectionColor(outId, inId, newType);
-      toast(`リンク更新: ${newType}${newLabel ? ' — ' + newLabel : ''}`);
+      toast(`Link updated: ${newType}${newLabel ? ' — ' + newLabel : ''}`);
       scheduleSave();
       closeLinkModal();
     });
@@ -961,7 +961,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       if (ct) org.links = org.links.filter(l => l.id !== ct.linkId);
       delete connectionTypes[editingConnKey];
       setTimeout(applyAllConnectionColors, 100);
-      toast('リンク削除');
+      toast('Link deleted');
       scheduleSave();
       closeLinkModal();
     });
@@ -993,7 +993,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     });
 
     document.getElementById('btn-add-group').addEventListener('click', () => {
-      const name = prompt('グループ名:');
+      const name = prompt('Group name:');
       if (!name) return;
       org.groups.push({ id: uid(), name, description: '', agentIds: [] });
       renderGroupList();
@@ -1006,7 +1006,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       for (const group of org.groups) {
         const div = document.createElement('div');
         div.style.cssText = 'background:#1a1a1a;border:1px solid #333;border-radius:8px;padding:12px;margin-bottom:10px';
-        const members = group.agentIds.map(id => agentById(id)?.name || id).join(', ') || '（メンバーなし）';
+        const members = group.agentIds.map(id => agentById(id)?.name || id).join(', ') || '(no members)';
         div.innerHTML = `
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
             <strong style="color:#e5e7eb;font-size:14px">${group.name}</strong>
@@ -1079,20 +1079,20 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     function validateOrg(org) {
       const warnings = [];
       const errors = [];
-      if (org.agents.length === 0) errors.push('エージェントが1つもありません');
+      if (org.agents.length === 0) errors.push('At least one agent is required');
       const names = org.agents.map(a => a.name);
       const dupes = names.filter((n, i) => names.indexOf(n) !== i);
-      if (dupes.length) errors.push(`重複名: ${[...new Set(dupes)].join(', ')}`);
+      if (dupes.length) errors.push(`Duplicate names: ${[...new Set(dupes)].join(', ')}`);
       for (const a of org.agents) {
-        if (!a.name || a.name.trim() === '') errors.push(`名前未設定のエージェントがあります (${a.id})`);
-        if (!a.role || a.role.trim() === '') warnings.push(`${a.name}: 役割が未設定`);
-        if (!a.systemPrompt || a.systemPrompt.trim() === '') warnings.push(`${a.name}: システムプロンプトが空`);
+        if (!a.name || a.name.trim() === '') errors.push(`Agent has no name (${a.id})`);
+        if (!a.role || a.role.trim() === '') warnings.push(`${a.name}: Role not set`);
+        if (!a.systemPrompt || a.systemPrompt.trim() === '') warnings.push(`${a.name}: System Prompt is empty`);
       }
       // Check for orphan agents (no connections)
       const connectedIds = new Set(org.links.flatMap(l => [l.source, l.target]));
       const orphans = org.agents.filter(a => !connectedIds.has(a.id));
       if (orphans.length > 0 && org.agents.length > 1) {
-        warnings.push(`接続なし: ${orphans.map(a => a.name).join(', ')}`);
+        warnings.push(`No connections: ${orphans.map(a => a.name).join(', ')}`);
       }
       return { errors, warnings };
     }
@@ -1144,7 +1144,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     exportOverlay.addEventListener('click', closeExportModal);
 
     document.getElementById('export-copy').addEventListener('click', () => {
-      navigator.clipboard.writeText(getExportContent(currentExportTab)).then(() => toast('📋 コピーしました'));
+      navigator.clipboard.writeText(getExportContent(currentExportTab)).then(() => toast('📋 Copied to clipboard'));
     });
 
     document.getElementById('export-dl-current').addEventListener('click', () => {
@@ -1157,7 +1157,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       } else {
         downloadBlob(new Blob([exportScript], { type: 'text/x-shellscript' }), `${name}-setup.sh`);
       }
-      toast('⬇️ ダウンロード開始');
+      toast('⬇️ Download started');
     });
 
     document.getElementById('export-dl-all').addEventListener('click', () => {
@@ -1165,17 +1165,17 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       downloadBlob(new Blob([JSON.stringify(exportResult.config, null, 2)], { type: 'application/json' }), `${name}-openclaw.json`);
       downloadBlob(new Blob([JSON.stringify(exportResult, null, 2)], { type: 'application/json' }), `${name}-full-export.json`);
       downloadBlob(new Blob([exportScript], { type: 'text/x-shellscript' }), `${name}-setup.sh`);
-      toast('エクスポート完了（3ファイル）');
+      toast('Export complete (3 files)');
     });
 
     document.getElementById('btn-export').addEventListener('click', () => {
       const { errors, warnings } = validateOrg(org);
       if (errors.length > 0) {
-        alert('❌ エクスポートエラー:\n' + errors.join('\n'));
+        alert('❌ Export errors:\n' + errors.join('\n'));
         return;
       }
       if (warnings.length > 0) {
-        if (!confirm('⚠️ 警告:\n' + warnings.join('\n') + '\n\n続行しますか？')) return;
+        if (!confirm('⚠️ Warnings:\n' + warnings.join('\n') + '\n\nContinue anyway?')) return;
       }
       exportResult = exportToOpenClaw(org);
       exportScript = generateSetupScript(org, exportResult);
@@ -1374,7 +1374,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       const state = { org, nodeToAgent, connectionTypes, drawflow: drawflowData };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
       updateOrgDisplay();
-      toast('保存しました');
+      toast('Saved');
     }
 
     function loadFromStorage() {
@@ -1415,7 +1415,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
           const json = JSON.parse(ev.target.result);
           importConfig(json);
         } catch (err) {
-          toast('JSONの読み込みに失敗しました: ' + err.message);
+          toast('Failed to parse JSON: ' + err.message);
         }
       };
       reader.readAsText(file);
@@ -1429,11 +1429,11 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       const isAgentFlowExport = !!config.org;
 
       if (agents.length === 0) {
-        toast('エージェントが見つかりません');
+        toast('Agent not found');
         return;
       }
 
-      if (org.agents.length > 0 && !confirm('現在の組織を置換しますか？インポートすると現在のデータは失われます。')) return;
+      if (org.agents.length > 0 && !confirm('Replace current organization? Import will overwrite existing data.')) return;
 
       // Clear current
       editor.clear();
@@ -1507,7 +1507,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
         renderGroupOverlays();
         updateOrgDisplay();
         scheduleSave();
-        toast(`${org.agents.length}エージェントをインポートしました`);
+        toast(`${org.agents.length} agents imported`);
       }, 100);
     }
 
@@ -1518,7 +1518,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 
     // --- New Organization ---
     document.getElementById('btn-new-org').addEventListener('click', () => {
-      const name = prompt('組織名を入力:');
+      const name = prompt('Organization name:');
       if (!name) return;
       editor.clear();
       org = {
@@ -1539,7 +1539,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 
     // --- Clear ---
     document.getElementById('btn-clear').addEventListener('click', () => {
-      if (!confirm('全ノードを削除しますか？')) return;
+      if (!confirm('Delete all nodes?')) return;
       editor.clear();
       org.agents = [];
       org.links = [];
@@ -1568,7 +1568,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     templateOverlay.addEventListener('click', closeTemplateModal);
 
     function applyTemplate(name) {
-      if (org.agents.length > 0 && !confirm('現在の組織を置換しますか？テンプレートを適用すると現在のデータは失われます。')) return;
+      if (org.agents.length > 0 && !confirm('Replace current organization? Applying a template will overwrite existing data.')) return;
 
       editor.clear();
       org.agents = [];
@@ -1579,7 +1579,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       closePanel();
 
       if (name === 'startup') {
-        org.name = 'スタートアップチーム';
+        org.name = 'Startup Team';
         const ceo = addAgent({ name: 'CEO', role: 'Chief Executive', icon: '👑', model: MODELS[0], personality: 'Vision and strategy. Final decisions.' }, 350, 60);
         const pm = addAgent({ name: 'PM', role: 'Project Manager', icon: '👔', model: MODELS[0], personality: 'Sprint planning, progress tracking, task delegation.' }, 350, 240);
         const dev1 = addAgent({ name: 'Dev-1', role: 'Developer', icon: '⚙️', model: MODELS[1], personality: 'Frontend/backend implementation. Ships fast.' }, 180, 420);
@@ -1589,7 +1589,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
         connectAgents(pm, dev2, 'authority');
         connectAgents(dev1, dev2, 'communication');
       } else if (name === 'hierarchy') {
-        org.name = '階層型組織';
+        org.name = 'Hierarchical Org';
         const dir = addAgent({ name: 'Director', role: 'Director', icon: '🎯', model: MODELS[0], personality: 'Strategic oversight. Cross-team coordination.' }, 400, 40);
         const mgr1 = addAgent({ name: 'Manager-A', role: 'Team Lead', icon: '👔', model: MODELS[0], personality: 'Team A management. Sprint execution.' }, 200, 200);
         const mgr2 = addAgent({ name: 'Manager-B', role: 'Team Lead', icon: '👔', model: MODELS[0], personality: 'Team B management. Quality assurance.' }, 600, 200);
@@ -1605,7 +1605,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
         connectAgents(mgr2, m4, 'authority');
         connectAgents(mgr1, mgr2, 'review');
       } else if (name === 'flat') {
-        org.name = 'フラットチーム';
+        org.name = 'Flat Team';
         const lead = addAgent({ name: 'Lead', role: 'Tech Lead', icon: '⭐', model: MODELS[0], personality: 'Coordination and technical guidance. First among equals.' }, 350, 80);
         const a = addAgent({ name: 'Agent-A', role: 'Generalist', icon: '🟢', model: MODELS[1], personality: 'Flexible. Picks up whatever is needed.' }, 100, 280);
         const b = addAgent({ name: 'Agent-B', role: 'Generalist', icon: '🔵', model: MODELS[1], personality: 'Research-oriented. Explores solutions.' }, 350, 280);
@@ -1620,7 +1620,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       updateOrgDisplay();
       scheduleSave();
       closeTemplateModal();
-      showToast(`テンプレート「${org.name}」を適用しました`);
+      showToast(`Template "${org.name}" applied`);
     }
 
     // connectAgents needs to be accessible from templates
@@ -1650,11 +1650,11 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       org.name = 'AgentFlow Team';
 
       // Agents positioned for a clear hierarchy
-      const ceo = addAgent({ name: 'ナツ', role: 'CEO / Owner', icon: '👑', model: MODELS[0], personality: 'Final decision maker. Vision-driven.' }, 400, 60);
-      const pm = addAgent({ name: '鬼畜', role: 'Project Manager', icon: '👔', model: MODELS[0], personality: 'Strict progress tracking. 30-min report cycles.' }, 250, 240);
+      const ceo = addAgent({ name: 'Alex', role: 'CEO / Owner', icon: '👑', model: MODELS[0], personality: 'Final decision maker. Vision-driven.' }, 400, 60);
+      const pm = addAgent({ name: 'Jordan', role: 'Project Manager', icon: '👔', model: MODELS[0], personality: 'Strict progress tracking. 30-min report cycles.' }, 250, 240);
       const dev = addAgent({ name: 'nix', role: 'Developer', icon: '⚙️', model: MODELS[1], personality: 'Fast, pragmatic. Ships code.' }, 100, 420);
-      const research = addAgent({ name: 'アライ', role: 'Researcher', icon: '🔬', model: MODELS[2], personality: 'Data-driven analysis. Neutral perspective.' }, 400, 420);
-      const critic = addAgent({ name: '倫理アンチ', role: 'Strategy / Critic', icon: '🔥', model: MODELS[0], personality: 'Brutal honesty. Finds every flaw.' }, 600, 240);
+      const research = addAgent({ name: 'Riley', role: 'Researcher', icon: '🔬', model: MODELS[2], personality: 'Data-driven analysis. Neutral perspective.' }, 400, 420);
+      const critic = addAgent({ name: 'Morgan', role: 'Strategy / Critic', icon: '🔥', model: MODELS[0], personality: 'Brutal honesty. Finds every flaw.' }, 600, 240);
 
       connectAgents(ceo, pm, 'authority');
       connectAgents(pm, dev, 'authority');

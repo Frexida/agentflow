@@ -197,6 +197,7 @@ import Base from '../layouts/Base.astro';
     <button id="btn-new-org" class="secondary">🏢 新規組織</button>
     <button id="btn-add-agent">+ エージェント追加</button>
     <button id="btn-auto-layout" class="secondary">⬡ 自動整列</button>
+    <button id="btn-groups" class="secondary">📁 グループ</button>
     <div class="spacer"></div>
     <button id="btn-export" class="secondary">📤 エクスポート</button>
     <button id="btn-save" class="secondary">💾 保存</button>
@@ -231,6 +232,14 @@ import Base from '../layouts/Base.astro';
     <div class="field"><label>初期記憶 (MEMORY.md)</label><textarea id="edit-memory" style="min-height:80px" placeholder="エージェントの初期知識や記憶..."></textarea></div>
     <hr style="border-color:#333;margin:16px 0" />
     <button id="btn-delete-agent" style="width:100%;padding:8px;background:#dc2626;color:white;border:none;border-radius:6px;cursor:pointer;font-size:13px">🗑 このエージェントを削除</button>
+  </div>
+
+  <div id="group-panel" style="position:fixed;top:48px;left:0;width:320px;height:calc(100vh - 48px);background:#141414;border-right:1px solid #2a2a2a;transform:translateX(-100%);transition:transform 150ms ease;z-index:200;overflow-y:auto;padding:20px">
+    <h3 style="color:#e5e7eb;font-size:16px;margin:0 0 16px;display:flex;justify-content:space-between;align-items:center">
+      グループ管理 <button id="group-panel-close" style="background:none;border:none;color:#6b7280;font-size:20px;cursor:pointer">✕</button>
+    </h3>
+    <button id="btn-add-group" style="width:100%;padding:8px;background:#3b82f6;color:white;border:none;border-radius:6px;cursor:pointer;font-size:13px;margin-bottom:16px">+ グループ追加</button>
+    <div id="group-list"></div>
   </div>
 
   <div id="link-modal" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#1a1a1a;border:1px solid #333;border-radius:10px;padding:20px;z-index:400;min-width:300px">
@@ -605,6 +614,70 @@ import Base from '../layouts/Base.astro';
         }
       }
     });
+
+    // --- Group management ---
+    const groupPanel = document.getElementById('group-panel');
+    const groupList = document.getElementById('group-list');
+
+    document.getElementById('btn-groups').addEventListener('click', () => {
+      groupPanel.style.transform = groupPanel.style.transform === 'translateX(0px)' ? 'translateX(-100%)' : 'translateX(0px)';
+      renderGroupList();
+    });
+    document.getElementById('group-panel-close').addEventListener('click', () => {
+      groupPanel.style.transform = 'translateX(-100%)';
+    });
+
+    document.getElementById('btn-add-group').addEventListener('click', () => {
+      const name = prompt('グループ名:');
+      if (!name) return;
+      org.groups.push({ id: uid(), name, description: '', agentIds: [] });
+      renderGroupList();
+      scheduleSave();
+    });
+
+    function renderGroupList() {
+      groupList.innerHTML = '';
+      for (const group of org.groups) {
+        const div = document.createElement('div');
+        div.style.cssText = 'background:#1a1a1a;border:1px solid #333;border-radius:8px;padding:12px;margin-bottom:10px';
+        const members = group.agentIds.map(id => agentById(id)?.name || id).join(', ') || '（メンバーなし）';
+        div.innerHTML = `
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <strong style="color:#e5e7eb;font-size:14px">${group.name}</strong>
+            <button data-delete-group="${group.id}" style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:16px">✕</button>
+          </div>
+          <div style="font-size:12px;color:#6b7280;margin-bottom:8px">${members}</div>
+          <div style="display:flex;flex-wrap:wrap;gap:4px">
+            ${org.agents.map(a => {
+              const inGroup = group.agentIds.includes(a.id);
+              return `<button data-toggle-member="${group.id}:${a.id}" style="padding:3px 8px;font-size:11px;border-radius:4px;border:1px solid ${inGroup ? '#3b82f6' : '#333'};background:${inGroup ? '#1e3a5f' : '#1f1f1f'};color:${inGroup ? '#93c5fd' : '#6b7280'};cursor:pointer">${a.icon || '🤖'} ${a.name}</button>`;
+            }).join('')}
+          </div>
+        `;
+        groupList.appendChild(div);
+      }
+      // Event delegation
+      groupList.querySelectorAll('[data-toggle-member]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const [gid, aid] = btn.dataset.toggleMember.split(':');
+          const group = org.groups.find(g => g.id === gid);
+          if (!group) return;
+          const idx = group.agentIds.indexOf(aid);
+          if (idx >= 0) group.agentIds.splice(idx, 1);
+          else group.agentIds.push(aid);
+          renderGroupList();
+          scheduleSave();
+        });
+      });
+      groupList.querySelectorAll('[data-delete-group]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const gid = btn.dataset.deleteGroup;
+          org.groups = org.groups.filter(g => g.id !== gid);
+          renderGroupList();
+          scheduleSave();
+        });
+      });
+    }
 
     // --- Auto Layout (dagre) ---
     document.getElementById('btn-auto-layout').addEventListener('click', () => {

@@ -191,6 +191,50 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       transition: opacity 150ms;
     }
     .toast.show { opacity: 1; }
+
+    /* Onboarding hints */
+    .hints-overlay {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(30, 41, 59, 0.95);
+      border: 1px solid rgba(59, 130, 246, 0.4);
+      color: #cbd5e1;
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-size: 13px;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+    .hints-overlay .hint-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+    .hints-overlay .hint-key {
+      background: rgba(59, 130, 246, 0.2);
+      color: #60a5fa;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .hints-overlay .hint-close {
+      background: none;
+      border: none;
+      color: #64748b;
+      cursor: pointer;
+      font-size: 16px;
+      padding: 0 4px;
+      margin-left: 8px;
+    }
+    .hints-overlay .hint-close:hover { color: #e2e8f0; }
   </style>
 
   <div class="toolbar">
@@ -261,6 +305,12 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
   </div>
   <div id="link-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:399"></div>
 
+  <div class="hints-overlay" id="hints-overlay" style="display:none;">
+    <span class="hint-item"><span class="hint-key">ダブルクリック</span> エージェント編集</span>
+    <span class="hint-item"><span class="hint-key">ドラッグ</span> ノード間接続</span>
+    <span class="hint-item"><span class="hint-key">クリック</span> リンクタイプ切替</span>
+    <button class="hint-close" id="hints-close" title="閉じる">✕</button>
+  </div>
   <div class="toast" id="toast"></div>
 
   <script src={`${base}/drawflow.min.js`} is:inline></script>
@@ -1053,6 +1103,15 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     if (!loadFromStorage()) {
       createDemoOrg();
     }
+
+    // --- Onboarding hints ---
+    if (!localStorage.getItem('agentflow-hints-dismissed')) {
+      document.getElementById('hints-overlay').style.display = 'flex';
+    }
+    document.getElementById('hints-close').addEventListener('click', () => {
+      document.getElementById('hints-overlay').style.display = 'none';
+      localStorage.setItem('agentflow-hints-dismissed', '1');
+    });
 
   })();
   </script>

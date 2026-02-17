@@ -439,6 +439,90 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       if (content) content.innerHTML = createAgentHTML(agent);
     }
 
+    // --- Group Overlays ---
+    const GROUP_COLORS = [
+      { bg: 'rgba(59,130,246,0.08)', border: 'rgba(59,130,246,0.35)', text: '#60a5fa' },
+      { bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.35)', text: '#34d399' },
+      { bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.35)', text: '#fbbf24' },
+      { bg: 'rgba(168,85,247,0.08)', border: 'rgba(168,85,247,0.35)', text: '#c084fc' },
+      { bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.35)', text: '#f87171' },
+    ];
+
+    function renderGroupOverlays() {
+      // Remove existing overlays
+      container.querySelectorAll('.group-overlay').forEach(el => el.remove());
+
+      const drawflowData = editor.export()?.drawflow?.Home?.data;
+      if (!drawflowData) return;
+
+      org.groups.forEach((group, gi) => {
+        if (!group.agentIds || group.agentIds.length === 0) return;
+
+        const color = GROUP_COLORS[gi % GROUP_COLORS.length];
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        let found = 0;
+
+        for (const agentId of group.agentIds) {
+          const nodeId = nodeIdForAgent(agentId);
+          if (!nodeId || !drawflowData[nodeId]) continue;
+          const node = drawflowData[nodeId];
+          const el = container.querySelector(`#node-${nodeId}`);
+          const w = el ? el.offsetWidth : 200;
+          const h = el ? el.offsetHeight : 100;
+          minX = Math.min(minX, node.pos_x);
+          minY = Math.min(minY, node.pos_y);
+          maxX = Math.max(maxX, node.pos_x + w);
+          maxY = Math.max(maxY, node.pos_y + h);
+          found++;
+        }
+
+        if (found === 0) return;
+
+        const pad = 24;
+        const overlay = document.createElement('div');
+        overlay.className = 'group-overlay';
+        overlay.style.cssText = `
+          position: absolute;
+          left: ${minX - pad}px;
+          top: ${minY - pad}px;
+          width: ${maxX - minX + pad * 2}px;
+          height: ${maxY - minY + pad * 2}px;
+          background: ${color.bg};
+          border: 1.5px dashed ${color.border};
+          border-radius: 12px;
+          pointer-events: none;
+          z-index: 0;
+        `;
+
+        const label = document.createElement('div');
+        label.style.cssText = `
+          position: absolute;
+          top: -10px;
+          left: 12px;
+          background: #0f0f0f;
+          color: ${color.text};
+          font-size: 11px;
+          font-weight: bold;
+          padding: 2px 8px;
+          border-radius: 4px;
+          border: 1px solid ${color.border};
+        `;
+        label.textContent = group.name;
+        overlay.appendChild(label);
+
+        // Insert into drawflow's inner container
+        const inner = container.querySelector('.drawflow') || container;
+        inner.appendChild(overlay);
+      });
+    }
+
+    // Update overlays on various events
+    let overlayTimer;
+    function scheduleOverlayUpdate() {
+      clearTimeout(overlayTimer);
+      overlayTimer = setTimeout(renderGroupOverlays, 50);
+    }
+
     // --- Add Agent ---
     function addAgent(agentData, x, y) {
       const agent = {
@@ -580,7 +664,11 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
         }
       }
       scheduleSave();
+      scheduleOverlayUpdate();
     });
+
+    // Track mouse-up on drawflow to catch node drags
+    container.addEventListener('mouseup', scheduleOverlayUpdate);
 
     function applyConnectionColor(outId, inId, type) {
       // Find the SVG connection element
@@ -738,6 +826,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     });
 
     function renderGroupList() {
+      scheduleOverlayUpdate();
       groupList.innerHTML = '';
       for (const group of org.groups) {
         const div = document.createElement('div');
@@ -808,7 +897,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 
       editor.import({ drawflow: { Home: { data } } });
       // Re-apply colors after import
-      setTimeout(applyAllConnectionColors, 100);
+      setTimeout(() => { applyAllConnectionColors(); renderGroupOverlays(); }, 100);
     });
 
     // --- Export ---
@@ -1061,7 +1150,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
         connectionTypes = state.connectionTypes || {};
         if (state.drawflow) {
           editor.import(state.drawflow);
-          setTimeout(applyAllConnectionColors, 100);
+          setTimeout(() => { applyAllConnectionColors(); renderGroupOverlays(); }, 100);
         }
         updateOrgDisplay();
         return true;

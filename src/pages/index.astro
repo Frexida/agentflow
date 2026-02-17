@@ -1,6 +1,6 @@
 ---
 import Base from '../layouts/Base.astro';
-const base = import.meta.env.BASE_URL;
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 ---
 
 <Base title="AgentFlow — Visual Agent Org Designer for OpenClaw">
@@ -12,7 +12,7 @@ const base = import.meta.env.BASE_URL;
       <p class="tagline">Design multi-agent teams visually.<br/>Org chart → OpenClaw config in one click.</p>
       <p class="sub">The first GUI for designing OpenClaw multi-agent organizations.<br/>No code. No YAML. Just drag, connect, export.</p>
       <div class="cta-row">
-        <a href={`${base}editor/`} class="cta primary">Try the Editor →</a>
+        <a href={`${base}/editor/`} class="cta primary">Try the Editor →</a>
         <a href="https://github.com/Frexida/agentflow" class="cta secondary" target="_blank">⭐ GitHub</a>
       </div>
     </section>
@@ -98,7 +98,7 @@ const base = import.meta.env.BASE_URL;
     <!-- CTA -->
     <section class="bottom-cta">
       <h2>Start designing your agent team</h2>
-      <a href={`${base}editor/`} class="cta primary">Open AgentFlow Editor →</a>
+      <a href={`${base}/editor/`} class="cta primary">Open AgentFlow Editor →</a>
     </section>
 
     <footer>

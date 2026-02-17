@@ -1013,10 +1013,44 @@ import Base from '../layouts/Base.astro';
     });
 
     // --- Init: load from storage or create demo ---
+    function createDemoOrg() {
+      org.name = 'AgentFlow Team';
+
+      // Agents positioned for a clear hierarchy
+      const ceo = addAgent({ name: 'ナツ', role: 'CEO / Owner', icon: '👑', model: MODELS[0], personality: 'Final decision maker. Vision-driven.' }, 400, 60);
+      const pm = addAgent({ name: '鬼畜', role: 'Project Manager', icon: '👔', model: MODELS[0], personality: 'Strict progress tracking. 30-min report cycles.' }, 250, 240);
+      const dev = addAgent({ name: 'nix', role: 'Developer', icon: '⚙️', model: MODELS[1], personality: 'Fast, pragmatic. Ships code.' }, 100, 420);
+      const research = addAgent({ name: 'アライ', role: 'Researcher', icon: '🔬', model: MODELS[2], personality: 'Data-driven analysis. Neutral perspective.' }, 400, 420);
+      const critic = addAgent({ name: '倫理アンチ', role: 'Strategy / Critic', icon: '🔥', model: MODELS[0], personality: 'Brutal honesty. Finds every flaw.' }, 600, 240);
+
+      // Helper to create a connection programmatically
+      function connectAgents(srcAgent, tgtAgent, linkType) {
+        const srcNodeId = Object.keys(nodeToAgent).find(k => nodeToAgent[k] === srcAgent.id);
+        const tgtNodeId = Object.keys(nodeToAgent).find(k => nodeToAgent[k] === tgtAgent.id);
+        if (!srcNodeId || !tgtNodeId) return;
+        editor.addConnection(srcNodeId, tgtNodeId, 'output_1', 'input_1');
+        // Update link type (connectionCreated event sets it to 'authority' by default)
+        const connKey = `${srcNodeId}_${tgtNodeId}`;
+        const ct = connectionTypes[connKey];
+        if (ct && linkType !== 'authority') {
+          ct.type = linkType;
+          const link = org.links.find(l => l.id === ct.linkId);
+          if (link) link.type = linkType;
+          applyConnectionColor(srcNodeId, tgtNodeId, linkType);
+        }
+      }
+
+      connectAgents(ceo, pm, 'authority');
+      connectAgents(pm, dev, 'authority');
+      connectAgents(pm, research, 'authority');
+      connectAgents(ceo, critic, 'review');
+
+      updateOrgDisplay();
+      scheduleSave();
+    }
+
     if (!loadFromStorage()) {
-      addAgent({ name: 'PM', role: 'プロジェクト管理', icon: '👔', model: MODELS[0] });
-      addAgent({ name: 'エンジニア', role: '実装担当', icon: '⚙️', model: MODELS[1] });
-      addAgent({ name: 'レビュアー', role: 'コードレビュー', icon: '👁️', model: MODELS[2] });
+      createDemoOrg();
     }
 
   })();

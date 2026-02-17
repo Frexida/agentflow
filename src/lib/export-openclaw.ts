@@ -377,5 +377,45 @@ export function exportFullJSON(org: Organization): string {
   return JSON.stringify(exportToOpenClaw(org), null, 2);
 }
 
+/**
+ * Generate a shell script that creates agent workspaces with SOUL.md, AGENTS.md, MEMORY.md
+ */
+export function exportSetupScript(org: Organization): string {
+  const result = exportToOpenClaw(org);
+  const lines: string[] = [];
+  lines.push('#!/usr/bin/env bash');
+  lines.push('# AgentFlow workspace setup script');
+  lines.push(`# Organization: ${org.name}`);
+  lines.push(`# Generated: ${new Date().toISOString()}`);
+  lines.push('set -euo pipefail');
+  lines.push('');
+  lines.push('BASE_DIR="${1:-$HOME/.openclaw/workspace}"');
+  lines.push('echo "Setting up agent workspaces in $BASE_DIR"');
+  lines.push('');
+
+  for (const agent of org.agents) {
+    const agentSlug = slugify(agent.name || agent.id);
+    const files = result.meta.workspaceFiles[agent.id];
+    if (!files) continue;
+
+    lines.push(`# --- ${agent.name || agent.id} ---`);
+    lines.push(`mkdir -p "$BASE_DIR/${agentSlug}"`);
+
+    for (const [filename, content] of Object.entries(files)) {
+      // Escape content for heredoc
+      const escapedContent = content.replace(/\\/g, '\\\\').replace(/\$/g, '\\$');
+      lines.push(`cat > "$BASE_DIR/${agentSlug}/${filename}" << 'AGENTFLOW_EOF'`);
+      lines.push(escapedContent.trimEnd());
+      lines.push('AGENTFLOW_EOF');
+    }
+    lines.push(`echo "  ✓ ${agent.name || agent.id} → $BASE_DIR/${agentSlug}"`);
+    lines.push('');
+  }
+
+  lines.push('echo "Done. ${#agents[@]:-All} agent workspaces created."');
+  lines.push('echo "Next: replace placeholder IDs in openclaw.json, then run: openclaw gateway config.apply"');
+  return lines.join('\n') + '\n';
+}
+
 // Legacy compat
 export const exportToJSON = exportFullJSON;

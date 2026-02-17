@@ -513,8 +513,44 @@ import Base from '../layouts/Base.astro';
       // Download full export (config + meta + workspace files)
       const fullBlob = new Blob([JSON.stringify(result, null, 2)], { type: 'application/json' });
       downloadBlob(fullBlob, `${org.name || 'agentflow'}-full-export.json`);
-      toast('エクスポート完了（2ファイル）');
+      // Download workspace setup script
+      const script = generateSetupScript(org, result);
+      const scriptBlob = new Blob([script], { type: 'text/x-shellscript' });
+      downloadBlob(scriptBlob, `${org.name || 'agentflow'}-setup.sh`);
+      toast('エクスポート完了（3ファイル）');
     });
+
+    function generateSetupScript(org, result) {
+      function slugify(s) {
+        return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'unnamed';
+      }
+      const lines = [
+        '#!/usr/bin/env bash',
+        `# AgentFlow workspace setup — ${org.name}`,
+        `# Generated: ${new Date().toISOString()}`,
+        'set -euo pipefail',
+        '',
+        'BASE_DIR="${1:-$HOME/.openclaw/workspace}"',
+        'echo "Setting up agent workspaces in $BASE_DIR"',
+        '',
+      ];
+      for (const agent of org.agents) {
+        const slug = slugify(agent.name || agent.id);
+        const files = result.meta.workspaceFiles[agent.id];
+        if (!files) continue;
+        lines.push(`# --- ${agent.name || agent.id} ---`);
+        lines.push(`mkdir -p "$BASE_DIR/${slug}"`);
+        for (const [fname, content] of Object.entries(files)) {
+          lines.push(`cat > "$BASE_DIR/${slug}/${fname}" << 'AGENTFLOW_EOF'`);
+          lines.push(content.trimEnd());
+          lines.push('AGENTFLOW_EOF');
+        }
+        lines.push(`echo "  ✓ ${agent.name || agent.id}"`);
+        lines.push('');
+      }
+      lines.push('echo "Done. Run: openclaw gateway config.apply"');
+      return lines.join('\n') + '\n';
+    }
 
     function downloadBlob(blob, filename) {
       const url = URL.createObjectURL(blob);

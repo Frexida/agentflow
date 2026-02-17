@@ -1,14 +1,299 @@
 ---
 import Base from '../layouts/Base.astro';
+const base = import.meta.env.BASE_URL;
 ---
 
-<Base title="AgentFlow">
-  <main style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:1rem;">
-    <h1 style="font-size:2.5rem;">⚙️ AgentFlow</h1>
-    <p style="color:#888;font-size:1.2rem;">Agent Organization Designer</p>
-    <p style="color:#666;">組織図を描いて、エージェントを動かす</p>
-    <a href="/editor" style="margin-top:2rem;padding:0.75rem 2rem;background:#3b82f6;color:white;border-radius:8px;text-decoration:none;font-weight:bold;">
-      エディタを開く →
-    </a>
+<Base title="AgentFlow — Visual Agent Org Designer for OpenClaw">
+  <main class="landing">
+    <!-- Hero -->
+    <section class="hero">
+      <div class="badge">🔧 Open Source · MIT License</div>
+      <h1>⚙️ AgentFlow</h1>
+      <p class="tagline">Design multi-agent teams visually.<br/>Org chart → OpenClaw config in one click.</p>
+      <p class="sub">The first GUI for designing OpenClaw multi-agent organizations.<br/>No code. No YAML. Just drag, connect, export.</p>
+      <div class="cta-row">
+        <a href={`${base}editor/`} class="cta primary">Try the Editor →</a>
+        <a href="https://github.com/Frexida/agentflow" class="cta secondary" target="_blank">⭐ GitHub</a>
+      </div>
+    </section>
+
+    <!-- How it works -->
+    <section class="steps">
+      <h2>How it works</h2>
+      <div class="step-grid">
+        <div class="step">
+          <div class="step-num">1</div>
+          <h3>Design</h3>
+          <p>Add agents, set roles, personalities, models. Connect them with authority, communication, or review links.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <h3>Organize</h3>
+          <p>Group agents into teams. Define hierarchies. Auto-layout with dagre or arrange freely.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <h3>Export</h3>
+          <p>One click generates production-ready OpenClaw config, workspace setup script, and full metadata.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features -->
+    <section class="features">
+      <h2>Built for OpenClaw</h2>
+      <div class="feature-grid">
+        <div class="feature">
+          <span class="icon">🎨</span>
+          <h3>Visual Org Chart</h3>
+          <p>Drawflow-based node editor. Drag, drop, connect agents visually.</p>
+        </div>
+        <div class="feature">
+          <span class="icon">🤖</span>
+          <h3>Agent Profiles</h3>
+          <p>Name, role, personality (SOUL.md), model selection, tool profiles, initial memory.</p>
+        </div>
+        <div class="feature">
+          <span class="icon">🔗</span>
+          <h3>Relationship Types</h3>
+          <p>Authority (🔴), Communication (🔵), Review (🟡) — based on MOISE+ organizational theory.</p>
+        </div>
+        <div class="feature">
+          <span class="icon">📦</span>
+          <h3>One-Click Export</h3>
+          <p>Generates config.apply-ready JSON, setup scripts, and workspace files.</p>
+        </div>
+        <div class="feature">
+          <span class="icon">👥</span>
+          <h3>Group Management</h3>
+          <p>Organize agents into teams and sub-teams with nested group support.</p>
+        </div>
+        <div class="feature">
+          <span class="icon">✅</span>
+          <h3>Validation</h3>
+          <p>Catches errors before export: duplicate names, missing fields, orphan nodes.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Deploy options -->
+    <section class="deploy">
+      <h2>Deploy Anywhere</h2>
+      <div class="deploy-grid">
+        <div class="deploy-option">
+          <h3>🐳 Docker</h3>
+          <code>docker compose up -d</code>
+        </div>
+        <div class="deploy-option">
+          <h3>💻 Local</h3>
+          <code>npm run build</code>
+        </div>
+        <div class="deploy-option">
+          <h3>🌐 Hosted</h3>
+          <code>Use it right now ↑</code>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="bottom-cta">
+      <h2>Start designing your agent team</h2>
+      <a href={`${base}editor/`} class="cta primary">Open AgentFlow Editor →</a>
+    </section>
+
+    <footer>
+      <p>Built with 🤖 by agents, for agents. <a href="https://github.com/Frexida/agentflow" target="_blank">GitHub</a></p>
+    </footer>
   </main>
 </Base>
+
+<style>
+  .landing {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem;
+  }
+
+  /* Hero */
+  .hero {
+    text-align: center;
+    padding: 4rem 0 3rem;
+  }
+  .badge {
+    display: inline-block;
+    background: rgba(59, 130, 246, 0.15);
+    color: #60a5fa;
+    padding: 0.3rem 1rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    margin-bottom: 1.5rem;
+  }
+  .hero h1 {
+    font-size: 3.5rem;
+    margin-bottom: 1rem;
+    background: linear-gradient(135deg, #60a5fa, #a78bfa);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .tagline {
+    font-size: 1.4rem;
+    color: #cbd5e1;
+    line-height: 1.6;
+    margin-bottom: 0.75rem;
+  }
+  .sub {
+    color: #64748b;
+    font-size: 1rem;
+    line-height: 1.6;
+    margin-bottom: 2rem;
+  }
+  .cta-row {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .cta {
+    display: inline-block;
+    padding: 0.8rem 2rem;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 1.05rem;
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .cta:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(59, 130, 246, 0.3);
+  }
+  .cta.primary {
+    background: #3b82f6;
+    color: white;
+  }
+  .cta.secondary {
+    background: rgba(255,255,255,0.08);
+    color: #e2e8f0;
+    border: 1px solid rgba(255,255,255,0.15);
+  }
+
+  /* Sections */
+  section {
+    padding: 3rem 0;
+  }
+  h2 {
+    text-align: center;
+    font-size: 1.8rem;
+    margin-bottom: 2rem;
+    color: #f1f5f9;
+  }
+
+  /* Steps */
+  .step-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+  }
+  .step {
+    text-align: center;
+    padding: 1.5rem;
+  }
+  .step-num {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #3b82f6;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1rem;
+    font-weight: bold;
+    font-size: 1.1rem;
+  }
+  .step h3 {
+    margin-bottom: 0.5rem;
+    color: #e2e8f0;
+  }
+  .step p {
+    color: #94a3b8;
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
+
+  /* Features */
+  .feature-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.25rem;
+  }
+  .feature {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    padding: 1.5rem;
+  }
+  .feature .icon {
+    font-size: 1.8rem;
+    display: block;
+    margin-bottom: 0.75rem;
+  }
+  .feature h3 {
+    font-size: 1rem;
+    margin-bottom: 0.4rem;
+    color: #e2e8f0;
+  }
+  .feature p {
+    color: #94a3b8;
+    font-size: 0.85rem;
+    line-height: 1.5;
+  }
+
+  /* Deploy */
+  .deploy-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.25rem;
+  }
+  .deploy-option {
+    text-align: center;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    padding: 1.5rem;
+  }
+  .deploy-option h3 {
+    margin-bottom: 0.75rem;
+  }
+  .deploy-option code {
+    background: rgba(0,0,0,0.4);
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    color: #a5f3fc;
+  }
+
+  /* Bottom CTA */
+  .bottom-cta {
+    text-align: center;
+    padding: 3rem 0;
+  }
+
+  /* Footer */
+  footer {
+    text-align: center;
+    padding: 2rem 0;
+    color: #475569;
+    font-size: 0.85rem;
+    border-top: 1px solid rgba(255,255,255,0.06);
+  }
+
+  /* Mobile */
+  @media (max-width: 640px) {
+    .hero h1 { font-size: 2.2rem; }
+    .tagline { font-size: 1.1rem; }
+    .step-grid, .feature-grid, .deploy-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

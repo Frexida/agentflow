@@ -618,12 +618,24 @@ import Base from '../layouts/Base.astro';
           const marker = a.id === agent.id ? ' **(you)**' : '';
           agLines.push('- **' + (a.name || a.id) + '**' + marker + ': ' + (a.role || 'No role defined'));
         }
-        agLines.push('', '## Authority Structure');
+        agLines.push('', '## Relationships');
         const authLinks = org.links.filter(l => l.type === 'authority');
+        const commLinks2 = org.links.filter(l => l.type === 'communication');
+        const revLinks2 = org.links.filter(l => l.type === 'review');
         if (authLinks.length) {
-          for (const l of authLinks) agLines.push('- ' + agentName(l.source) + ' → ' + agentName(l.target) + ' (authority)');
-        } else {
-          agLines.push('- Flat structure (no authority links defined)');
+          agLines.push('### Authority (command chain)');
+          for (const l of authLinks) agLines.push('- ' + agentName(l.source) + ' → ' + agentName(l.target));
+        }
+        if (commLinks2.length) {
+          agLines.push('### Communication');
+          for (const l of commLinks2) agLines.push('- ' + agentName(l.source) + ' ↔ ' + agentName(l.target));
+        }
+        if (revLinks2.length) {
+          agLines.push('### Review');
+          for (const l of revLinks2) agLines.push('- ' + agentName(l.source) + ' reviews ' + agentName(l.target));
+        }
+        if (!authLinks.length && !commLinks2.length && !revLinks2.length) {
+          agLines.push('- Flat structure (no links defined)');
         }
         if (org.groups.length) {
           agLines.push('', '## Groups');

@@ -182,16 +182,37 @@ function buildAgentsMd(agent: Agent, org: Organization): string {
     lines.push(`- **${a.name || a.id}**${marker}: ${a.role || 'No role defined'}`);
   }
   lines.push('');
-  lines.push('## Authority Structure');
+  lines.push('## Relationships');
   const authorityLinks = org.links.filter(l => l.type === 'authority');
+  const commLinks = org.links.filter(l => l.type === 'communication');
+  const reviewLinks = org.links.filter(l => l.type === 'review');
+
   if (authorityLinks.length > 0) {
+    lines.push('### Authority (command chain)');
     for (const l of authorityLinks) {
       const src = org.agents.find(a => a.id === l.source)?.name || l.source;
       const tgt = org.agents.find(a => a.id === l.target)?.name || l.target;
-      lines.push(`- ${src} → ${tgt} (authority)`);
+      lines.push(`- ${src} → ${tgt}`);
     }
-  } else {
-    lines.push('- Flat structure (no authority links defined)');
+  }
+  if (commLinks.length > 0) {
+    lines.push('### Communication');
+    for (const l of commLinks) {
+      const src = org.agents.find(a => a.id === l.source)?.name || l.source;
+      const tgt = org.agents.find(a => a.id === l.target)?.name || l.target;
+      lines.push(`- ${src} ↔ ${tgt}`);
+    }
+  }
+  if (reviewLinks.length > 0) {
+    lines.push('### Review');
+    for (const l of reviewLinks) {
+      const src = org.agents.find(a => a.id === l.source)?.name || l.source;
+      const tgt = org.agents.find(a => a.id === l.target)?.name || l.target;
+      lines.push(`- ${src} reviews ${tgt}`);
+    }
+  }
+  if (authorityLinks.length === 0 && commLinks.length === 0 && reviewLinks.length === 0) {
+    lines.push('- Flat structure (no links defined)');
   }
 
   // Groups

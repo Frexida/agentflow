@@ -1529,7 +1529,29 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     }
 
     // --- Config Import ---
-    document.getElementById('btn-import').addEventListener('click', () => {
+    document.getElementById('btn-import').addEventListener('click', async () => {
+      // If gateway is connected, offer to import from gateway
+      if (window.gatewayClient?.connected) {
+        const choice = confirm('Import from connected Gateway?\n\nOK = Import from Gateway\nCancel = Import from file');
+        if (choice) {
+          try {
+            toast('Fetching config from Gateway...');
+            const result = await window.gatewayClient.rpc('config.get', {});
+            if (result?.config) {
+              importConfig(result.config);
+              toast('Imported from Gateway ✓');
+            } else if (result) {
+              importConfig(result);
+              toast('Imported from Gateway ✓');
+            } else {
+              toast('Gateway returned empty config');
+            }
+          } catch (err) {
+            toast('Gateway import failed: ' + err.message);
+          }
+          return;
+        }
+      }
       document.getElementById('import-file').click();
     });
 

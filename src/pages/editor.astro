@@ -243,6 +243,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     <button id="btn-add-agent">+ エージェント追加</button>
     <button id="btn-auto-layout" class="secondary">⬡ 自動整列</button>
     <button id="btn-groups" class="secondary">📁 グループ</button>
+    <button id="btn-templates" class="secondary">📋 テンプレート</button>
     <div class="spacer"></div>
     <button id="btn-export" class="secondary">📤 エクスポート</button>
     <button id="btn-save" class="secondary">💾 保存</button>
@@ -304,6 +305,33 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     </div>
   </div>
   <div id="link-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:399"></div>
+
+  <!-- Template modal -->
+  <div id="template-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:499"></div>
+  <div id="template-modal" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#1a1a1a;border:1px solid #333;border-radius:12px;padding:24px;z-index:500;width:520px;max-width:90vw;max-height:80vh;overflow-y:auto">
+    <h3 style="color:#e5e7eb;margin:0 0 16px;display:flex;justify-content:space-between;align-items:center">
+      📋 組織テンプレート
+      <button id="template-modal-close" style="background:none;border:none;color:#6b7280;font-size:20px;cursor:pointer">✕</button>
+    </h3>
+    <p style="color:#9ca3af;font-size:13px;margin:0 0 16px">テンプレートを選択すると、現在のキャンバスが置換されます。</p>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <button class="template-card" data-template="startup" style="text-align:left;padding:16px;background:#1f1f1f;border:1px solid #333;border-radius:8px;color:#e5e7eb;cursor:pointer;transition:border-color 150ms">
+        <div style="font-size:15px;font-weight:bold;margin-bottom:4px">🚀 スタートアップ型</div>
+        <div style="font-size:12px;color:#9ca3af">CEO → PM → Dev×2 のシンプルな構造。少人数で素早く動くチーム向け。</div>
+        <div style="font-size:11px;color:#6b7280;margin-top:6px">4エージェント / authority + communication</div>
+      </button>
+      <button class="template-card" data-template="hierarchy" style="text-align:left;padding:16px;background:#1f1f1f;border:1px solid #333;border-radius:8px;color:#e5e7eb;cursor:pointer;transition:border-color 150ms">
+        <div style="font-size:15px;font-weight:bold;margin-bottom:4px">🏢 階層型</div>
+        <div style="font-size:12px;color:#9ca3af">Director → Manager×2 → Member×4 の縦型組織。大規模プロジェクト向け。</div>
+        <div style="font-size:11px;color:#6b7280;margin-top:6px">7エージェント / authority + review</div>
+      </button>
+      <button class="template-card" data-template="flat" style="text-align:left;padding:16px;background:#1f1f1f;border:1px solid #333;border-radius:8px;color:#e5e7eb;cursor:pointer;transition:border-color 150ms">
+        <div style="font-size:15px;font-weight:bold;margin-bottom:4px">🤝 フラット型</div>
+        <div style="font-size:12px;color:#9ca3af">Lead + Member×3 の横並び構造。全員が対等に協力するチーム向け。</div>
+        <div style="font-size:11px;color:#6b7280;margin-top:6px">4エージェント / communication</div>
+      </button>
+    </div>
+  </div>
 
   <div class="hints-overlay" id="hints-overlay" style="display:none;">
     <span class="hint-item"><span class="hint-key">ダブルクリック</span> エージェント編集</span>
@@ -1063,6 +1091,101 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       scheduleSave();
     });
 
+    // --- Templates ---
+    const templateModal = document.getElementById('template-modal');
+    const templateOverlay = document.getElementById('template-overlay');
+
+    function openTemplateModal() {
+      templateModal.style.display = 'block';
+      templateOverlay.style.display = 'block';
+    }
+    function closeTemplateModal() {
+      templateModal.style.display = 'none';
+      templateOverlay.style.display = 'none';
+    }
+
+    document.getElementById('btn-templates').addEventListener('click', openTemplateModal);
+    document.getElementById('template-modal-close').addEventListener('click', closeTemplateModal);
+    templateOverlay.addEventListener('click', closeTemplateModal);
+
+    function applyTemplate(name) {
+      if (org.agents.length > 0 && !confirm('現在の組織を置換しますか？テンプレートを適用すると現在のデータは失われます。')) return;
+
+      editor.clear();
+      org.agents = [];
+      org.links = [];
+      org.groups = [];
+      nodeToAgent = {};
+      connectionTypes = {};
+      closePanel();
+
+      if (name === 'startup') {
+        org.name = 'スタートアップチーム';
+        const ceo = addAgent({ name: 'CEO', role: 'Chief Executive', icon: '👑', model: MODELS[0], personality: 'Vision and strategy. Final decisions.' }, 350, 60);
+        const pm = addAgent({ name: 'PM', role: 'Project Manager', icon: '👔', model: MODELS[0], personality: 'Sprint planning, progress tracking, task delegation.' }, 350, 240);
+        const dev1 = addAgent({ name: 'Dev-1', role: 'Developer', icon: '⚙️', model: MODELS[1], personality: 'Frontend/backend implementation. Ships fast.' }, 180, 420);
+        const dev2 = addAgent({ name: 'Dev-2', role: 'Developer', icon: '🔧', model: MODELS[1], personality: 'Infrastructure, testing, deployment.' }, 520, 420);
+        connectAgents(ceo, pm, 'authority');
+        connectAgents(pm, dev1, 'authority');
+        connectAgents(pm, dev2, 'authority');
+        connectAgents(dev1, dev2, 'communication');
+      } else if (name === 'hierarchy') {
+        org.name = '階層型組織';
+        const dir = addAgent({ name: 'Director', role: 'Director', icon: '🎯', model: MODELS[0], personality: 'Strategic oversight. Cross-team coordination.' }, 400, 40);
+        const mgr1 = addAgent({ name: 'Manager-A', role: 'Team Lead', icon: '👔', model: MODELS[0], personality: 'Team A management. Sprint execution.' }, 200, 200);
+        const mgr2 = addAgent({ name: 'Manager-B', role: 'Team Lead', icon: '👔', model: MODELS[0], personality: 'Team B management. Quality assurance.' }, 600, 200);
+        const m1 = addAgent({ name: 'Member-1', role: 'Developer', icon: '⚙️', model: MODELS[1], personality: 'Core feature development.' }, 100, 380);
+        const m2 = addAgent({ name: 'Member-2', role: 'Developer', icon: '🔧', model: MODELS[1], personality: 'API and integrations.' }, 300, 380);
+        const m3 = addAgent({ name: 'Member-3', role: 'Designer', icon: '🎨', model: MODELS[2], personality: 'UI/UX design and prototyping.' }, 500, 380);
+        const m4 = addAgent({ name: 'Member-4', role: 'QA', icon: '🧪', model: MODELS[2], personality: 'Testing and quality assurance.' }, 700, 380);
+        connectAgents(dir, mgr1, 'authority');
+        connectAgents(dir, mgr2, 'authority');
+        connectAgents(mgr1, m1, 'authority');
+        connectAgents(mgr1, m2, 'authority');
+        connectAgents(mgr2, m3, 'authority');
+        connectAgents(mgr2, m4, 'authority');
+        connectAgents(mgr1, mgr2, 'review');
+      } else if (name === 'flat') {
+        org.name = 'フラットチーム';
+        const lead = addAgent({ name: 'Lead', role: 'Tech Lead', icon: '⭐', model: MODELS[0], personality: 'Coordination and technical guidance. First among equals.' }, 350, 80);
+        const a = addAgent({ name: 'Agent-A', role: 'Generalist', icon: '🟢', model: MODELS[1], personality: 'Flexible. Picks up whatever is needed.' }, 100, 280);
+        const b = addAgent({ name: 'Agent-B', role: 'Generalist', icon: '🔵', model: MODELS[1], personality: 'Research-oriented. Explores solutions.' }, 350, 280);
+        const c = addAgent({ name: 'Agent-C', role: 'Generalist', icon: '🟣', model: MODELS[2], personality: 'Detail-focused. Reviews and polishes.' }, 600, 280);
+        connectAgents(lead, a, 'communication');
+        connectAgents(lead, b, 'communication');
+        connectAgents(lead, c, 'communication');
+        connectAgents(a, b, 'communication');
+        connectAgents(b, c, 'communication');
+      }
+
+      updateOrgDisplay();
+      scheduleSave();
+      closeTemplateModal();
+      showToast(`テンプレート「${org.name}」を適用しました`);
+    }
+
+    // connectAgents needs to be accessible from templates
+    function connectAgents(srcAgent, tgtAgent, linkType) {
+      const srcNodeId = Object.keys(nodeToAgent).find(k => nodeToAgent[k] === srcAgent.id);
+      const tgtNodeId = Object.keys(nodeToAgent).find(k => nodeToAgent[k] === tgtAgent.id);
+      if (!srcNodeId || !tgtNodeId) return;
+      editor.addConnection(srcNodeId, tgtNodeId, 'output_1', 'input_1');
+      const connKey = `${srcNodeId}_${tgtNodeId}`;
+      const ct = connectionTypes[connKey];
+      if (ct && linkType !== 'authority') {
+        ct.type = linkType;
+        const link = org.links.find(l => l.id === ct.linkId);
+        if (link) link.type = linkType;
+        applyConnectionColor(srcNodeId, tgtNodeId, linkType);
+      }
+    }
+
+    document.querySelectorAll('.template-card').forEach(card => {
+      card.addEventListener('click', () => applyTemplate(card.dataset.template));
+      card.addEventListener('mouseenter', () => card.style.borderColor = '#3b82f6');
+      card.addEventListener('mouseleave', () => card.style.borderColor = '#333');
+    });
+
     // --- Init: load from storage or create demo ---
     function createDemoOrg() {
       org.name = 'AgentFlow Team';
@@ -1073,23 +1196,6 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       const dev = addAgent({ name: 'nix', role: 'Developer', icon: '⚙️', model: MODELS[1], personality: 'Fast, pragmatic. Ships code.' }, 100, 420);
       const research = addAgent({ name: 'アライ', role: 'Researcher', icon: '🔬', model: MODELS[2], personality: 'Data-driven analysis. Neutral perspective.' }, 400, 420);
       const critic = addAgent({ name: '倫理アンチ', role: 'Strategy / Critic', icon: '🔥', model: MODELS[0], personality: 'Brutal honesty. Finds every flaw.' }, 600, 240);
-
-      // Helper to create a connection programmatically
-      function connectAgents(srcAgent, tgtAgent, linkType) {
-        const srcNodeId = Object.keys(nodeToAgent).find(k => nodeToAgent[k] === srcAgent.id);
-        const tgtNodeId = Object.keys(nodeToAgent).find(k => nodeToAgent[k] === tgtAgent.id);
-        if (!srcNodeId || !tgtNodeId) return;
-        editor.addConnection(srcNodeId, tgtNodeId, 'output_1', 'input_1');
-        // Update link type (connectionCreated event sets it to 'authority' by default)
-        const connKey = `${srcNodeId}_${tgtNodeId}`;
-        const ct = connectionTypes[connKey];
-        if (ct && linkType !== 'authority') {
-          ct.type = linkType;
-          const link = org.links.find(l => l.id === ct.linkId);
-          if (link) link.type = linkType;
-          applyConnectionColor(srcNodeId, tgtNodeId, linkType);
-        }
-      }
 
       connectAgents(ceo, pm, 'authority');
       connectAgents(pm, dev, 'authority');

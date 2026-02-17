@@ -106,13 +106,18 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     }
     .drawflow .connection .main-path {
       stroke: #ef4444 !important;
-      stroke-width: 2 !important;
+      stroke-width: 2.5 !important;
+      marker-end: url(#arrow-authority) !important;
     }
     .drawflow .connection.link-communication .main-path {
       stroke: #3b82f6 !important;
+      stroke-dasharray: 8 4 !important;
+      marker-end: url(#arrow-communication) !important;
     }
     .drawflow .connection.link-review .main-path {
       stroke: #f59e0b !important;
+      stroke-dasharray: 3 3 !important;
+      marker-end: url(#arrow-review) !important;
     }
     .drawflow .drawflow-node .input, .drawflow .drawflow-node .output {
       background: #555 !important;
@@ -249,6 +254,19 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     <button id="btn-save" class="secondary">💾 保存</button>
     <button id="btn-clear" class="danger">🗑 クリア</button>
   </div>
+  <svg style="position:absolute;width:0;height:0">
+    <defs>
+      <marker id="arrow-authority" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="#ef4444" />
+      </marker>
+      <marker id="arrow-communication" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="#3b82f6" />
+      </marker>
+      <marker id="arrow-review" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="#f59e0b" />
+      </marker>
+    </defs>
+  </svg>
   <div id="drawflow"></div>
 
   <div id="side-panel">
@@ -337,6 +355,11 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     <span class="hint-item"><span class="hint-key">ダブルクリック</span> エージェント編集</span>
     <span class="hint-item"><span class="hint-key">ドラッグ</span> ノード間接続</span>
     <span class="hint-item"><span class="hint-key">クリック</span> リンクタイプ切替</span>
+    <span class="hint-item" style="margin-left:12px;border-left:1px solid #444;padding-left:12px">
+      <span style="color:#ef4444">━━▶</span> 指揮
+      <span style="color:#3b82f6;margin-left:8px">╌╌▶</span> 通信
+      <span style="color:#f59e0b;margin-left:8px">···▶</span> レビュー
+    </span>
     <button class="hint-close" id="hints-close" title="閉じる">✕</button>
   </div>
   <div class="toast" id="toast"></div>

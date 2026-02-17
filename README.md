@@ -1,12 +1,41 @@
-# AgentFlow
+<div align="center">
+
+# 🔀 AgentFlow
+
+**Visual agent organization designer — Org chart editor → OpenClaw config export**
 
 エージェント組織設計ツール — 組織図エディタ → OpenClaw config エクスポート
 
-**Live Demo**: https://frexida.github.io/agentflow/editor/
+[![Live Demo](https://img.shields.io/badge/Live_Demo-Try_Now-blue?style=for-the-badge)](https://frexida.github.io/agentflow/editor/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
+[![GitHub Pages](https://img.shields.io/badge/Deploy-GitHub_Pages-222?style=for-the-badge&logo=github)](https://frexida.github.io/agentflow/)
+
+</div>
+
+---
+
+## Why AgentFlow?
+
+OpenClaw lets you run multi-agent teams — but designing them means hand-editing YAML/JSON configs. AgentFlow gives you a **visual drag-and-drop editor** to design your agent org, then exports a ready-to-use OpenClaw config.
+
+- 🎨 **Design visually** — Drag nodes, draw connections, see your org chart in real time
+- ⚡ **Export instantly** — One click to generate OpenClaw-compatible config JSON + setup scripts
+- 🚀 **Zero setup** — Works in the browser. No backend, no accounts, no install required
+- 🏠 **Self-hostable** — Docker one-liner or static build for your own infra
+
+> **No OpenClaw GUI for multi-agent design exists yet.** AgentFlow fills that gap.
+
+---
 
 ## Quick Start
 
-### Option A: Docker (推奨)
+### Option A: Use it now (no install)
+
+👉 **https://frexida.github.io/agentflow/editor/**
+
+Data stays in your browser (localStorage). Nothing is sent to any server.
+
+### Option B: Docker (self-hosted)
 
 ```bash
 git clone https://github.com/Frexida/agentflow.git
@@ -14,9 +43,9 @@ cd agentflow
 docker compose up -d
 ```
 
-→ http://localhost:3000/editor/ でアクセス
+→ Open http://localhost:3000/editor/
 
-### Option B: ローカルビルド
+### Option C: Local build
 
 ```bash
 git clone https://github.com/Frexida/agentflow.git
@@ -25,102 +54,93 @@ npm install
 SITE_URL=http://localhost:4321 BASE_PATH=/ npm run build
 ```
 
-ビルド成果物 `dist/` を任意のWebサーバーで配信。
+Serve `dist/` with any web server, or `npm run dev` for development.
 
-開発モード:
-```bash
-npm run dev
-```
-
-### Option C: GitHub Pages (デプロイ不要)
-
-https://frexida.github.io/agentflow/editor/ をそのまま使用。
-データはブラウザのlocalStorageに保存されます。
+---
 
 ## Features
 
-### エディタ
-- **ビジュアル組織図** — Drawflow ベースのノード＆接続エディタ
-- **エージェント追加** — ワンクリックでノード作成
-- **ドラッグ＆ドロップ** — 自由配置、自動整列（dagre）
-- **接続管理** — ノード間をドラッグして関係作成
+### 🖼️ Visual Org Chart Editor
 
-### エージェント編集（サイドパネル）
-ノードをダブルクリックで編集パネルを表示：
-- アイコン（絵文字）
-- 名前・役割
-- 性格（SOUL.md に反映）
-- モデル選択（Claude, GPT, Gemini）
-- システムプロンプト
-- **ツールプロファイル**（minimal / coding / messaging / full）
-- **初期記憶**（MEMORY.md に反映）
+- **Drag & drop** nodes to arrange your agent hierarchy
+- **Auto-layout** with dagre for clean org charts
+- **Connection types** — authority (🔴), communication (🔵), review (🟡)
+- Click links to toggle type, double-click for detailed editing
 
-### リンク編集
-- **クリック** — リンクタイプ切替（authority → communication → review）
-- **ダブルクリック** — モーダルでタイプ＋ラベル（説明文）編集
-- **色分け** — 🔴 authority / 🔵 communication / 🟡 review
+### 🤖 Agent Configuration
 
-### グループ管理
-- ツールバーの「📁 グループ」ボタンで左パネル表示
-- グループ作成・削除
-- エージェントのメンバー追加/削除（トグルボタン）
+Double-click any node to configure:
 
-### エクスポート
-「📤 エクスポート」ボタンで3ファイル生成：
-1. **OpenClaw config JSON** — `config.apply` に直接使用可能
-2. **Full export JSON** — config + メタデータ + ワークスペースファイル
-3. **Setup script** — エージェントワークスペース作成用シェルスクリプト
+| Setting | Description |
+|---------|-------------|
+| Icon | Emoji identifier |
+| Name & Role | Agent identity |
+| Personality | Maps to `SOUL.md` |
+| Model | Claude, GPT, Gemini, etc. |
+| System Prompt | Core instructions |
+| Tool Profile | minimal / coding / messaging / full |
+| Initial Memory | Maps to `MEMORY.md` |
 
-### バリデーション
-エクスポート時に自動チェック：
-- ❌ エラー: エージェント0件、名前重複、名前未設定
-- ⚠️ 警告: 役割未設定、プロンプト空、接続なしノード
+### 📁 Group Management
 
-### 保存
-- **自動保存** — 5秒間隔でlocalStorageに保存
-- **手動保存** — 「💾 保存」ボタン
+Organize agents into teams/departments with nested group support.
+
+### 📤 One-Click Export
+
+Generates 3 files:
+
+1. **OpenClaw config JSON** — Drop into `config.apply` directly
+2. **Full export JSON** — Config + metadata + workspace files
+3. **Setup script** — Shell script to create agent workspaces
+
+### ✅ Built-in Validation
+
+Catches errors before export:
+- ❌ No agents, duplicate names, unnamed agents
+- ⚠️ Missing roles, empty prompts, disconnected nodes
+
+### 💾 Auto-Save
+
+Saves to localStorage every 5 seconds. Manual save button available.
+
+---
 
 ## Self-Hosting
 
-### 環境変数
+### Environment Variables
 
-| 変数 | デフォルト | 説明 |
-|------|-----------|------|
-| `SITE_URL` | `https://frexida.github.io` | サイトURL |
-| `BASE_PATH` | `/agentflow` | ベースパス（`/` でルート配信） |
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `SITE_URL` | `https://frexida.github.io` | Your site URL |
+| `BASE_PATH` | `/agentflow` | Base path (`/` for root) |
 
-### Docker カスタマイズ
+### Reverse Proxy
 
-ポート変更:
-```bash
-docker compose up -d  # デフォルト: 3000
-# または docker-compose.yml の ports を編集
-```
+Set `SITE_URL` to your actual domain when building behind nginx/Caddy.
 
-### リバースプロキシ
+---
 
-nginx/Caddy等の背後に置く場合、`SITE_URL` を実際のドメインに設定してビルド。
+## Architecture
 
-## Stack
+| Layer | Tech |
+|-------|------|
+| Framework | [Astro](https://astro.build/) (static output) |
+| Editor | [Drawflow](https://github.com/jerosoler/Drawflow) |
+| Layout | [dagre](https://github.com/dagrejs/dagre) |
+| Data Model | MOISE+ Structural Specification (v1) |
 
-- **Astro** — 静的サイトジェネレーター
-- **Drawflow** — ビジュアルノードエディタ
-- **dagre** — 自動レイアウトエンジン
+Key source files:
+- `src/pages/editor.astro` — Main editor UI
+- `src/lib/types.ts` — Agent/Link/Group/Organization types
+- `src/lib/export-openclaw.ts` — Organization → OpenClaw config
 
-## Data Model
+---
 
-`src/lib/types.ts` — MOISE+ Structural Specification ベースの v1 データモデル
+## Contributing
 
-- `Agent` — エージェント定義（名前・性格・モデル・ツール・記憶）
-- `Link` — エージェント間の関係（authority / communication / review）
-- `Group` — チーム/グループ（入れ子対応）
-- `Organization` — 組織全体
+Issues and PRs welcome. See [Issues](https://github.com/Frexida/agentflow/issues) for current tasks.
 
-## Export
-
-`src/lib/export-openclaw.ts` — Organization → OpenClaw config JSON 変換
-
-生成されるconfigは OpenClaw の `config.apply` にそのまま使用可能。プレースホルダー（`REPLACE_WITH_*`）を実際のDiscord IDに置換してから適用。
+---
 
 ## License
 

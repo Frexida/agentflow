@@ -1,0 +1,17 @@
+{
+  "name": "agentflow",
+  "type": "module",
+  "version": "0.0.1",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@astrojs/cloudflare": "^12.6.12",
+    "astro": "^5.17.1",
+    "htmx.org": "^2.0.8",
+    "wrangler": "^4.65.0"
+  }
+}

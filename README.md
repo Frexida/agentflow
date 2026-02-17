@@ -2,7 +2,40 @@
 
 エージェント組織設計ツール — 組織図エディタ → OpenClaw config エクスポート
 
-**Live**: https://agentflow.mtdnot1129.workers.dev
+**Live Demo**: https://frexida.github.io/agentflow/editor/
+
+## Quick Start
+
+### Option A: Docker (推奨)
+
+```bash
+git clone https://github.com/Frexida/agentflow.git
+cd agentflow
+docker compose up -d
+```
+
+→ http://localhost:3000/editor/ でアクセス
+
+### Option B: ローカルビルド
+
+```bash
+git clone https://github.com/Frexida/agentflow.git
+cd agentflow
+npm install
+SITE_URL=http://localhost:4321 BASE_PATH=/ npm run build
+```
+
+ビルド成果物 `dist/` を任意のWebサーバーで配信。
+
+開発モード:
+```bash
+npm run dev
+```
+
+### Option C: GitHub Pages (デプロイ不要)
+
+https://frexida.github.io/agentflow/editor/ をそのまま使用。
+データはブラウザのlocalStorageに保存されます。
 
 ## Features
 
@@ -47,26 +80,32 @@
 - **自動保存** — 5秒間隔でlocalStorageに保存
 - **手動保存** — 「💾 保存」ボタン
 
+## Self-Hosting
+
+### 環境変数
+
+| 変数 | デフォルト | 説明 |
+|------|-----------|------|
+| `SITE_URL` | `https://frexida.github.io` | サイトURL |
+| `BASE_PATH` | `/agentflow` | ベースパス（`/` でルート配信） |
+
+### Docker カスタマイズ
+
+ポート変更:
+```bash
+docker compose up -d  # デフォルト: 3000
+# または docker-compose.yml の ports を編集
+```
+
+### リバースプロキシ
+
+nginx/Caddy等の背後に置く場合、`SITE_URL` を実際のドメインに設定してビルド。
+
 ## Stack
 
-- **Astro** + **htmx** — SSR + 宣言的インタラクション
+- **Astro** — 静的サイトジェネレーター
 - **Drawflow** — ビジュアルノードエディタ
 - **dagre** — 自動レイアウトエンジン
-- **Cloudflare Workers** — エッジデプロイ
-
-## Development
-
-```bash
-npm install
-npm run dev
-```
-
-## Build & Deploy
-
-```bash
-npm run build
-npx wrangler deploy
-```
 
 ## Data Model
 
@@ -82,3 +121,7 @@ npx wrangler deploy
 `src/lib/export-openclaw.ts` — Organization → OpenClaw config JSON 変換
 
 生成されるconfigは OpenClaw の `config.apply` にそのまま使用可能。プレースホルダー（`REPLACE_WITH_*`）を実際のDiscord IDに置換してから適用。
+
+## License
+
+MIT

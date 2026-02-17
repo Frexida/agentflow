@@ -233,6 +233,24 @@ import Base from '../layouts/Base.astro';
     <button id="btn-delete-agent" style="width:100%;padding:8px;background:#dc2626;color:white;border:none;border-radius:6px;cursor:pointer;font-size:13px">🗑 このエージェントを削除</button>
   </div>
 
+  <div id="link-modal" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#1a1a1a;border:1px solid #333;border-radius:10px;padding:20px;z-index:400;min-width:300px">
+    <h3 style="color:#e5e7eb;margin:0 0 16px;font-size:15px">リンク編集</h3>
+    <div class="field"><label>タイプ</label>
+      <select id="link-type">
+        <option value="authority">🔴 authority（指揮）</option>
+        <option value="communication">🔵 communication（通信）</option>
+        <option value="review">🟡 review（レビュー）</option>
+      </select>
+    </div>
+    <div class="field"><label>ラベル（説明）</label><input type="text" id="link-label" placeholder="例: コードレビュー依頼" /></div>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button id="link-modal-save" style="flex:1;padding:8px;background:#3b82f6;color:white;border:none;border-radius:6px;cursor:pointer">保存</button>
+      <button id="link-modal-delete" style="padding:8px 12px;background:#dc2626;color:white;border:none;border-radius:6px;cursor:pointer">削除</button>
+      <button id="link-modal-close" style="padding:8px 12px;background:#333;color:white;border:none;border-radius:6px;cursor:pointer">閉じる</button>
+    </div>
+  </div>
+  <div id="link-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:399"></div>
+
   <div class="toast" id="toast"></div>
 
   <script src="/drawflow.min.js" is:inline></script>
@@ -497,6 +515,92 @@ import Base from '../layouts/Base.astro';
           applyConnectionColor(outId, inId, newType);
           toast(`リンクタイプ: ${newType}`);
           scheduleSave();
+          break;
+        }
+      }
+    });
+
+    // --- Link modal (double-click to edit) ---
+    let editingConnKey = null;
+    const linkModal = document.getElementById('link-modal');
+    const linkOverlay = document.getElementById('link-modal-overlay');
+
+    function openLinkModal(connKey) {
+      const ct = connectionTypes[connKey];
+      if (!ct) return;
+      const link = org.links.find(l => l.id === ct.linkId);
+      if (!link) return;
+      editingConnKey = connKey;
+      document.getElementById('link-type').value = link.type;
+      document.getElementById('link-label').value = link.label || '';
+      linkModal.style.display = 'block';
+      linkOverlay.style.display = 'block';
+    }
+
+    function closeLinkModal() {
+      linkModal.style.display = 'none';
+      linkOverlay.style.display = 'none';
+      editingConnKey = null;
+    }
+
+    document.getElementById('link-modal-close').addEventListener('click', closeLinkModal);
+    linkOverlay.addEventListener('click', closeLinkModal);
+
+    document.getElementById('link-modal-save').addEventListener('click', () => {
+      if (!editingConnKey) return;
+      const ct = connectionTypes[editingConnKey];
+      if (!ct) return;
+      const link = org.links.find(l => l.id === ct.linkId);
+      if (!link) return;
+      const newType = document.getElementById('link-type').value;
+      const newLabel = document.getElementById('link-label').value;
+      link.type = newType;
+      link.label = newLabel || undefined;
+      ct.type = newType;
+      const [outId, inId] = editingConnKey.split('_');
+      applyConnectionColor(outId, inId, newType);
+      toast(`リンク更新: ${newType}${newLabel ? ' — ' + newLabel : ''}`);
+      scheduleSave();
+      closeLinkModal();
+    });
+
+    document.getElementById('link-modal-delete').addEventListener('click', () => {
+      if (!editingConnKey) return;
+      const [outId, inId] = editingConnKey.split('_');
+      // Remove from drawflow
+      const data = editor.export().drawflow.Home.data;
+      const outNode = data[outId];
+      if (outNode) {
+        for (const [oKey, output] of Object.entries(outNode.outputs)) {
+          output.connections = output.connections.filter(c => String(c.node) !== String(inId));
+        }
+      }
+      const inNode = data[inId];
+      if (inNode) {
+        for (const [iKey, input] of Object.entries(inNode.inputs)) {
+          input.connections = input.connections.filter(c => String(c.node) !== String(outId));
+        }
+      }
+      editor.import({ drawflow: { Home: { data } } });
+      // Clean up org state
+      const ct = connectionTypes[editingConnKey];
+      if (ct) org.links = org.links.filter(l => l.id !== ct.linkId);
+      delete connectionTypes[editingConnKey];
+      setTimeout(applyAllConnectionColors, 100);
+      toast('リンク削除');
+      scheduleSave();
+      closeLinkModal();
+    });
+
+    container.addEventListener('dblclick', (e) => {
+      const path = e.target.closest('.main-path');
+      if (!path) return;
+      const conn = path.closest('.connection');
+      if (!conn) return;
+      for (const [key, ct] of Object.entries(connectionTypes)) {
+        const [outId, inId] = key.split('_');
+        if (conn.classList.contains(`node_out_node-${outId}`) && conn.classList.contains(`node_in_node-${inId}`)) {
+          openLinkModal(key);
           break;
         }
       }

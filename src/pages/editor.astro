@@ -123,6 +123,32 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       background: #555 !important;
       border: 1px solid #777 !important;
     }
+    /* Vertical ports: input on top, output on bottom */
+    .drawflow .drawflow-node .inputs {
+      position: absolute;
+      top: -12px;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+    }
+    .drawflow .drawflow-node .outputs {
+      position: absolute;
+      bottom: -12px;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+    }
+    .drawflow .drawflow-node .input, .drawflow .drawflow-node .output {
+      position: relative !important;
+      top: auto !important;
+      right: auto !important;
+      left: auto !important;
+      bottom: auto !important;
+    }
 
     /* サイドパネル */
     #side-panel {
@@ -401,6 +427,9 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     const container = document.getElementById('drawflow');
     const editor = new Drawflow(container);
     editor.reroute = true;
+    editor.curvature = 0.5;
+    editor.reroute_curvature_start_end = 0.5;
+    editor.reroute_curvature = 0.5;
     editor.start();
 
     // --- Helpers ---

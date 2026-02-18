@@ -1,15 +1,86 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useGatewayStore } from '@/stores/gateway'
+
+type GatewayInfo = {
+  id: string
+  status: string
+  region: string
+  url: string
+  token: string
+}
 
 export default function SettingsPage() {
   const { connected, connect, disconnect } = useGatewayStore()
+  const [mode, setMode] = useState<'saas' | 'selfhost'>('saas')
   const [url, setUrl] = useState('ws://localhost:18789')
   const [token, setToken] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [connecting, setConnecting] = useState(false)
+  const [gateway, setGateway] = useState<GatewayInfo | null>(null)
+  const [provisioning, setProvisioning] = useState(false)
+  const [gwLoading, setGwLoading] = useState(true)
 
+  // Check existing gateway on mount
+  const fetchGateway = useCallback(async () => {
+    try {
+      const res = await fetch('/api/gateway')
+      if (res.ok) {
+        const { gateway: gw } = await res.json()
+        setGateway(gw)
+        // Auto-connect if gateway exists and running
+        if (gw && (gw.status === 'started' || gw.status === 'running') && !connected) {
+          try {
+            await connect({ url: gw.url, token: gw.token })
+          } catch { /* ignore auto-connect failures */ }
+        }
+      }
+    } catch { /* not logged in or error */ }
+    setGwLoading(false)
+  }, [connected, connect])
+
+  useEffect(() => { fetchGateway() }, [fetchGateway])
+
+  // SaaS: Auto-provision gateway
+  const handleProvision = async () => {
+    setError(null)
+    setProvisioning(true)
+    try {
+      const res = await fetch('/api/gateway', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'create' }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to create gateway')
+      setGateway(data.gateway)
+      // Wait a moment for gateway to boot, then connect
+      setTimeout(async () => {
+        try {
+          await connect({ url: data.gateway.url, token: data.gateway.token })
+        } catch (e) {
+          setError('Gateway started but connection failed. It may need a few seconds to boot.')
+        }
+        setProvisioning(false)
+      }, 5000)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Provisioning failed')
+      setProvisioning(false)
+    }
+  }
+
+  const handleDestroyGateway = async () => {
+    try {
+      disconnect()
+      await fetch('/api/gateway', { method: 'DELETE' })
+      setGateway(null)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to destroy gateway')
+    }
+  }
+
+  // Self-host: manual connect
   const handleConnect = async () => {
     setError(null)
     setConnecting(true)
@@ -36,67 +107,135 @@ export default function SettingsPage() {
             </span>
           </div>
 
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm text-[var(--text-secondary)] mb-1">WebSocket URL</label>
-              <input
-                type="text"
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                className="w-full bg-[var(--surface)] border border-[var(--accent)] rounded px-3 py-2 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--accent-bright)]"
-                placeholder="ws://localhost:18789"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm text-[var(--text-secondary)] mb-1">Token</label>
-              <input
-                type="password"
-                value={token}
-                onChange={(e) => setToken(e.target.value)}
-                className="w-full bg-[var(--surface)] border border-[var(--accent)] rounded px-3 py-2 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--accent-bright)]"
-                placeholder="Gateway token..."
-              />
-            </div>
-
-            {error && (
-              <div className="text-red-400 text-sm bg-red-900/20 rounded px-3 py-2">
-                {error}
-              </div>
-            )}
-
-            <div className="flex gap-2">
-              {connected ? (
-                <button
-                  onClick={disconnect}
-                  className="px-4 py-2 bg-red-600/50 rounded hover:bg-red-500/50 transition text-sm"
-                >
-                  Disconnect
-                </button>
-              ) : (
-                <button
-                  onClick={handleConnect}
-                  disabled={connecting || !url}
-                  className="px-4 py-2 bg-[var(--accent)] rounded hover:bg-[var(--accent-bright)] transition text-sm disabled:opacity-50"
-                >
-                  {connecting ? 'Connecting...' : 'Connect'}
-                </button>
-              )}
-            </div>
+          {/* Mode Toggle */}
+          <div className="flex gap-2 mb-4">
+            <button
+              onClick={() => setMode('saas')}
+              className={`px-3 py-1.5 rounded text-xs transition ${mode === 'saas' ? 'bg-[var(--accent-bright)] text-white' : 'bg-[var(--surface)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+            >
+              ☁️ Cloud (Automatic)
+            </button>
+            <button
+              onClick={() => setMode('selfhost')}
+              className={`px-3 py-1.5 rounded text-xs transition ${mode === 'selfhost' ? 'bg-[var(--accent-bright)] text-white' : 'bg-[var(--surface)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+            >
+              🖥️ Self-Host
+            </button>
           </div>
 
-          {/* Setup Guide */}
-          <details className="mt-6 text-sm">
-            <summary className="text-[var(--text-secondary)] cursor-pointer hover:text-[var(--text-primary)]">
-              Setup Guide
-            </summary>
-            <div className="mt-3 space-y-2 text-[var(--text-secondary)]">
-              <p>1. Ensure OpenClaw Gateway is running</p>
-              <p>2. Add AgentFlow&apos;s origin to <code className="text-[var(--accent-bright)]">gateway.allowedOrigins</code></p>
-              <p>3. Use the gateway token from your OpenClaw config</p>
-              <p>4. For local dev: <code className="text-[var(--accent-bright)]">ws://localhost:18789</code></p>
+          {mode === 'saas' ? (
+            /* SaaS Mode — Automatic Gateway */
+            <div className="space-y-4">
+              {gwLoading ? (
+                <p className="text-sm text-[var(--text-secondary)]">Checking gateway status...</p>
+              ) : gateway ? (
+                <div className="space-y-3">
+                  <div className="bg-[var(--surface)] rounded p-3 text-sm space-y-1">
+                    <div className="flex justify-between">
+                      <span className="text-[var(--text-secondary)]">Status</span>
+                      <span className={gateway.status === 'started' || gateway.status === 'running' ? 'text-green-400' : 'text-yellow-400'}>
+                        {gateway.status}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-[var(--text-secondary)]">Region</span>
+                      <span>{gateway.region}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-[var(--text-secondary)]">URL</span>
+                      <span className="font-mono text-xs">{gateway.url}</span>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    {connected ? (
+                      <button onClick={disconnect} className="px-4 py-2 bg-red-600/50 rounded hover:bg-red-500/50 transition text-sm">
+                        Disconnect
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => connect({ url: gateway.url, token: gateway.token })}
+                        className="px-4 py-2 bg-[var(--accent)] rounded hover:bg-[var(--accent-bright)] transition text-sm"
+                      >
+                        Reconnect
+                      </button>
+                    )}
+                    <button onClick={handleDestroyGateway} className="px-4 py-2 text-red-400 border border-red-600/30 rounded hover:bg-red-900/20 transition text-sm">
+                      Destroy
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-sm text-[var(--text-secondary)]">
+                    Save your API key below, then start your cloud gateway with one click.
+                  </p>
+                  <button
+                    onClick={handleProvision}
+                    disabled={provisioning}
+                    className="w-full px-4 py-3 bg-[var(--accent-bright)] rounded hover:bg-[var(--accent-glow)] transition text-sm font-semibold disabled:opacity-50"
+                  >
+                    {provisioning ? '⏳ Starting Gateway...' : '🚀 Start Cloud Gateway'}
+                  </button>
+                </div>
+              )}
             </div>
-          </details>
+          ) : (
+            /* Self-Host Mode — Manual Connection */
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm text-[var(--text-secondary)] mb-1">WebSocket URL</label>
+                <input
+                  type="text"
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  className="w-full bg-[var(--surface)] border border-[var(--accent)] rounded px-3 py-2 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--accent-bright)]"
+                  placeholder="ws://localhost:18789"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-[var(--text-secondary)] mb-1">Token</label>
+                <input
+                  type="password"
+                  value={token}
+                  onChange={(e) => setToken(e.target.value)}
+                  className="w-full bg-[var(--surface)] border border-[var(--accent)] rounded px-3 py-2 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--accent-bright)]"
+                  placeholder="Gateway token..."
+                />
+              </div>
+              <div className="flex gap-2">
+                {connected ? (
+                  <button onClick={disconnect} className="px-4 py-2 bg-red-600/50 rounded hover:bg-red-500/50 transition text-sm">
+                    Disconnect
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleConnect}
+                    disabled={connecting || !url}
+                    className="px-4 py-2 bg-[var(--accent)] rounded hover:bg-[var(--accent-bright)] transition text-sm disabled:opacity-50"
+                  >
+                    {connecting ? 'Connecting...' : 'Connect'}
+                  </button>
+                )}
+              </div>
+              <details className="text-sm">
+                <summary className="text-[var(--text-secondary)] cursor-pointer hover:text-[var(--text-primary)]">
+                  Setup Guide
+                </summary>
+                <div className="mt-3 space-y-2 text-[var(--text-secondary)]">
+                  <p>1. Ensure OpenClaw Gateway is running</p>
+                  <p>2. Add AgentFlow&apos;s origin to <code className="text-[var(--accent-bright)]">gateway.controlUi.allowedOrigins</code></p>
+                  <p>3. Use the gateway token from your OpenClaw config</p>
+                  <p>4. For local dev: <code className="text-[var(--accent-bright)]">ws://localhost:18789</code></p>
+                </div>
+              </details>
+            </div>
+          )}
+
+          {error && (
+            <div className="mt-4 text-red-400 text-sm bg-red-900/20 rounded px-3 py-2">
+              {error}
+            </div>
+          )}
         </section>
 
         {/* API Keys */}

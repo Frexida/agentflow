@@ -9,6 +9,7 @@ mkdir -p /root/.openclaw
 cat > /root/.openclaw/openclaw.json <<EOF
 {
   "gateway": {
+    "mode": "local",
     "port": 18789,
     "bind": "lan",
     "controlUi": {
@@ -43,4 +44,4 @@ OPENCLAW_BIN=$(which openclaw)
 OPENCLAW_DIR=$(dirname $(dirname "$OPENCLAW_BIN"))
 OPENCLAW_INDEX="$OPENCLAW_DIR/lib/node_modules/openclaw/dist/index.js"
 
-exec node "$OPENCLAW_INDEX" gateway --port 18789
+exec node "$OPENCLAW_INDEX" gateway --port 18789 --allow-unconfigured

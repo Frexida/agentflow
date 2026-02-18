@@ -77,8 +77,7 @@ export default function TermsPage() {
               <li>
                 <strong>You are responsible for costs incurred with your AI provider</strong> (Anthropic, OpenAI, etc.),
                 including charges resulting from agent behavior such as excessive API calls, loops, or unintended usage patterns.
-                However, if excessive costs are directly caused by a verified bug in AgentFlow&apos;s code (not in your agent configuration),
-                we will work with you in good faith to resolve the situation, which may include compensation at our discretion.
+                Any liability for such costs is subject to the limitation of liability in Section 12.
               </li>
               <li>
                 We strongly recommend setting <strong>usage limits and spending caps</strong> directly with your AI provider
@@ -177,9 +176,14 @@ export default function TermsPage() {
           <section>
             <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-3">12. Limitation of Liability</h2>
             <p>
-              To the maximum extent permitted by applicable law, Frexida shall not be liable for any indirect,
-              incidental, special, or consequential damages arising from your use of the Service,
-              including but not limited to costs incurred through third-party AI providers.
+              To the maximum extent permitted by applicable law, Frexida&apos;s total aggregate liability
+              arising from or related to your use of the Service shall not exceed the greater of:
+              (a) the total amount you paid to Frexida in the 12 months preceding the claim, or (b) USD $100.
+            </p>
+            <p className="mt-2">
+              This limitation applies to all claims, whether based on warranty, contract, tort, or any other
+              legal theory, including but not limited to costs incurred through third-party AI providers.
+              <strong> This limitation does not apply in cases of our intentional misconduct (故意) or gross negligence (重過失).</strong>
             </p>
             <p className="mt-2">
               Nothing in these terms excludes or limits liability that cannot be excluded or limited under

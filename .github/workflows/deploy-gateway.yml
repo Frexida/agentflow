@@ -1,0 +1,22 @@
+name: Deploy Gateway to Fly.io
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'v2/docker/**'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - run: |
+          cd v2/docker
+          flyctl deploy --remote-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

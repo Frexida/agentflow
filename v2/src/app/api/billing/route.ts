@@ -68,7 +68,7 @@ export async function POST() {
 
     const session = await getStripe().billingPortal.sessions.create({
       customer: subscription.stripe_customer_id,
-      return_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://agentflow-l42k.vercel.app'}/settings`,
+      return_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://agentflow.dev'}/settings`,
     });
 
     return NextResponse.json({ url: session.url });

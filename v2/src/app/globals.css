@@ -15,6 +15,11 @@
 body {
   background-color: var(--surface);
   color: var(--text-primary);
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}
+
+code, pre, .font-mono {
+  font-family: var(--font-mono), ui-monospace, monospace;
 }
 
 /* Global keyboard focus ring */

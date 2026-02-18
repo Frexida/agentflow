@@ -5,30 +5,44 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 
 <Base title="AgentFlow Editor">
   <link rel="stylesheet" href={`${base}/drawflow.min.css`} />
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style is:global>
+    *, *::before, *::after { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
     body { background: #0f0f0f; }
+
+    /* Custom scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #555; }
 
     #drawflow {
       width: 100vw;
       height: calc(100vh - 48px);
       background: #0f0f0f;
     }
+
+    /* ── Toolbar ── */
     .toolbar {
       height: 48px;
       background: #1a1a1a;
       display: flex;
       align-items: center;
-      gap: 8px;
-      padding: 0 12px;
+      gap: 10px;
+      padding: 0 16px;
       border-bottom: 1px solid #2a2a2a;
     }
     .toolbar .org-name {
       color: #9ca3af;
       font-size: 13px;
+      font-weight: 500;
       margin-right: 8px;
-      padding: 4px 8px;
+      padding: 5px 10px;
       background: #1f1f1f;
-      border-radius: 4px;
+      border-radius: 6px;
       border: 1px solid #333;
     }
     .toolbar button {
@@ -36,64 +50,87 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       background: #3b82f6;
       color: white;
       border: none;
-      border-radius: 6px;
+      border-radius: 8px;
       cursor: pointer;
       font-size: 13px;
-      transition: background 150ms;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: background 180ms, transform 120ms, box-shadow 180ms;
     }
-    .toolbar button:hover { background: #2563eb; }
-    .toolbar button.secondary { background: #333; }
-    .toolbar button.secondary:hover { background: #444; }
+    .toolbar button:hover { background: #2563eb; transform: translateY(-1px); box-shadow: 0 2px 8px rgba(59,130,246,0.25); }
+    .toolbar button:active { transform: translateY(0); box-shadow: none; }
+    .toolbar button.secondary { background: #252525; border: 1px solid #333; }
+    .toolbar button.secondary:hover { background: #333; border-color: #444; box-shadow: 0 2px 8px rgba(255,255,255,0.05); }
     .toolbar button.danger { background: #dc2626; }
-    .toolbar button.danger:hover { background: #b91c1c; }
+    .toolbar button.danger:hover { background: #b91c1c; box-shadow: 0 2px 8px rgba(220,38,38,0.3); }
     .toolbar .spacer { flex: 1; }
 
-    /* Agent card */
+    /* Live badge pulse */
+    @keyframes livePulse {
+      0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(34,197,94,0.5); }
+      50% { opacity: 0.85; box-shadow: 0 0 0 4px rgba(34,197,94,0); }
+    }
+    .toolbar .live-badge {
+      animation: livePulse 2s ease-in-out infinite;
+    }
+
+    /* ── Agent Card ── */
     .agent-card {
       background: #1a1a1a;
       border: 1px solid #333;
-      border-radius: 8px;
-      padding: 10px;
-      min-width: 180px;
+      border-radius: 10px;
+      padding: 12px;
+      min-width: 190px;
       color: #e2e8f0;
-      font-family: -apple-system, sans-serif;
-      transition: border-color 150ms;
+      transition: border-color 200ms, transform 200ms, box-shadow 200ms;
+    }
+    .agent-card:hover {
+      transform: scale(1.03);
+      border-color: #444;
+      box-shadow: 0 0 20px rgba(59, 130, 246, 0.12), 0 4px 16px rgba(0,0,0,0.3);
     }
     .agent-card .agent-header {
       display: flex;
       align-items: center;
-      gap: 8px;
-      margin-bottom: 6px;
+      gap: 10px;
+      margin-bottom: 8px;
     }
     .agent-card .agent-icon {
-      width: 32px;
-      height: 32px;
+      width: 34px;
+      height: 34px;
       border-radius: 50%;
-      background: #2a2a2a;
+      background: linear-gradient(135deg, #1e3a5f 0%, #2a2a2a 50%, #1a2a1a 100%);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 16px;
+      font-size: 17px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
     }
     .agent-card .agent-name {
-      font-weight: bold;
+      font-weight: 600;
       font-size: 14px;
+      letter-spacing: -0.01em;
     }
     .agent-card .agent-role {
       font-size: 11px;
       color: #6b7280;
-      margin-bottom: 4px;
+      margin-bottom: 6px;
     }
     .agent-card .agent-model {
       font-size: 10px;
-      color: #555;
-      background: #111;
-      padding: 2px 6px;
-      border-radius: 4px;
+      color: #9ca3af;
+      background: linear-gradient(135deg, #1f1f2e, #1a1a2a);
+      padding: 3px 10px;
+      border-radius: 20px;
+      border: 1px solid #333;
       display: inline-block;
+      font-weight: 500;
+      letter-spacing: 0.02em;
     }
 
-    /* Drawflow overrides */
+    /* ── Drawflow overrides ── */
     .drawflow .drawflow-node {
       background: transparent !important;
       border: none !important;
@@ -102,22 +139,36 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     }
     .drawflow .drawflow-node.selected .agent-card {
       border-color: #3b82f6;
-      box-shadow: 0 0 12px rgba(59, 130, 246, 0.3);
+      box-shadow: 0 0 16px rgba(59, 130, 246, 0.35), 0 0 32px rgba(59, 130, 246, 0.1);
     }
+
+    /* ── Connection lines ── */
     .drawflow .connection .main-path {
       stroke: #ef4444 !important;
-      stroke-width: 2.5 !important;
+      stroke-width: 2 !important;
+      stroke-linecap: round !important;
       marker-end: url(#arrow-authority) !important;
+      transition: stroke-width 200ms, filter 200ms;
+    }
+    .drawflow .connection:hover .main-path {
+      stroke-width: 3.5 !important;
+      filter: drop-shadow(0 0 6px rgba(239, 68, 68, 0.5));
     }
     .drawflow .connection.link-communication .main-path {
       stroke: #3b82f6 !important;
       stroke-dasharray: 8 4 !important;
       marker-end: url(#arrow-communication) !important;
     }
+    .drawflow .connection.link-communication:hover .main-path {
+      filter: drop-shadow(0 0 6px rgba(59, 130, 246, 0.5));
+    }
     .drawflow .connection.link-review .main-path {
       stroke: #f59e0b !important;
       stroke-dasharray: 3 3 !important;
       marker-end: url(#arrow-review) !important;
+    }
+    .drawflow .connection.link-review:hover .main-path {
+      filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.5));
     }
     .drawflow .drawflow-node .input, .drawflow .drawflow-node .output {
       background: #555 !important;
@@ -160,7 +211,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       background: #141414;
       border-left: 1px solid #2a2a2a;
       transform: translateX(100%);
-      transition: transform 150ms ease;
+      transition: transform 250ms cubic-bezier(0.4, 0, 0.2, 1);
       z-index: 200;
       overflow-y: auto;
       padding: 20px;
@@ -207,40 +258,56 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     .field textarea { min-height: 80px; resize: vertical; }
 
     /* Toast */
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateY(12px) scale(0.95); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    @keyframes toastOut {
+      from { opacity: 1; transform: translateY(0) scale(1); }
+      to { opacity: 0; transform: translateY(8px) scale(0.97); }
+    }
     .toast {
       position: fixed;
-      bottom: 16px;
-      right: 16px;
-      background: #1a1a1a;
+      bottom: 20px;
+      right: 20px;
+      background: #1e1e2e;
       border: 1px solid #333;
       color: #e5e7eb;
-      padding: 10px 16px;
-      border-radius: 8px;
+      padding: 10px 18px;
+      border-radius: 10px;
       font-size: 13px;
+      font-weight: 500;
       z-index: 300;
       opacity: 0;
-      transition: opacity 150ms;
+      transform: translateY(8px);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+      pointer-events: none;
     }
-    .toast.show { opacity: 1; }
+    .toast.show {
+      animation: toastIn 250ms ease-out forwards;
+    }
+    .toast.hide {
+      animation: toastOut 200ms ease-in forwards;
+    }
 
     /* Onboarding hints */
     .hints-overlay {
       position: fixed;
-      bottom: 20px;
+      bottom: 24px;
       left: 50%;
       transform: translateX(-50%);
-      background: rgba(30, 41, 59, 0.95);
-      border: 1px solid rgba(59, 130, 246, 0.4);
+      background: rgba(22, 28, 45, 0.92);
+      border: 1px solid rgba(59, 130, 246, 0.3);
       color: #cbd5e1;
-      padding: 12px 20px;
-      border-radius: 10px;
+      padding: 12px 24px;
+      border-radius: 12px;
       font-size: 13px;
       z-index: 200;
       display: flex;
       align-items: center;
-      gap: 16px;
-      backdrop-filter: blur(8px);
-      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      gap: 18px;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.03) inset;
     }
     .hints-overlay .hint-item {
       display: flex;
@@ -249,12 +316,13 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       white-space: nowrap;
     }
     .hints-overlay .hint-key {
-      background: rgba(59, 130, 246, 0.2);
+      background: rgba(59, 130, 246, 0.15);
       color: #60a5fa;
-      padding: 2px 8px;
-      border-radius: 4px;
+      padding: 3px 10px;
+      border-radius: 6px;
       font-size: 11px;
       font-weight: 600;
+      border: 1px solid rgba(59, 130, 246, 0.2);
     }
     .hints-overlay .hint-close {
       background: none;
@@ -264,6 +332,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       font-size: 16px;
       padding: 0 4px;
       margin-left: 8px;
+      transition: color 150ms;
     }
     .hints-overlay .hint-close:hover { color: #e2e8f0; }
 
@@ -283,6 +352,26 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     .agent-card .agent-status.idle { background: #6b7280; border-color: #555; }
     .agent-card .agent-status.busy { background: #f59e0b; border-color: #d97706; box-shadow: 0 0 6px rgba(245,158,11,0.4); }
 
+    /* Modal open/close animation */
+    @keyframes modalIn {
+      from { opacity: 0; transform: translate(-50%, -50%) scale(0.92); }
+      to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    }
+    @keyframes overlayIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    #gateway-overlay[style*="block"], #export-overlay[style*="block"],
+    #diff-overlay[style*="block"], #history-overlay[style*="block"],
+    #link-modal-overlay[style*="block"], #template-overlay[style*="block"] {
+      animation: overlayIn 200ms ease-out;
+    }
+    #gateway-modal[style*="block"], #export-modal[style*="flex"],
+    #diff-modal[style*="flex"], #history-modal[style*="flex"],
+    #link-modal[style*="block"], #template-modal[style*="block"] {
+      animation: modalIn 250ms ease-out;
+    }
+
     #gateway-modal {
       display: none;
       position: fixed;
@@ -290,11 +379,12 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       transform: translate(-50%, -50%);
       background: #1a1a1a;
       border: 1px solid #333;
-      border-radius: 12px;
+      border-radius: 14px;
       padding: 24px;
       z-index: 700;
       width: 440px;
       max-width: 95vw;
+      box-shadow: 0 16px 48px rgba(0,0,0,0.5);
     }
     #gateway-modal h3 { color: #e5e7eb; margin: 0 0 16px; font-size: 16px; display:flex; justify-content:space-between; align-items:center; }
     #gateway-modal .field { margin-bottom: 12px; }
@@ -515,14 +605,14 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
   </div>
   <svg style="position:absolute;width:0;height:0">
     <defs>
-      <marker id="arrow-authority" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
-        <path d="M 0 0 L 10 5 L 0 10 z" fill="#ef4444" />
+      <marker id="arrow-authority" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="10" markerHeight="10" orient="auto-start-reverse">
+        <path d="M 1 1.5 L 10 6 L 1 10.5 Q 3 6 1 1.5 z" fill="#ef4444" />
       </marker>
-      <marker id="arrow-communication" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
-        <path d="M 0 0 L 10 5 L 0 10 z" fill="#3b82f6" />
+      <marker id="arrow-communication" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="10" markerHeight="10" orient="auto-start-reverse">
+        <path d="M 1 1.5 L 10 6 L 1 10.5 Q 3 6 1 1.5 z" fill="#3b82f6" />
       </marker>
-      <marker id="arrow-review" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
-        <path d="M 0 0 L 10 5 L 0 10 z" fill="#f59e0b" />
+      <marker id="arrow-review" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="10" markerHeight="10" orient="auto-start-reverse">
+        <path d="M 1 1.5 L 10 6 L 1 10.5 Q 3 6 1 1.5 z" fill="#f59e0b" />
       </marker>
     </defs>
   </svg>

@@ -12,9 +12,9 @@ if [ ! -f "$CONFIG_FILE" ]; then
 {
   "gateway": {
     "token": "$TOKEN",
-    "host": "0.0.0.0",
-    "port": 18789,
-    "allowedOrigins": ["*"]
+    "mode": "local",
+    "bind": "lan",
+    "port": 18789
   },
   "providers": {
     "anthropic": {

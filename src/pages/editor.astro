@@ -628,6 +628,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       <button class="active" data-tab="config">⚙️ OpenClaw Config</button>
       <button data-tab="full">📦 Full Export</button>
       <button data-tab="script">🖥️ Setup Script</button>
+      <button data-tab="diff" id="tab-diff" style="display:none">🔍 Diff</button>
     </div>
     <pre id="export-preview"></pre>
     <div class="export-actions">
@@ -1283,12 +1284,19 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       return '';
     }
 
+    let cachedDiffHtml = '';
+
     function showExportTab(tab) {
       currentExportTab = tab;
       document.querySelectorAll('.export-tabs button').forEach(b => {
         b.classList.toggle('active', b.dataset.tab === tab);
       });
-      exportPreview.textContent = getExportContent(tab);
+      if (tab === 'diff') {
+        exportPreview.innerHTML = cachedDiffHtml || '<span style="color:#8b949e">Loading diff...</span>';
+      } else {
+        exportPreview.innerHTML = '';
+        exportPreview.textContent = getExportContent(tab);
+      }
     }
 
     function openExportModal() {
@@ -1306,6 +1314,23 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       applyBtn.style.display = gwConnected ? 'inline-block' : 'none';
       revertBtn.style.display = (gwConnected && history.length > 0) ? 'inline-block' : 'none';
       historyBtn.style.display = (gwConnected && history.length > 0) ? 'inline-block' : 'none';
+      document.getElementById('tab-diff').style.display = gwConnected ? 'inline-block' : 'none';
+      // Preload diff in background
+      if (gwConnected) {
+        window.gatewayClient.rpc('config.get', {}).then(res => {
+          const currentConfig = res?.config || res || {};
+          const newExport = exportResult.config;
+          const merged = { ...currentConfig };
+          merged.agents = {
+            ...currentConfig.agents,
+            defaults: newExport.agents?.defaults || currentConfig.agents?.defaults,
+            list: newExport.agents?.list || []
+          };
+          const diffs = jsonDiff(currentConfig, merged);
+          cachedDiffHtml = renderDiff(diffs);
+          if (currentExportTab === 'diff') exportPreview.innerHTML = cachedDiffHtml;
+        }).catch(() => { cachedDiffHtml = '<span style="color:#f85149">Failed to load diff</span>'; });
+      }
       if (history.length > 0) {
         try {
           const t = new Date(history[0].timestamp).toLocaleString();

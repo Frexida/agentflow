@@ -272,6 +272,48 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     .drawflow .connection.link-review:hover .main-path {
       filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.5));
     }
+    /* Bidirectional: both-end arrows */
+    .drawflow .connection.link-bidirectional .main-path {
+      marker-start: url(#arrow-start-authority) !important;
+    }
+    .drawflow .connection.link-bidirectional.link-communication .main-path {
+      marker-start: url(#arrow-start-communication) !important;
+    }
+    .drawflow .connection.link-bidirectional.link-review .main-path {
+      marker-start: url(#arrow-start-review) !important;
+    }
+    /* Structure mode toggle */
+    .toolbar .mode-toggle {
+      display: inline-flex;
+      background: var(--bg-input);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      height: var(--sp-8);
+    }
+    .toolbar .mode-toggle button {
+      border-radius: 0;
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      padding: var(--sp-1) var(--sp-3);
+      font-size: 12px;
+      height: 100%;
+      margin: 0;
+      box-shadow: none;
+    }
+    .toolbar .mode-toggle button:hover {
+      background: var(--border-default);
+      transform: none;
+      box-shadow: none;
+    }
+    .toolbar .mode-toggle button.active {
+      background: var(--accent-blue);
+      color: white;
+    }
+    .toolbar .mode-toggle button.active:hover {
+      background: var(--accent-blue-hover);
+    }
     .drawflow .drawflow-node .input, .drawflow .drawflow-node .output {
       background: #555 !important;
       border: 1px solid #777 !important;
@@ -715,6 +757,10 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     <button id="btn-auto-layout" class="secondary">⬡ Auto Layout</button>
     <button id="btn-groups" class="secondary">📁 Groups</button>
     <button id="btn-templates" class="secondary">📋 Templates</button>
+    <div class="mode-toggle">
+      <button id="btn-mode-graph" class="active" title="Graph mode (free connections)">🔄 Graph</button>
+      <button id="btn-mode-tree" title="Tree mode (no cycles, single parent)">🌲 Tree</button>
+    </div>
     <div class="spacer"></div>
     <button id="btn-gateway" class="secondary" style="background:#1a1a2e;border:1px solid #333">🔌 Connect</button>
     <button id="btn-import" class="secondary">📥 Import</button>
@@ -733,6 +779,16 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       </marker>
       <marker id="arrow-review" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="10" markerHeight="10" orient="auto-start-reverse">
         <path d="M 1 1.5 L 10 6 L 1 10.5 Q 3 6 1 1.5 z" fill="#f59e0b" />
+      </marker>
+      <!-- Bidirectional start markers -->
+      <marker id="arrow-start-authority" viewBox="0 0 12 12" refX="2" refY="6" markerWidth="10" markerHeight="10" orient="auto-start-reverse">
+        <path d="M 11 1.5 L 2 6 L 11 10.5 Q 9 6 11 1.5 z" fill="#ef4444" />
+      </marker>
+      <marker id="arrow-start-communication" viewBox="0 0 12 12" refX="2" refY="6" markerWidth="10" markerHeight="10" orient="auto-start-reverse">
+        <path d="M 11 1.5 L 2 6 L 11 10.5 Q 9 6 11 1.5 z" fill="#3b82f6" />
+      </marker>
+      <marker id="arrow-start-review" viewBox="0 0 12 12" refX="2" refY="6" markerWidth="10" markerHeight="10" orient="auto-start-reverse">
+        <path d="M 11 1.5 L 2 6 L 11 10.5 Q 9 6 11 1.5 z" fill="#f59e0b" />
       </marker>
     </defs>
   </svg>
@@ -783,6 +839,12 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
         <option value="communication">🔵 Communication</option>
         <option value="review">🟡 Review</option>
       </select>
+    </div>
+    <div class="field"><label>Direction</label>
+      <div id="link-direction-toggle" style="display:flex;gap:4px">
+        <button data-dir="unidirectional" style="flex:1;padding:6px;background:#333;color:white;border:1px solid #555;border-radius:6px;cursor:pointer;font-size:14px" class="active">→ One-way</button>
+        <button data-dir="bidirectional" style="flex:1;padding:6px;background:#333;color:white;border:1px solid #555;border-radius:6px;cursor:pointer;font-size:14px">↔ Both</button>
+      </div>
     </div>
     <div class="field"><label>Label (description)</label><input type="text" id="link-label" placeholder="e.g. Code review request" /></div>
     <div style="display:flex;gap:8px;margin-top:12px">
@@ -939,6 +1001,43 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     ];
     const LINK_TYPES = ['authority', 'communication', 'review'];
     const LINK_COLORS = { authority: '#ef4444', communication: '#3b82f6', review: '#f59e0b' };
+
+    // --- Canvas structure mode ---
+    let canvasMode = localStorage.getItem('agentflow-canvas-mode') || 'graph';
+    function setCanvasMode(mode) {
+      canvasMode = mode;
+      localStorage.setItem('agentflow-canvas-mode', mode);
+      document.getElementById('btn-mode-graph').classList.toggle('active', mode === 'graph');
+      document.getElementById('btn-mode-tree').classList.toggle('active', mode === 'tree');
+      if (org.canvas) org.canvas.mode = mode; else org.canvas = { mode };
+      scheduleSave();
+    }
+    document.getElementById('btn-mode-graph').addEventListener('click', () => setCanvasMode('graph'));
+    document.getElementById('btn-mode-tree').addEventListener('click', () => setCanvasMode('tree'));
+
+    function hasCycle(links, nodeToAgent) {
+      // Build adjacency from org.links
+      const adj = {};
+      for (const l of links) {
+        if (!adj[l.source]) adj[l.source] = [];
+        adj[l.source].push(l.target);
+      }
+      const visited = new Set(), stack = new Set();
+      function dfs(n) {
+        if (stack.has(n)) return true;
+        if (visited.has(n)) return false;
+        visited.add(n); stack.add(n);
+        for (const nb of (adj[n] || [])) { if (dfs(nb)) return true; }
+        stack.delete(n);
+        return false;
+      }
+      for (const n of Object.keys(adj)) { if (dfs(n)) return true; }
+      return false;
+    }
+
+    function hasMultipleParents(links, targetAgentId) {
+      return links.filter(l => l.target === targetAgentId).length > 1;
+    }
     const DEFAULT_ICONS = ['👔', '⚙️', '🔬', '🎨', '👁️', '🧪', '📊', '🛡️'];
 
     // --- Organization State ---
@@ -949,7 +1048,8 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       version: 'v1',
       agents: [],
       links: [],
-      groups: []
+      groups: [],
+      canvas: { mode: canvasMode }
     };
 
     // nodeId (drawflow int) -> agentId mapping
@@ -1143,26 +1243,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     function snapToGrid(x, y) {
       return { x: Math.round(x / GRID_W) * GRID_W, y: Math.round(y / GRID_H) * GRID_H };
     }
-    // Factorio-style: snap during drag, not just on drop
-    let _dragSnapRAF = null;
-    editor.on('mouseMove', function() {
-      if (!editor.ele_selected || !editor.ele_selected.classList.contains('drawflow-node')) return;
-      if (_dragSnapRAF) return;
-      _dragSnapRAF = requestAnimationFrame(() => {
-        _dragSnapRAF = null;
-        const el = editor.ele_selected;
-        if (!el || !el.id) return;
-        const nid = el.id.slice(5); // "node-123" → "123"
-        const nodeData = editor.drawflow.drawflow[editor.module].data[nid];
-        if (!nodeData) return;
-        const snapped = snapToGrid(nodeData.pos_x, nodeData.pos_y);
-        nodeData.pos_x = snapped.x;
-        nodeData.pos_y = snapped.y;
-        el.style.left = snapped.x + 'px';
-        el.style.top = snapped.y + 'px';
-        editor.updateConnectionNodes('node-' + nid);
-      });
-    });
+    // Snap to grid on drop only (realtime snap during drag fights with Drawflow's internal positioning)
     editor.on('nodeMoved', function(nodeId) {
       const nodeData = editor.drawflow.drawflow[editor.module].data[nodeId];
       if (!nodeData) return;
@@ -1250,17 +1331,37 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       if (!srcAgentId || !tgtAgentId) return;
 
       const linkId = uid();
-      org.links.push({
+      const newLink = {
         id: linkId,
         source: srcAgentId,
         target: tgtAgentId,
         type: 'authority',
-      });
+        direction: 'unidirectional',
+      };
+      org.links.push(newLink);
+
+      // Tree mode validations
+      if (canvasMode === 'tree') {
+        if (hasMultipleParents(org.links, tgtAgentId)) {
+          org.links = org.links.filter(l => l.id !== linkId);
+          // Remove from drawflow
+          try { editor.removeSingleConnection(info.output_id, info.input_id, info.output_class, info.input_class); } catch(e) {}
+          toast('⚠️ Tree mode: each node can have only one parent');
+          return;
+        }
+        if (hasCycle(org.links, nodeToAgent)) {
+          org.links = org.links.filter(l => l.id !== linkId);
+          try { editor.removeSingleConnection(info.output_id, info.input_id, info.output_class, info.input_class); } catch(e) {}
+          toast('⚠️ Tree mode: cycles are not allowed');
+          return;
+        }
+      }
 
       // Store connection key -> link mapping
       const connKey = `${info.output_id}_${info.input_id}`;
-      connectionTypes[connKey] = { linkId, type: 'authority' };
+      connectionTypes[connKey] = { linkId, type: 'authority', direction: 'unidirectional' };
       applyConnectionColor(info.output_id, info.input_id, 'authority');
+      applyConnectionDirection(info.output_id, info.input_id, 'unidirectional');
       scheduleSave();
     });
 
@@ -1296,14 +1397,12 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     container.addEventListener('mouseup', scheduleOverlayUpdate);
 
     function applyConnectionColor(outId, inId, type) {
-      // Find the SVG connection element
       setTimeout(() => {
         const connections = container.querySelectorAll('.connection');
         connections.forEach(conn => {
           const classes = conn.classList;
           const path = conn.querySelector('.main-path');
           if (!path) return;
-          // Match by node ids in class
           if (classes.contains(`node_out_node-${outId}`) && classes.contains(`node_in_node-${inId}`)) {
             conn.classList.remove('link-authority', 'link-communication', 'link-review');
             conn.classList.add('link-' + type);
@@ -1313,10 +1412,22 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       }, 50);
     }
 
+    function applyConnectionDirection(outId, inId, direction) {
+      setTimeout(() => {
+        const connections = container.querySelectorAll('.connection');
+        connections.forEach(conn => {
+          if (conn.classList.contains(`node_out_node-${outId}`) && conn.classList.contains(`node_in_node-${inId}`)) {
+            conn.classList.toggle('link-bidirectional', direction === 'bidirectional');
+          }
+        });
+      }, 50);
+    }
+
     function applyAllConnectionColors() {
       for (const [key, ct] of Object.entries(connectionTypes)) {
         const [outId, inId] = key.split('_');
         applyConnectionColor(outId, inId, ct.type);
+        applyConnectionDirection(outId, inId, ct.direction || 'unidirectional');
       }
     }
 
@@ -1357,6 +1468,14 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       editingConnKey = connKey;
       document.getElementById('link-type').value = link.type;
       document.getElementById('link-label').value = link.label || '';
+      // Set direction toggle
+      const dir = ct.direction || link.direction || 'unidirectional';
+      document.querySelectorAll('#link-direction-toggle button').forEach(b => {
+        const isActive = b.dataset.dir === dir;
+        b.classList.toggle('active', isActive);
+        b.style.background = isActive ? '#3b82f6' : '#333';
+        b.style.borderColor = isActive ? '#3b82f6' : '#555';
+      });
       linkModal.style.display = 'block';
       linkOverlay.style.display = 'block';
     }
@@ -1366,6 +1485,17 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       linkOverlay.style.display = 'none';
       editingConnKey = null;
     }
+
+    document.querySelectorAll('#link-direction-toggle button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#link-direction-toggle button').forEach(b => {
+          const isActive = b === btn;
+          b.classList.toggle('active', isActive);
+          b.style.background = isActive ? '#3b82f6' : '#333';
+          b.style.borderColor = isActive ? '#3b82f6' : '#555';
+        });
+      });
+    });
 
     document.getElementById('link-modal-close').addEventListener('click', closeLinkModal);
     linkOverlay.addEventListener('click', closeLinkModal);
@@ -1378,12 +1508,16 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       if (!link) return;
       const newType = document.getElementById('link-type').value;
       const newLabel = document.getElementById('link-label').value;
+      const newDir = document.querySelector('#link-direction-toggle button.active')?.dataset.dir || 'unidirectional';
       link.type = newType;
       link.label = newLabel || undefined;
+      link.direction = newDir;
       ct.type = newType;
+      ct.direction = newDir;
       const [outId, inId] = editingConnKey.split('_');
       applyConnectionColor(outId, inId, newType);
-      toast(`Link updated: ${newType}${newLabel ? ' — ' + newLabel : ''}`);
+      applyConnectionDirection(outId, inId, newDir);
+      toast(`Link updated: ${newType} ${newDir === 'bidirectional' ? '↔' : '→'}${newLabel ? ' — ' + newLabel : ''}`);
       scheduleSave();
       closeLinkModal();
     });
@@ -2076,6 +2210,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       try {
         const state = JSON.parse(raw);
         org = state.org;
+        if (org.canvas?.mode) setCanvasMode(org.canvas.mode);
         nodeToAgent = state.nodeToAgent || {};
         connectionTypes = state.connectionTypes || {};
         if (state.drawflow) {
@@ -2246,7 +2381,8 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
         version: 'v1',
         agents: [],
         links: [],
-        groups: []
+        groups: [],
+        canvas: { mode: canvasMode }
       };
       nodeToAgent = {};
       connectionTypes = {};

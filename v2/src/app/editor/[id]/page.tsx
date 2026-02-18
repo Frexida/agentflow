@@ -23,6 +23,7 @@ import SidePanel from '@/components/canvas/SidePanel'
 import { useOrgStore } from '@/stores/org'
 import { useGatewayStore } from '@/stores/gateway'
 import { useSessionMonitor } from '@/lib/session-monitor'
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import type { AgentNodeData } from '@/types/org'
 
 const nodeTypes = { agent: AgentNode, group: GroupNode }
@@ -82,6 +83,19 @@ function EditorCanvas() {
   useSessionMonitor(connected)
   const params = useParams()
   const designId = params.id as string
+  const { undo, redo } = useKeyboardShortcuts(designId)
+
+  // Listen for toolbar undo/redo button clicks
+  useEffect(() => {
+    const handleUndo = () => undo()
+    const handleRedo = () => redo()
+    window.addEventListener('agentflow:undo', handleUndo)
+    window.addEventListener('agentflow:redo', handleRedo)
+    return () => {
+      window.removeEventListener('agentflow:undo', handleUndo)
+      window.removeEventListener('agentflow:redo', handleRedo)
+    }
+  }, [undo, redo])
   const [editNodeId, setEditNodeId] = useState<string | null>(null)
   const [contextMenu, setContextMenu] = useState<{ nodeId: string; x: number; y: number } | null>(null)
   const [loading, setLoading] = useState(true)

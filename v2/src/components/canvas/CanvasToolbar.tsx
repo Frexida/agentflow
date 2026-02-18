@@ -135,6 +135,10 @@ export default function CanvasToolbar() {
         {structureMode === 'tree' ? '△ Tree' : '◉ Graph'}
       </ToolButton>
 
+      {/* Undo/Redo */}
+      <ToolButton onClick={() => window.dispatchEvent(new CustomEvent('agentflow:undo'))} title="Undo (Ctrl+Z)">↩ Undo</ToolButton>
+      <ToolButton onClick={() => window.dispatchEvent(new CustomEvent('agentflow:redo'))} title="Redo (Ctrl+Y)">↪ Redo</ToolButton>
+
       {/* Save */}
       <ToolButton onClick={handleSave} title={saving ? 'Saving...' : 'Save'}>Save</ToolButton>
 

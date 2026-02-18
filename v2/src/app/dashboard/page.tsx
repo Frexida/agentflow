@@ -1,7 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
+import { useGatewayStore } from '@/stores/gateway'
+import { useSessionsStore } from '@/stores/sessions'
 
 interface OrgItem {
   id: string
@@ -10,36 +12,94 @@ interface OrgItem {
   updatedAt: string
 }
 
-// TODO: Replace with DB queries
 const demoOrgs: OrgItem[] = [
   { id: 'demo', name: 'AgentFlow Team', agentCount: 6, updatedAt: '2026-02-18' },
 ]
 
+const statusIcons = { active: '🟢', idle: '🟡', offline: '⚫' }
+
 export default function DashboardPage() {
   const [orgs] = useState<OrgItem[]>(demoOrgs)
-  const [newName, setNewName] = useState('')
   const [creating, setCreating] = useState(false)
+  const [newName, setNewName] = useState('')
+  const { connected, refreshSessions } = useGatewayStore()
+  const { agentStats, totalSessions, activeSessions } = useSessionsStore()
+
+  const syncSessions = useCallback(async () => {
+    if (!connected) return
+    await refreshSessions()
+    const sessions = useGatewayStore.getState().sessions
+    useSessionsStore.getState().setSessions(sessions)
+  }, [connected, refreshSessions])
+
+  useEffect(() => {
+    syncSessions()
+    const timer = setInterval(syncSessions, 10000)
+    return () => clearInterval(timer)
+  }, [syncSessions])
 
   const handleCreate = () => {
     if (!newName.trim()) return
-    // TODO: API call POST /api/orgs
     setNewName('')
     setCreating(false)
   }
 
   return (
     <div className="min-h-screen p-8">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-5xl mx-auto">
+        {/* Header */}
         <div className="flex items-center justify-between mb-8">
-          <h1 className="text-2xl font-bold">Organizations</h1>
-          <button
-            onClick={() => setCreating(true)}
-            className="px-4 py-2 bg-[var(--accent)] rounded-lg hover:bg-[var(--accent-bright)] transition text-sm"
-          >
-            + New Organization
-          </button>
+          <h1 className="text-2xl font-bold">Dashboard</h1>
+          <div className="flex gap-3">
+            <Link href="/settings" className="px-4 py-2 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition">
+              ⚙️ Settings
+            </Link>
+            <button
+              onClick={() => setCreating(true)}
+              className="px-4 py-2 bg-[var(--accent)] rounded-lg hover:bg-[var(--accent-bright)] transition text-sm"
+            >
+              + New Organization
+            </button>
+          </div>
         </div>
 
+        {/* Stats Cards */}
+        <div className="grid grid-cols-4 gap-4 mb-8">
+          <StatCard label="Total Sessions" value={totalSessions} icon="📊" />
+          <StatCard label="Active Agents" value={activeSessions} icon="🟢" />
+          <StatCard label="Total Agents" value={agentStats.length} icon="🤖" />
+          <StatCard
+            label="Gateway"
+            value={connected ? 'Connected' : 'Disconnected'}
+            icon={connected ? '🔌' : '⚡'}
+            highlight={connected}
+          />
+        </div>
+
+        {/* Agent Status Table */}
+        {agentStats.length > 0 && (
+          <div className="bg-[var(--surface-elevated)] rounded-lg border border-[var(--accent)] mb-8">
+            <div className="px-4 py-3 border-b border-[var(--accent)]">
+              <h2 className="font-semibold text-sm">Agent Status</h2>
+            </div>
+            <div className="divide-y divide-[var(--accent)]/30">
+              {agentStats.map((agent) => (
+                <div key={agent.agentId} className="flex items-center justify-between px-4 py-3">
+                  <div className="flex items-center gap-3">
+                    <span>{statusIcons[agent.status]}</span>
+                    <span className="font-medium text-sm">{agent.agentId}</span>
+                  </div>
+                  <div className="flex items-center gap-6 text-xs text-[var(--text-secondary)]">
+                    <span>{agent.sessionCount} session{agent.sessionCount !== 1 ? 's' : ''}</span>
+                    <span>{agent.lastActive ? timeAgo(agent.lastActive) : 'never'}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Create org */}
         {creating && (
           <div className="mb-6 p-4 bg-[var(--surface-elevated)] rounded-lg border border-[var(--accent)] flex gap-2">
             <input
@@ -56,6 +116,8 @@ export default function DashboardPage() {
           </div>
         )}
 
+        {/* Org List */}
+        <h2 className="font-semibold mb-4">Organizations</h2>
         <div className="grid gap-4">
           {orgs.map((org) => (
             <Link
@@ -65,7 +127,7 @@ export default function DashboardPage() {
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-lg font-semibold group-hover:text-[var(--accent-bright)] transition">{org.name}</h2>
+                  <h3 className="text-lg font-semibold group-hover:text-[var(--accent-bright)] transition">{org.name}</h3>
                   <p className="text-sm text-[var(--text-secondary)] mt-1">
                     {org.agentCount} agents · Updated {org.updatedAt}
                   </p>
@@ -74,15 +136,28 @@ export default function DashboardPage() {
               </div>
             </Link>
           ))}
-
-          {orgs.length === 0 && (
-            <div className="text-center py-16 text-[var(--text-secondary)]">
-              <p className="text-4xl mb-4">🏗️</p>
-              <p>No organizations yet. Create one to get started.</p>
-            </div>
-          )}
         </div>
       </div>
     </div>
   )
+}
+
+function StatCard({ label, value, icon, highlight }: { label: string; value: string | number; icon: string; highlight?: boolean }) {
+  return (
+    <div className={`bg-[var(--surface-elevated)] rounded-lg border p-4 ${highlight ? 'border-green-500/50' : 'border-[var(--accent)]'}`}>
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-2xl">{icon}</span>
+      </div>
+      <div className="text-2xl font-bold">{value}</div>
+      <div className="text-xs text-[var(--text-secondary)] mt-1">{label}</div>
+    </div>
+  )
+}
+
+function timeAgo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime()
+  if (diff < 60000) return 'just now'
+  if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`
+  if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`
+  return `${Math.floor(diff / 86400000)}d ago`
 }

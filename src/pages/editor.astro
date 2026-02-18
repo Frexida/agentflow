@@ -969,9 +969,19 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     // --- Override createCurvature for orthogonal (step) routing ---
     // Ports are top (input) / bottom (output), so lines go vertically.
     editor.createCurvature = function(startX, startY, endX, endY, curvature, type) {
-      // Orthogonal step path: down from output, horizontal, then down to input
-      const midY = (startY + endY) / 2;
-      return ` M ${startX} ${startY} L ${startX} ${midY} L ${endX} ${midY} L ${endX} ${endY}`;
+      // Orthogonal step path: output (bottom) → down → horizontal → down → input (top)
+      // Handle all directions: when target is above source, route around
+      const gap = 40; // minimum vertical gap before turning horizontal
+      if (endY > startY + gap) {
+        // Normal case: target is below source
+        const midY = (startY + endY) / 2;
+        return ` M ${startX} ${startY} L ${startX} ${midY} L ${endX} ${midY} L ${endX} ${endY}`;
+      } else {
+        // Target is above or at same level: route around
+        const offsetY = Math.max(startY + gap, endY + gap);
+        const offsetX = (startX < endX ? -1 : 1) * 80;
+        return ` M ${startX} ${startY} L ${startX} ${offsetY} L ${startX + offsetX} ${offsetY} L ${startX + offsetX} ${endY - gap} L ${endX} ${endY - gap} L ${endX} ${endY}`;
+      }
     };
 
     // --- Helpers ---
@@ -1133,6 +1143,26 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     function snapToGrid(x, y) {
       return { x: Math.round(x / GRID_W) * GRID_W, y: Math.round(y / GRID_H) * GRID_H };
     }
+    // Factorio-style: snap during drag, not just on drop
+    let _dragSnapRAF = null;
+    editor.on('mouseMove', function() {
+      if (!editor.ele_selected || !editor.ele_selected.classList.contains('drawflow-node')) return;
+      if (_dragSnapRAF) return;
+      _dragSnapRAF = requestAnimationFrame(() => {
+        _dragSnapRAF = null;
+        const el = editor.ele_selected;
+        if (!el || !el.id) return;
+        const nid = el.id.slice(5); // "node-123" → "123"
+        const nodeData = editor.drawflow.drawflow[editor.module].data[nid];
+        if (!nodeData) return;
+        const snapped = snapToGrid(nodeData.pos_x, nodeData.pos_y);
+        nodeData.pos_x = snapped.x;
+        nodeData.pos_y = snapped.y;
+        el.style.left = snapped.x + 'px';
+        el.style.top = snapped.y + 'px';
+        editor.updateConnectionNodes('node-' + nid);
+      });
+    });
     editor.on('nodeMoved', function(nodeId) {
       const nodeData = editor.drawflow.drawflow[editor.module].data[nodeId];
       if (!nodeData) return;

@@ -5,12 +5,14 @@ import { useReactFlow } from '@xyflow/react'
 import { useOrgStore } from '@/stores/org'
 import { autoLayout } from '@/lib/auto-layout'
 import type { AgentNodeData } from '@/types/org'
+import ExportModal from './ExportModal'
 
 export default function CanvasToolbar() {
   const { nodes, edges, addAgent, setNodes, structureMode, setStructureMode } = useOrgStore()
   const { fitView } = useReactFlow()
   const [adding, setAdding] = useState(false)
   const [newName, setNewName] = useState('')
+  const [exportOpen, setExportOpen] = useState(false)
 
   const handleAddAgent = useCallback(() => {
     if (!newName.trim()) return
@@ -73,6 +75,10 @@ export default function CanvasToolbar() {
       >
         {structureMode === 'tree' ? '🌲' : '🔄'}
       </ToolButton>
+      {/* Export */}
+      <ToolButton onClick={() => setExportOpen(true)} title="Export / Import">📦</ToolButton>
+
+      <ExportModal open={exportOpen} onClose={() => setExportOpen(false)} />
     </div>
   )
 }

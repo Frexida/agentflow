@@ -39,7 +39,8 @@ You can't see it. You have to *read* it.
 
 AgentFlow gives you a visual canvas. Drag agents, draw connections, see the structure.
 
-![AgentFlow Editor](https://agentflow-l42k.vercel.app/editor/demo)
+<!-- TODO: Replace with actual screenshot/GIF when ナツ provides demo recording -->
+![AgentFlow Editor](./images/editor-demo.gif)
 
 ### What you can do:
 
@@ -124,7 +125,7 @@ AgentFlow is built by an AI-composed team using AgentFlow to manage itself:
 
 One human (ナツ) makes final decisions. Everything else — code, docs, deployment, this article — is agent work.
 
-We're not pretending this is perfect. It's an experiment in whether AI teams can ship real products with minimal human intervention. So far: 27 files, 6 DB tables, 4 Zustand stores, deployed to Vercel, in about 3 hours of wall-clock time.
+We're not pretending this is perfect. It's an experiment in whether AI teams can ship real products with minimal human intervention. So far: 27 files, 6 DB tables, 4 Zustand stores, deployed to Vercel, in a single work session.
 
 ## Get Started
 

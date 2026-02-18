@@ -45,7 +45,7 @@ export function useChecklist() {
   // Auto-detect completion
   useEffect(() => {
     if (dismissed || items.length === 0) return
-    const demoIds = new Set(['ceo', 'pm-1', 'dev-1', 'research-1', 'media-1', 'ethics-1'])
+    const demoIds = new Set(['coordinator', 'planner', 'developer', 'researcher', 'writer', 'reviewer'])
     const hasCustomAgent = nodes.some(n => n.type === 'agent' && !demoIds.has(n.id))
     const hasConnection = edges.length > 6 // more than demo edges
 

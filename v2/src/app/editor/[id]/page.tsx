@@ -35,51 +35,51 @@ const nodeTypes = { agent: AgentNode, group: GroupNode }
 
 const demoNodes: Node<AgentNodeData>[] = [
   {
-    id: 'ceo',
+    id: 'coordinator',
     type: 'agent',
     position: { x: 300, y: 50 },
-    data: { agentId: 'ceo', name: 'leith18', role: 'coordinator', icon: '👔', status: 'active' },
+    data: { agentId: 'coordinator', name: 'Coordinator', role: 'coordinator', icon: '🎯', status: 'active' },
   },
   {
-    id: 'pm-1',
+    id: 'planner',
     type: 'agent',
     position: { x: 50, y: 220 },
-    data: { agentId: 'pm-1', name: '鬼畜', role: 'coordinator', icon: '👹', status: 'active', model: 'claude-opus-4-6' },
+    data: { agentId: 'planner', name: 'Planner', role: 'coordinator', icon: '📋', status: 'active', model: 'claude-sonnet-4-20250514' },
   },
   {
-    id: 'dev-1',
+    id: 'developer',
     type: 'agent',
     position: { x: 300, y: 220 },
-    data: { agentId: 'dev-1', name: 'nix', role: 'worker', icon: '⚙️', status: 'active', model: 'claude-opus-4-6' },
+    data: { agentId: 'developer', name: 'Developer', role: 'worker', icon: '⚙️', status: 'active', model: 'claude-sonnet-4-20250514' },
   },
   {
-    id: 'research-1',
+    id: 'researcher',
     type: 'agent',
     position: { x: 550, y: 220 },
-    data: { agentId: 'research-1', name: 'アライ研究員', role: 'worker', icon: '🔬', status: 'idle', model: 'claude-opus-4-6' },
+    data: { agentId: 'researcher', name: 'Researcher', role: 'worker', icon: '🔬', status: 'idle', model: 'claude-sonnet-4-20250514' },
   },
   {
-    id: 'media-1',
+    id: 'writer',
     type: 'agent',
     position: { x: 50, y: 400 },
-    data: { agentId: 'media-1', name: '蓮香', role: 'worker', icon: '📢', status: 'offline' },
+    data: { agentId: 'writer', name: 'Writer', role: 'worker', icon: '✍️', status: 'offline' },
   },
   {
-    id: 'ethics-1',
+    id: 'reviewer',
     type: 'agent',
     position: { x: 550, y: 400 },
-    data: { agentId: 'ethics-1', name: '倫理アンチ', role: 'reviewer', icon: '💀', status: 'active' },
+    data: { agentId: 'reviewer', name: 'Reviewer', role: 'reviewer', icon: '🔍', status: 'active' },
   },
 ]
 
 const edgeStyle = { stroke: '#e94560', strokeWidth: 2, strokeDasharray: '8 4' }
 const demoEdges = [
-  { id: 'e-ceo-pm', source: 'ceo', target: 'pm-1', sourceHandle: 'output_1', targetHandle: 'input_1', animated: true, style: edgeStyle, markerEnd: { type: 'arrowclosed' as const, color: '#e94560' } },
-  { id: 'e-ceo-dev', source: 'ceo', target: 'dev-1', sourceHandle: 'output_1', targetHandle: 'input_1', animated: true, style: edgeStyle, markerEnd: { type: 'arrowclosed' as const, color: '#e94560' } },
-  { id: 'e-ceo-research', source: 'ceo', target: 'research-1', sourceHandle: 'output_1', targetHandle: 'input_1', animated: true, style: edgeStyle, markerEnd: { type: 'arrowclosed' as const, color: '#e94560' } },
-  { id: 'e-pm-dev', source: 'pm-1', target: 'dev-1', sourceHandle: 'output_2', targetHandle: 'input_2', animated: true, style: edgeStyle, markerEnd: { type: 'arrowclosed' as const, color: '#e94560' } },
-  { id: 'e-pm-media', source: 'pm-1', target: 'media-1', sourceHandle: 'output_1', targetHandle: 'input_1', animated: true, style: edgeStyle, markerEnd: { type: 'arrowclosed' as const, color: '#e94560' } },
-  { id: 'e-pm-ethics', source: 'pm-1', target: 'ethics-1', sourceHandle: 'output_2', targetHandle: 'input_2', animated: true, style: edgeStyle, markerEnd: { type: 'arrowclosed' as const, color: '#e94560' } },
+  { id: 'e-coord-plan', source: 'coordinator', target: 'planner', sourceHandle: 'output_1', targetHandle: 'input_1', animated: true, style: edgeStyle, markerEnd: { type: 'arrowclosed' as const, color: '#e94560' } },
+  { id: 'e-coord-dev', source: 'coordinator', target: 'developer', sourceHandle: 'output_1', targetHandle: 'input_1', animated: true, style: edgeStyle, markerEnd: { type: 'arrowclosed' as const, color: '#e94560' } },
+  { id: 'e-coord-research', source: 'coordinator', target: 'researcher', sourceHandle: 'output_1', targetHandle: 'input_1', animated: true, style: edgeStyle, markerEnd: { type: 'arrowclosed' as const, color: '#e94560' } },
+  { id: 'e-plan-dev', source: 'planner', target: 'developer', sourceHandle: 'output_2', targetHandle: 'input_2', animated: true, style: edgeStyle, markerEnd: { type: 'arrowclosed' as const, color: '#e94560' } },
+  { id: 'e-plan-writer', source: 'planner', target: 'writer', sourceHandle: 'output_1', targetHandle: 'input_1', animated: true, style: edgeStyle, markerEnd: { type: 'arrowclosed' as const, color: '#e94560' } },
+  { id: 'e-dev-reviewer', source: 'developer', target: 'reviewer', sourceHandle: 'output_2', targetHandle: 'input_2', animated: true, style: edgeStyle, markerEnd: { type: 'arrowclosed' as const, color: '#e94560' } },
 ]
 
 function EditorCanvas() {

@@ -323,6 +323,13 @@ export default function Home() {
               <a href="https://discord.com/invite/clawd" target="_blank" rel="noopener" className="hover:text-[var(--accent-bright)] transition">Community</a>
             </div>
           </div>
+          <div>
+            <h4 className="font-semibold text-sm mb-3">Legal</h4>
+            <div className="flex flex-col gap-2 text-sm text-[var(--text-secondary)]">
+              <Link href="/terms" className="hover:text-[var(--accent-bright)] transition">Terms of Service</Link>
+              <Link href="/privacy" className="hover:text-[var(--accent-bright)] transition">Privacy Policy</Link>
+            </div>
+          </div>
         </div>
         <div className="max-w-5xl mx-auto mt-8 pt-6 border-t border-[var(--border)] text-center text-xs text-[var(--text-secondary)]">
           © {new Date().getFullYear()} Frexida. MIT License.

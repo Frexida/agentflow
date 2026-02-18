@@ -9,7 +9,7 @@ type GroupNode = Node<GroupNodeData>
 function GroupNodeComponent({ data, selected }: NodeProps<GroupNode>) {
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState(data.label || 'Group')
-  const color = data.color || '#0f3460'
+  const color = data.color || '#3a1520'
 
   const handleDoubleClick = useCallback(() => {
     setEditing(true)

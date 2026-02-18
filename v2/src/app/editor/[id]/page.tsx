@@ -118,9 +118,9 @@ function EditorCanvas() {
         className="bg-[var(--surface)]"
         deleteKeyCode={['Backspace', 'Delete']}
       >
-        <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#333" />
-        <Controls className="!bg-[var(--surface-elevated)] !border-[var(--accent)]" />
-        <MiniMap style={{ background: '#16213e' }} nodeColor="#0f3460" />
+        <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#222" />
+        <Controls className="!bg-[var(--surface-elevated)] !border-[var(--border)]" />
+        <MiniMap style={{ background: '#141414' }} nodeColor="#3a1520" />
         <CanvasToolbar />
       </ReactFlow>
       <NodeEditModal nodeId={editNodeId} onClose={() => setEditNodeId(null)} />

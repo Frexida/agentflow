@@ -88,7 +88,7 @@ export const useOrgStore = create<OrgStore>((set, get) => ({
       id,
       type: 'group',
       position,
-      data: { label, color: color || '#0f3460' },
+      data: { label, color: color || '#3a1520' },
       style: { width: 400, height: 300 },
     }
     set({ nodes: [...get().nodes, newNode] })

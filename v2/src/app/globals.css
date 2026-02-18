@@ -13,3 +13,23 @@ body {
   background-color: var(--surface);
   color: var(--text-primary);
 }
+
+/* Global keyboard focus ring */
+*:focus-visible {
+  outline: 2px solid var(--accent-bright);
+  outline-offset: 2px;
+}
+
+/* Skip link for accessibility */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  z-index: 100;
+  padding: 8px 16px;
+  background: var(--accent-bright);
+  color: white;
+}
+.skip-link:focus {
+  top: 0;
+}

@@ -28,9 +28,9 @@ export default function SettingsPage() {
         <h1 className="text-2xl font-bold mb-8">Settings</h1>
 
         {/* Gateway Connection */}
-        <section className="bg-[var(--surface-elevated)] rounded-lg border border-[var(--accent)] p-6">
+        <section aria-labelledby="gateway-heading" className="bg-[var(--surface-elevated)] rounded-lg border border-[var(--accent)] p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold">OpenClaw Gateway</h2>
+            <h2 id="gateway-heading" className="text-lg font-semibold">Gateway</h2>
             <span className={`px-2 py-0.5 rounded text-xs ${connected ? 'bg-green-600/30 text-green-400' : 'bg-gray-600/30 text-gray-400'}`}>
               {connected ? '● Connected' : '○ Disconnected'}
             </span>

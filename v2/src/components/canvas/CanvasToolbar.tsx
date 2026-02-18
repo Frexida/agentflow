@@ -156,6 +156,7 @@ function ToolButton({
         w-9 h-9 flex items-center justify-center rounded-lg text-lg
         bg-[var(--surface-elevated)] border transition-all
         hover:border-[var(--accent-bright)] hover:shadow-md
+        focus-visible:outline-2 focus-visible:outline-[var(--accent-bright)] focus-visible:outline-offset-2
         ${active ? 'border-[var(--accent-bright)] shadow-sm shadow-[var(--accent-bright)]/20' : 'border-[var(--accent)]'}
       `}
     >

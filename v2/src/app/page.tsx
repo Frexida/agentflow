@@ -61,6 +61,7 @@ export default function Home() {
             <a href="#features" className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition">Features</a>
             <a href="#how-it-works" className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition">How it works</a>
             <a href="#pricing" className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition">Pricing</a>
+            <a href="#faq" className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition">FAQ</a>
             <a href="https://github.com/Frexida/agentflow" target="_blank" rel="noopener" className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition">GitHub</a>
             <Link href="/login" className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition">Sign in</Link>
             <Link href="/dashboard" className="px-4 py-1.5 bg-[var(--accent-bright)] text-white rounded-lg text-sm font-medium hover:brightness-110 transition">
@@ -236,6 +237,35 @@ export default function Home() {
                 <li>✓ Shared templates</li>
               </ul>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section id="faq" className="py-20 px-6 border-t border-[var(--border)]">
+        <div className="max-w-3xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl font-bold mb-4">Frequently asked questions</h2>
+          </div>
+          <div className="space-y-4">
+            {[
+              { q: 'What is AgentFlow?', a: 'AgentFlow is a visual organization designer for AI agent teams. You design your agent hierarchy with drag-and-drop, then export a ready-to-use OpenClaw configuration.' },
+              { q: 'Do I need OpenClaw to use AgentFlow?', a: 'No. You can use the editor standalone to design and export org charts. OpenClaw integration is optional — it lets you import/apply configs and chat with agents directly.' },
+              { q: 'Is it really free?', a: 'Yes. The editor with all features is free and open source (MIT). Cloud save and team features are part of the paid plans.' },
+              { q: 'Can I self-host it?', a: 'Absolutely. Clone the repo, run npm install && npm run build, and serve it anywhere. Self-hosted uses SQLite — no external database needed.' },
+              { q: 'What makes AgentFlow different from other multi-agent tools?', a: 'AgentFlow is design-focused, not execution-focused. Other tools run agents; AgentFlow helps you design the organization structure using proven organizational theory (Thompson 1967). Think Figma for agent teams.' },
+              { q: 'Is my data safe?', a: 'Local data stays in your browser (localStorage). Cloud saves use Supabase with Row Level Security — only you can access your designs. We never see your OpenClaw configs.' },
+            ].map((faq) => (
+              <details key={faq.q} className="group bg-[var(--surface-elevated)] border border-[var(--border)] rounded-xl overflow-hidden">
+                <summary className="px-6 py-4 cursor-pointer text-sm font-medium text-[var(--text-primary)] hover:text-[var(--accent-bright)] transition flex items-center justify-between">
+                  {faq.q}
+                  <span className="text-[var(--text-secondary)] group-open:rotate-45 transition-transform text-lg">+</span>
+                </summary>
+                <div className="px-6 pb-4 text-sm text-[var(--text-secondary)] leading-relaxed">
+                  {faq.a}
+                </div>
+              </details>
+            ))}
           </div>
         </div>
       </section>

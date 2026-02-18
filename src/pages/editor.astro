@@ -3286,8 +3286,13 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
           }, null, null);
         }
 
+      }
+
+      // Create authority links and auto-layout after nodes are rendered
+      const _importAgents = agents;
+      setTimeout(() => {
         // Create authority links from subagents.allowAgents
-        for (const agentDef of agents) {
+        for (const agentDef of _importAgents) {
           const allowAgents = agentDef.subagents?.allowAgents || [];
           const srcAgent = org.agents.find(a => a.id === agentDef.id);
           if (!srcAgent) continue;
@@ -3298,16 +3303,12 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
             }
           }
         }
-      }
-
-      // Auto-layout after import
-      setTimeout(() => {
         document.getElementById('btn-auto-layout').click();
         renderGroupOverlays();
         updateOrgDisplay();
         scheduleSave();
         toast(`${org.agents.length} agents imported`);
-      }, 100);
+      }, 200);
     }
 
     document.getElementById('btn-save').addEventListener('click', () => {

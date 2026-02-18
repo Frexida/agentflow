@@ -346,6 +346,24 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       left: auto !important;
       bottom: auto !important;
     }
+    /* Left side: input_2 */
+    .drawflow .drawflow-node .input.input_2 {
+      position: absolute !important;
+      left: -12px !important;
+      top: 50% !important;
+      right: auto !important;
+      bottom: auto !important;
+      transform: translateY(-50%);
+    }
+    /* Right side: output_2 */
+    .drawflow .drawflow-node .output.output_2 {
+      position: absolute !important;
+      right: -12px !important;
+      top: 50% !important;
+      left: auto !important;
+      bottom: auto !important;
+      transform: translateY(-50%);
+    }
 
     /* Side panel */
     #side-panel {
@@ -645,6 +663,128 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       animation: flowPulse 1.5s ease-in-out infinite;
     }
 
+    /* Connection line flow animation */
+    @keyframes line-flow {
+      0% { stroke-dashoffset: 20; }
+      100% { stroke-dashoffset: 0; }
+    }
+    .drawflow .connection.flowing .main-path {
+      stroke-dasharray: 10 10 !important;
+      animation: line-flow 0.8s linear infinite !important;
+      filter: drop-shadow(0 0 3px currentColor) !important;
+    }
+
+    /* Timeline panel */
+    #timeline-panel {
+      position: fixed;
+      top: var(--sp-12);
+      right: 0;
+      width: 400px;
+      height: calc(100vh - var(--sp-12));
+      background: var(--bg-base);
+      border-left: 1px solid var(--border-subtle);
+      transform: translateX(100%);
+      transition: transform var(--duration-slow) var(--ease-out);
+      z-index: 195;
+      display: flex;
+      flex-direction: column;
+      font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    }
+    #timeline-panel.open { transform: translateX(0); }
+    #timeline-panel .tl-header {
+      padding: 10px 16px;
+      border-bottom: 1px solid #2a2a2a;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--bg-raised);
+      flex-shrink: 0;
+    }
+    #timeline-panel .tl-header-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-primary);
+      font-size: 13px;
+      font-weight: 600;
+      font-family: 'Inter', sans-serif;
+    }
+    #timeline-panel .tl-filter-bar {
+      padding: 6px 12px;
+      border-bottom: 1px solid #222;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+      background: var(--bg-overlay);
+    }
+    #timeline-panel .tl-filter-btn {
+      padding: 3px 10px;
+      font-size: 11px;
+      border-radius: var(--radius-pill);
+      border: 1px solid var(--border-default);
+      background: var(--bg-input);
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      transition: all 150ms;
+    }
+    #timeline-panel .tl-filter-btn.active {
+      background: var(--accent-blue);
+      border-color: var(--accent-blue);
+      color: white;
+    }
+    #timeline-panel .tl-filter-btn:hover:not(.active) {
+      border-color: var(--border-hover);
+    }
+    #timeline-panel .tl-entries {
+      flex: 1;
+      overflow-y: auto;
+      padding: 4px 0;
+    }
+    .tl-entry {
+      padding: 6px 12px;
+      border-bottom: 1px solid #1a1a1a;
+      font-size: 12px;
+      line-height: 1.5;
+      color: var(--text-secondary);
+      transition: background 100ms;
+    }
+    .tl-entry:hover { background: rgba(255,255,255,0.02); }
+    .tl-entry .tl-ts {
+      color: var(--text-muted);
+      font-size: 11px;
+      margin-right: 6px;
+    }
+    .tl-entry .tl-agent {
+      font-weight: 600;
+      margin-right: 4px;
+    }
+    .tl-entry .tl-icon {
+      margin-right: 3px;
+    }
+    .tl-entry .tl-msg {
+      color: var(--text-tertiary);
+    }
+    .tl-empty {
+      text-align: center;
+      color: var(--text-muted);
+      padding: 40px 20px;
+      font-size: 13px;
+      font-family: 'Inter', sans-serif;
+    }
+    .tl-count {
+      font-size: 10px;
+      color: var(--text-muted);
+      background: var(--bg-input);
+      padding: 1px 6px;
+      border-radius: var(--radius-pill);
+      margin-left: 4px;
+    }
+    @media (max-width: 768px) {
+      #timeline-panel { width: 100vw; }
+    }
+
     /* Diff preview modal */
     #diff-modal {
       position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%);
@@ -911,6 +1051,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       <button id="btn-mode-graph" class="active" title="Graph mode (free connections)">🔄 Graph</button>
       <button id="btn-mode-tree" title="Tree mode (no cycles, single parent)">🌲 Tree</button>
     </div>
+    <button id="btn-timeline" class="secondary">📋 Timeline</button>
     <div class="spacer"></div>
     <button id="btn-gateway" class="secondary" style="background:#1a1a2e;border:1px solid #333">🔌 Connect</button>
     <button id="btn-import" class="secondary">📥 Import</button>
@@ -1167,6 +1308,21 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     </span>
     <button class="hint-close" id="hints-close" title="Close">✕</button>
   </div>
+  <!-- Timeline panel -->
+  <div id="timeline-panel">
+    <div class="tl-header">
+      <div class="tl-header-left">📋 Timeline <span class="tl-count" id="tl-count">0</span></div>
+      <button id="timeline-panel-close" style="background:none;border:none;color:#6b7280;font-size:20px;cursor:pointer">✕</button>
+    </div>
+    <div class="tl-filter-bar">
+      <button class="tl-filter-btn active" id="tl-filter-all">All</button>
+      <span id="tl-filter-agent-name" style="font-size:11px;color:#6b7280;display:none"></span>
+    </div>
+    <div class="tl-entries" id="tl-entries">
+      <div class="tl-empty">No activity yet.<br>Connect to Gateway to see live messages.</div>
+    </div>
+  </div>
+
   <div class="toast" id="toast"></div>
 
   <script src={`${base}/drawflow.min.js`} is:inline></script>
@@ -1314,40 +1470,60 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       return _origUpdateConnectionNodes(id);
     };
 
+    // Context for createCurvature to know which ports are connected
+    let _curvePortContext = null; // { outClass, inClass }
+
     editor.createCurvature = function(startX, startY, endX, endY, curvature, type) {
-      // Try to extract connection info from the current SVG being drawn
-      // Apply offsets if available (offsets are looked up by the connection element later)
       const gap = 40;
       const dx = endX - startX;
       const dy = endY - startY;
       const absDx = Math.abs(dx);
       const absDy = Math.abs(dy);
+
+      // Detect horizontal connection (output_2 → input_2)
+      const isHorizontal = _curvePortContext &&
+        _curvePortContext.outClass === 'output_2' && _curvePortContext.inClass === 'input_2';
+
+      if (isHorizontal) {
+        // Horizontal routing: start goes right, end arrives from left
+        const hGap = 40;
+        if (dx > hGap && absDy < 60) {
+          // Nearly straight horizontal
+          const midX = (startX + endX) / 2;
+          return ` M ${startX} ${startY} L ${midX} ${startY} L ${midX} ${endY} L ${endX} ${endY}`;
+        }
+        if (dx > hGap) {
+          // Diagonal — step shape
+          const midX = startX + hGap;
+          return ` M ${startX} ${startY} L ${midX} ${startY} L ${midX} ${endY} L ${endX} ${endY}`;
+        }
+        // Target is to the left or same X — detour
+        const sideDir = dy >= 0 ? 1 : -1;
+        const sideOffset = sideDir * (Math.max(80, absDy * 0.5 + 40));
+        const rightOfStart = startX + hGap;
+        const leftOfEnd = endX - hGap;
+        return ` M ${startX} ${startY} L ${rightOfStart} ${startY} L ${rightOfStart} ${startY + sideOffset} L ${leftOfEnd} ${startY + sideOffset} L ${leftOfEnd} ${endY} L ${endX} ${endY}`;
+      }
+
+      // Vertical routing (output_1 → input_1, default)
       const threshold = 60;
 
-      // Start direction: output port is at bottom → initially go down
-      // End direction: input port is at top → arrive from above
-      // But we can virtually route from sides based on geometry
-
       if (dy > gap && absDx < threshold) {
-        // Case 1: Nearly straight down — direct vertical with horizontal jog
         const midY = (startY + endY) / 2;
         return ` M ${startX} ${startY} L ${startX} ${midY} L ${endX} ${midY} L ${endX} ${endY}`;
       }
 
       if (dy > gap && absDx >= threshold) {
-        // Case 2: Diagonal down — L-shape or step
         const midY = startY + gap;
         return ` M ${startX} ${startY} L ${startX} ${midY} L ${endX} ${midY} L ${endX} ${endY}`;
       }
 
       if (absDy <= gap && absDx >= threshold) {
-        // Case 3: Roughly horizontal — U-shape going down then across then up
         const dropY = Math.max(startY, endY) + gap;
         return ` M ${startX} ${startY} L ${startX} ${dropY} L ${endX} ${dropY} L ${endX} ${endY}`;
       }
 
       if (dy <= 0) {
-        // Case 4: Target is above or at same level — detour around
         const sideDir = dx >= 0 ? 1 : -1;
         const detourX = (dx === 0 ? sideDir : (dx > 0 ? 1 : -1));
         const sideOffset = detourX * (Math.max(80, absDx * 0.5 + 40));
@@ -1356,7 +1532,6 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
         return ` M ${startX} ${startY} L ${startX} ${belowStart} L ${startX + sideOffset} ${belowStart} L ${startX + sideOffset} ${aboveEnd} L ${endX} ${aboveEnd} L ${endX} ${endY}`;
       }
 
-      // Fallback: simple step
       const midY = (startY + endY) / 2;
       return ` M ${startX} ${startY} L ${startX} ${midY} L ${endX} ${midY} L ${endX} ${endY}`;
     };
@@ -1564,7 +1739,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       const px = x ?? 100 + (org.agents.length % 4) * 260;
       const py = y ?? 80 + Math.floor(org.agents.length / 4) * 200;
       const nodeId = editor.addNode(
-        agent.id, 1, 1, px, py, 'agent-node', { agentId: agent.id }, createAgentHTML(agent)
+        agent.id, 2, 2, px, py, 'agent-node', { agentId: agent.id }, createAgentHTML(agent)
       );
       nodeToAgent[nodeId] = agent.id;
       scheduleSave();
@@ -1617,6 +1792,9 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     function openPanel(agentId) {
       const agent = agentById(agentId);
       if (!agent) return;
+      // Close timeline panel (mutually exclusive)
+      const tlp = document.getElementById('timeline-panel');
+      if (tlp) tlp.classList.remove('open');
       editingAgentId = agentId;
       document.getElementById('edit-icon').value = agent.icon || '';
       document.getElementById('edit-name').value = agent.name || '';
@@ -1665,8 +1843,39 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       closePanel();
     });
 
+    // --- 4-port auto-routing ---
+    function bestPorts(srcId, tgtId) {
+      const data = editor.drawflow.drawflow[editor.module].data;
+      const src = data[srcId];
+      const tgt = data[tgtId];
+      if (!src || !tgt) return ['output_1', 'input_1'];
+      const dx = tgt.pos_x - src.pos_x;
+      const dy = tgt.pos_y - src.pos_y;
+      if (Math.abs(dx) > Math.abs(dy)) {
+        return dx > 0 ? ['output_2', 'input_2'] : ['output_2', 'input_2'];
+      } else {
+        return dy > 0 ? ['output_1', 'input_1'] : ['output_1', 'input_1'];
+      }
+    }
+
     // --- Connection / Link management ---
+    let _rerouteInProgress = false;
     editor.on('connectionCreated', function(info) {
+      // Auto-reroute to optimal port pair based on node positions
+      if (!_rerouteInProgress) {
+        const [bestOut, bestIn] = bestPorts(info.output_id, info.input_id);
+        if (info.output_class !== bestOut || info.input_class !== bestIn) {
+          _rerouteInProgress = true;
+          try {
+            editor.removeSingleConnection(info.output_id, info.input_id, info.output_class, info.input_class);
+            editor.addConnection(info.output_id, info.input_id, bestOut, bestIn);
+          } finally {
+            _rerouteInProgress = false;
+          }
+          return; // The re-added connection will trigger this handler again
+        }
+      }
+
       const srcAgentId = nodeToAgent[info.output_id];
       const tgtAgentId = nodeToAgent[info.input_id];
       if (!srcAgentId || !tgtAgentId) return;
@@ -2826,7 +3035,8 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       const srcNodeId = Object.keys(nodeToAgent).find(k => nodeToAgent[k] === srcAgent.id);
       const tgtNodeId = Object.keys(nodeToAgent).find(k => nodeToAgent[k] === tgtAgent.id);
       if (!srcNodeId || !tgtNodeId) return;
-      editor.addConnection(srcNodeId, tgtNodeId, 'output_1', 'input_1');
+      const [bestOut, bestIn] = bestPorts(srcNodeId, tgtNodeId);
+      editor.addConnection(srcNodeId, tgtNodeId, bestOut, bestIn);
       const connKey = `${srcNodeId}_${tgtNodeId}`;
       const ct = connectionTypes[connKey];
       if (ct) {
@@ -3333,8 +3543,205 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       const agentId = card.dataset.agentId;
       if (agentId && !e.detail >= 2) { // single click only
         openChatPanel(agentId);
+        // Also filter timeline if open
+        if (timelinePanel.classList.contains('open')) {
+          timelineFilterAgent = agentId;
+          renderTimeline();
+        }
       }
     });
+
+    // ==============================================
+    // --- Timeline Panel ---
+    // ==============================================
+    const timelinePanel = document.getElementById('timeline-panel');
+    const tlEntries = document.getElementById('tl-entries');
+    const tlCount = document.getElementById('tl-count');
+    const TIMELINE_MAX = 50;
+    const AGENT_COLORS = ['#60a5fa','#f87171','#34d399','#fbbf24','#c084fc','#fb923c','#22d3ee','#a78bfa','#f472b6','#4ade80'];
+    let timelineData = []; // { ts, agentId, agentName, agentIcon, message, color }
+    let timelineFilterAgent = null;
+    let timelineSeenKeys = new Set();
+
+    function getAgentColor(agentId) {
+      const idx = org.agents.findIndex(a => a.id === agentId);
+      return AGENT_COLORS[idx >= 0 ? idx % AGENT_COLORS.length : 0];
+    }
+
+    function openTimelinePanel() {
+      // Close edit panel if open
+      panel.classList.remove('open');
+      editingAgentId = null;
+      closeChatPanel();
+      timelinePanel.classList.add('open');
+    }
+    function closeTimelinePanel() {
+      timelinePanel.classList.remove('open');
+    }
+
+    document.getElementById('btn-timeline').addEventListener('click', () => {
+      if (timelinePanel.classList.contains('open')) {
+        closeTimelinePanel();
+      } else {
+        openTimelinePanel();
+      }
+    });
+    document.getElementById('timeline-panel-close').addEventListener('click', closeTimelinePanel);
+    document.getElementById('tl-filter-all').addEventListener('click', () => {
+      timelineFilterAgent = null;
+      renderTimeline();
+    });
+
+    // Close timeline when opening edit panel
+    const _origOpenPanel = openPanel;
+    // We patch openPanel inline — it's already a function, re-wrap:
+    const __openPanel = openPanel;
+
+    function renderTimeline() {
+      const filtered = timelineFilterAgent
+        ? timelineData.filter(e => e.agentId === timelineFilterAgent)
+        : timelineData;
+
+      // Update filter UI
+      const filterAllBtn = document.getElementById('tl-filter-all');
+      const filterLabel = document.getElementById('tl-filter-agent-name');
+      filterAllBtn.classList.toggle('active', !timelineFilterAgent);
+      if (timelineFilterAgent) {
+        const a = agentById(timelineFilterAgent);
+        filterLabel.style.display = 'inline';
+        filterLabel.textContent = `Filtered: ${a?.icon || ''} ${a?.name || timelineFilterAgent}`;
+      } else {
+        filterLabel.style.display = 'none';
+      }
+
+      tlCount.textContent = String(filtered.length);
+
+      if (filtered.length === 0) {
+        tlEntries.innerHTML = '<div class="tl-empty">No activity yet.<br>Connect to Gateway to see live messages.</div>';
+        return;
+      }
+
+      tlEntries.innerHTML = filtered.map(e => {
+        const ts = e.ts instanceof Date ? e.ts : new Date(e.ts);
+        const hh = String(ts.getHours()).padStart(2,'0');
+        const mm = String(ts.getMinutes()).padStart(2,'0');
+        const ss = String(ts.getSeconds()).padStart(2,'0');
+        const msgText = escapeHtml((e.message || '').slice(0, 100));
+        return `<div class="tl-entry" data-agent="${e.agentId}">
+          <span class="tl-ts">[${hh}:${mm}:${ss}]</span>
+          <span class="tl-icon">${e.agentIcon || '🤖'}</span>
+          <span class="tl-agent" style="color:${e.color}">${escapeHtml(e.agentName)}:</span>
+          <span class="tl-msg">${msgText}</span>
+        </div>`;
+      }).join('');
+
+      // Click entry to filter by agent
+      tlEntries.querySelectorAll('.tl-entry').forEach(el => {
+        el.style.cursor = 'pointer';
+        el.addEventListener('click', () => {
+          timelineFilterAgent = el.dataset.agent;
+          renderTimeline();
+        });
+      });
+    }
+
+    function addTimelineEntry(agentId, message, timestamp) {
+      const agent = agentById(agentId);
+      if (!agent) return;
+      const entry = {
+        ts: timestamp ? new Date(timestamp) : new Date(),
+        agentId,
+        agentName: agent.name || agentId,
+        agentIcon: agent.icon || '🤖',
+        message: message || '',
+        color: getAgentColor(agentId),
+      };
+      timelineData.unshift(entry);
+      if (timelineData.length > TIMELINE_MAX) timelineData.length = TIMELINE_MAX;
+      if (timelinePanel.classList.contains('open')) renderTimeline();
+    }
+
+    // ==============================================
+    // --- Connection Flow Animation ---
+    // ==============================================
+    function triggerConnectionFlow(sourceAgentId, targetAgentId) {
+      const srcNodeId = nodeIdForAgent(sourceAgentId);
+      const tgtNodeId = nodeIdForAgent(targetAgentId);
+      if (!srcNodeId || !tgtNodeId) return;
+      // Try both directions
+      const selectors = [
+        `.connection.node_in_node-${tgtNodeId}.node_out_node-${srcNodeId}`,
+        `.connection.node_in_node-${srcNodeId}.node_out_node-${tgtNodeId}`,
+      ];
+      for (const sel of selectors) {
+        const connEl = container.querySelector(sel);
+        if (connEl) {
+          connEl.classList.add('flowing');
+          setTimeout(() => connEl.classList.remove('flowing'), 5000);
+        }
+      }
+    }
+
+    // ==============================================
+    // --- Hook into activity monitor for timeline + flow ---
+    // ==============================================
+    // Patch processSessionsUpdate to also feed timeline and trigger flow
+    const _origProcessSessionsUpdate = processSessionsUpdate;
+    processSessionsUpdate = function(sessions) {
+      const prevSnapCopy = { ...activityState.previousSnapshot };
+
+      // Call original
+      _origProcessSessionsUpdate(sessions);
+
+      // Detect new messages and feed timeline + flow
+      for (const session of sessions) {
+        const agent = matchSessionToAgent(session);
+        if (!agent) continue;
+
+        const sessionKey = session.sessionKey || session.key || session.id || '';
+        const fingerprint = getSessionMessageFingerprint(session);
+        const prev = prevSnapCopy[sessionKey];
+
+        const isNew = prev && (
+          (fingerprint.id && fingerprint.id !== prev.id) ||
+          (fingerprint.ts && fingerprint.ts !== prev.ts) ||
+          (fingerprint.content && fingerprint.content !== prev.content)
+        );
+
+        if (isNew) {
+          // Build a dedupe key
+          const dedupeKey = `${sessionKey}:${fingerprint.id || ''}:${fingerprint.ts || ''}`;
+          if (timelineSeenKeys.has(dedupeKey)) continue;
+          timelineSeenKeys.add(dedupeKey);
+          // Keep seen keys bounded
+          if (timelineSeenKeys.size > 200) {
+            const arr = [...timelineSeenKeys];
+            timelineSeenKeys = new Set(arr.slice(-100));
+          }
+
+          // Extract message content
+          const msgs = session.messages || session.recentMessages || [];
+          let msgContent = fingerprint.content || '';
+          if (msgs.length > 0) {
+            const latest = msgs[msgs.length - 1] || msgs[0];
+            const raw = typeof latest.content === 'string' ? latest.content : (latest.content?.[0]?.text || '');
+            msgContent = raw.slice(0, 100);
+          }
+
+          addTimelineEntry(agent.id, msgContent, fingerprint.ts);
+
+          // Trigger flow animation — find connections involving this agent
+          // Flow from whoever sent TO this agent (or from this agent)
+          const agentLinks = org.links.filter(l => l.source === agent.id || l.target === agent.id);
+          for (const link of agentLinks) {
+            triggerConnectionFlow(link.source, link.target);
+          }
+        }
+      }
+    };
+
+    // Also close timeline when opening edit panel
+    const _origOpenPanelFn = openPanel;
 
   })();
   </script>

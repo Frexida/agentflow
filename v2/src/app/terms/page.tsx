@@ -97,7 +97,7 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-3">8. Open Source</h2>
+            <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-3">8. Open Source &amp; Self-Hosting</h2>
             <p>
               AgentFlow&apos;s source code is available under the MIT License at{' '}
               <a href="https://github.com/Frexida/agentflow" className="text-[var(--accent-bright)] hover:underline" target="_blank" rel="noopener">

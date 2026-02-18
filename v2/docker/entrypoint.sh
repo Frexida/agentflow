@@ -10,7 +10,7 @@ cat > /root/.openclaw/openclaw.json <<EOF
 {
   "gateway": {
     "port": 18789,
-    "host": "0.0.0.0",
+    "bind": "lan",
     "controlUi": {
       "allowedOrigins": ["*"]
     },

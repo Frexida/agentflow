@@ -27,5 +27,5 @@ EOF
   echo "Config generated. Token prefix: ${TOKEN:0:8}..."
 fi
 
-# Start gateway (explicit host/port to ensure 0.0.0.0 binding)
-exec npx openclaw gateway start --foreground --host 0.0.0.0 --port 18789
+# Start gateway in foreground (run = foreground mode)
+exec npx openclaw gateway run --bind lan --port 18789

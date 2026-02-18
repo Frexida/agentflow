@@ -1132,17 +1132,21 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       return { x: Math.round(x / GRID_W) * GRID_W, y: Math.round(y / GRID_H) * GRID_H };
     }
     editor.on('nodeMoved', function(nodeId) {
-      const data = editor.export().drawflow.Home.data;
-      const node = data[nodeId];
-      if (!node) return;
-      const snapped = snapToGrid(node.pos_x, node.pos_y);
-      if (snapped.x !== node.pos_x || snapped.y !== node.pos_y) {
-        data[nodeId].pos_x = snapped.x;
-        data[nodeId].pos_y = snapped.y;
-        editor.import({ drawflow: { Home: { data } } });
-        setTimeout(() => { applyAllConnectionColors(); renderGroupOverlays(); }, 50);
+      const nodeData = editor.drawflow.drawflow[editor.module].data[nodeId];
+      if (!nodeData) return;
+      const snapped = snapToGrid(nodeData.pos_x, nodeData.pos_y);
+      if (snapped.x !== nodeData.pos_x || snapped.y !== nodeData.pos_y) {
+        nodeData.pos_x = snapped.x;
+        nodeData.pos_y = snapped.y;
+        const el = container.querySelector('#node-' + nodeId);
+        if (el) {
+          el.style.left = snapped.x + 'px';
+          el.style.top = snapped.y + 'px';
+          editor.updateConnectionNodes('node-' + nodeId);
+        }
       }
       scheduleSave();
+      scheduleOverlayUpdate();
     });
 
     editor.on('nodeSelected', function(nodeId) {

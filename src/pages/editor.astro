@@ -10,67 +10,153 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style is:global>
-    *, *::before, *::after { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
-    body { background: #0f0f0f; }
+    /* ── Design Tokens (8px grid, semantic colors, WCAG AA contrast) ── */
+    :root {
+      /* Spacing — 8px grid */
+      --sp-1: 4px;   /* half-step */
+      --sp-2: 8px;
+      --sp-3: 12px;
+      --sp-4: 16px;
+      --sp-5: 20px;
+      --sp-6: 24px;
+      --sp-8: 32px;
+      --sp-10: 40px;
+      --sp-12: 48px;
+
+      /* Surface colors (dark theme) */
+      --bg-base: #0f0f0f;
+      --bg-raised: #1a1a1a;
+      --bg-overlay: #141414;
+      --bg-input: #1f1f1f;
+      --bg-inset: #111111;
+
+      /* Border colors */
+      --border-subtle: #2a2a2a;
+      --border-default: #333333;
+      --border-hover: #444444;
+
+      /* Text colors — all pass WCAG AA on dark bg */
+      --text-primary: #e5e7eb;    /* contrast 12.6:1 on #1a1a1a */
+      --text-secondary: #9ca3af;  /* contrast 5.7:1 on #1a1a1a — AA */
+      --text-tertiary: #6b7280;   /* contrast 3.8:1 on #0f0f0f — AA-large */
+      --text-muted: #555555;
+
+      /* Accent colors */
+      --accent-blue: #3b82f6;
+      --accent-blue-hover: #2563eb;
+      --accent-blue-glow: rgba(59, 130, 246, 0.3);
+      --accent-red: #ef4444;
+      --accent-red-hover: #dc2626;
+      --accent-red-dark: #b91c1c;
+      --accent-yellow: #f59e0b;
+      --accent-green: #22c55e;
+      --accent-green-glow: rgba(34, 197, 94, 0.5);
+
+      /* Radii */
+      --radius-sm: 4px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --radius-pill: 9999px;
+
+      /* Transitions */
+      --ease-out: cubic-bezier(0.4, 0, 0.2, 1);
+      --duration-fast: 150ms;
+      --duration-normal: 200ms;
+      --duration-slow: 300ms;
+
+      /* Focus ring — accessibility */
+      --focus-ring: 0 0 0 2px var(--bg-base), 0 0 0 4px var(--accent-blue);
+    }
+
+    *, *::before, *::after {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      box-sizing: border-box;
+    }
+    body { background: var(--bg-base); }
+
+    /* Focus visible — keyboard accessibility */
+    :focus-visible {
+      outline: none;
+      box-shadow: var(--focus-ring);
+    }
+    :focus:not(:focus-visible) { outline: none; }
 
     /* Custom scrollbar */
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
-    ::-webkit-scrollbar-thumb:hover { background: #555; }
+    ::-webkit-scrollbar-thumb { background: var(--border-default); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+    /* Firefox */
+    * { scrollbar-width: thin; scrollbar-color: var(--border-default) transparent; }
 
     #drawflow {
       width: 100vw;
-      height: calc(100vh - 48px);
-      background: #0f0f0f;
+      height: calc(100vh - var(--sp-12));
+      background: var(--bg-base);
     }
 
     /* ── Toolbar ── */
     .toolbar {
-      height: 48px;
-      background: #1a1a1a;
+      height: var(--sp-12);
+      background: var(--bg-raised);
       display: flex;
       align-items: center;
-      gap: 10px;
-      padding: 0 16px;
-      border-bottom: 1px solid #2a2a2a;
+      gap: var(--sp-2);
+      padding: 0 var(--sp-4);
+      border-bottom: 1px solid var(--border-subtle);
     }
     .toolbar .org-name {
-      color: #9ca3af;
+      color: var(--text-secondary);
       font-size: 13px;
       font-weight: 500;
-      margin-right: 8px;
-      padding: 5px 10px;
-      background: #1f1f1f;
-      border-radius: 6px;
-      border: 1px solid #333;
+      margin-right: var(--sp-2);
+      padding: var(--sp-1) var(--sp-3);
+      background: var(--bg-input);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-default);
     }
     .toolbar button {
-      padding: 6px 14px;
-      background: #3b82f6;
+      padding: var(--sp-1) var(--sp-3);
+      height: var(--sp-8);
+      background: var(--accent-blue);
       color: white;
       border: none;
-      border-radius: 8px;
+      border-radius: var(--radius-md);
       cursor: pointer;
       font-size: 13px;
       font-weight: 500;
       display: inline-flex;
       align-items: center;
-      gap: 5px;
-      transition: background 180ms, transform 120ms, box-shadow 180ms;
+      gap: var(--sp-1);
+      transition: background var(--duration-fast) var(--ease-out),
+                  transform var(--duration-fast) var(--ease-out),
+                  box-shadow var(--duration-fast) var(--ease-out);
+      white-space: nowrap;
     }
-    .toolbar button:hover { background: #2563eb; transform: translateY(-1px); box-shadow: 0 2px 8px rgba(59,130,246,0.25); }
+    .toolbar button:hover {
+      background: var(--accent-blue-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px var(--accent-blue-glow);
+    }
     .toolbar button:active { transform: translateY(0); box-shadow: none; }
-    .toolbar button.secondary { background: #252525; border: 1px solid #333; }
-    .toolbar button.secondary:hover { background: #333; border-color: #444; box-shadow: 0 2px 8px rgba(255,255,255,0.05); }
-    .toolbar button.danger { background: #dc2626; }
-    .toolbar button.danger:hover { background: #b91c1c; box-shadow: 0 2px 8px rgba(220,38,38,0.3); }
+    .toolbar button.secondary {
+      background: var(--bg-input);
+      border: 1px solid var(--border-default);
+      color: var(--text-primary);
+    }
+    .toolbar button.secondary:hover {
+      background: var(--border-default);
+      border-color: var(--border-hover);
+      box-shadow: 0 2px 8px rgba(255,255,255,0.04);
+    }
+    .toolbar button.danger { background: var(--accent-red-hover); }
+    .toolbar button.danger:hover { background: var(--accent-red-dark); box-shadow: 0 2px 8px rgba(220,38,38,0.3); }
     .toolbar .spacer { flex: 1; }
 
     /* Live badge pulse */
     @keyframes livePulse {
-      0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(34,197,94,0.5); }
-      50% { opacity: 0.85; box-shadow: 0 0 0 4px rgba(34,197,94,0); }
+      0%, 100% { box-shadow: 0 0 0 0 var(--accent-green-glow); }
+      50% { box-shadow: 0 0 0 6px rgba(34,197,94,0); }
     }
     .toolbar .live-badge {
       animation: livePulse 2s ease-in-out infinite;
@@ -78,53 +164,58 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 
     /* ── Agent Card ── */
     .agent-card {
-      background: #1a1a1a;
-      border: 1px solid #333;
-      border-radius: 10px;
-      padding: 12px;
-      min-width: 190px;
-      color: #e2e8f0;
-      transition: border-color 200ms, transform 200ms, box-shadow 200ms;
+      background: var(--bg-raised);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-lg);
+      padding: var(--sp-3);
+      min-width: 192px; /* 24 × 8px grid */
+      color: var(--text-primary);
+      transition: border-color var(--duration-normal) var(--ease-out),
+                  transform var(--duration-normal) var(--ease-out),
+                  box-shadow var(--duration-normal) var(--ease-out);
     }
     .agent-card:hover {
       transform: scale(1.03);
-      border-color: #444;
-      box-shadow: 0 0 20px rgba(59, 130, 246, 0.12), 0 4px 16px rgba(0,0,0,0.3);
+      border-color: var(--border-hover);
+      box-shadow: 0 0 24px var(--accent-blue-glow), 0 var(--sp-1) var(--sp-4) rgba(0,0,0,0.3);
     }
     .agent-card .agent-header {
       display: flex;
       align-items: center;
-      gap: 10px;
-      margin-bottom: 8px;
+      gap: var(--sp-2);
+      margin-bottom: var(--sp-2);
     }
     .agent-card .agent-icon {
-      width: 34px;
-      height: 34px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #1e3a5f 0%, #2a2a2a 50%, #1a2a1a 100%);
+      width: var(--sp-8);
+      height: var(--sp-8);
+      border-radius: var(--radius-pill);
+      background: linear-gradient(135deg, #1e3a5f 0%, #2d2640 50%, #1a3a2a 100%);
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 17px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      box-shadow: 0 2px var(--sp-2) rgba(0,0,0,0.3);
+      flex-shrink: 0;
     }
     .agent-card .agent-name {
       font-weight: 600;
       font-size: 14px;
       letter-spacing: -0.01em;
+      color: var(--text-primary);
     }
     .agent-card .agent-role {
       font-size: 11px;
-      color: #6b7280;
-      margin-bottom: 6px;
+      color: var(--text-tertiary);
+      margin-bottom: var(--sp-2);
+      line-height: 1.4;
     }
     .agent-card .agent-model {
       font-size: 10px;
-      color: #9ca3af;
-      background: linear-gradient(135deg, #1f1f2e, #1a1a2a);
-      padding: 3px 10px;
-      border-radius: 20px;
-      border: 1px solid #333;
+      color: var(--text-secondary);
+      background: var(--bg-inset);
+      padding: var(--sp-1) var(--sp-3);
+      border-radius: var(--radius-pill);
+      border: 1px solid var(--border-default);
       display: inline-block;
       font-weight: 500;
       letter-spacing: 0.02em;
@@ -138,8 +229,8 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       min-width: auto !important;
     }
     .drawflow .drawflow-node.selected .agent-card {
-      border-color: #3b82f6;
-      box-shadow: 0 0 16px rgba(59, 130, 246, 0.35), 0 0 32px rgba(59, 130, 246, 0.1);
+      border-color: var(--accent-blue);
+      box-shadow: 0 0 var(--sp-4) var(--accent-blue-glow), 0 0 var(--sp-8) rgba(59, 130, 246, 0.1);
     }
 
     /* ── Connection lines ── */

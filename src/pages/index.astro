@@ -5,80 +5,125 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 
 <Base title="AgentFlow — Visual Agent Org Designer for OpenClaw">
   <main class="landing">
+    <!-- Language Toggle -->
+    <div class="lang-toggle">
+      <button id="lang-btn" aria-label="Toggle language">EN</button>
+    </div>
+
     <!-- Hero -->
     <section class="hero">
-      <div class="badge">🔧 Open Source · MIT License</div>
+      <div class="badge" data-i18n="badge">🔧 Open Source · MIT License</div>
       <h1>⚙️ AgentFlow</h1>
-      <p class="tagline">Design multi-agent teams visually.<br/>Org chart → OpenClaw config in one click.</p>
-      <p class="sub">The first GUI for designing OpenClaw multi-agent organizations.<br/>No code. No YAML. Just drag, connect, export.</p>
+      <p class="tagline" data-i18n="tagline">Design multi-agent teams visually.<br/>Org chart → OpenClaw config in one click.</p>
+      <p class="sub" data-i18n="sub">The first GUI for designing OpenClaw multi-agent organizations.<br/>No code. No YAML. Just drag, connect, export.</p>
       <div class="cta-row">
-        <a href={`${base}/editor/`} class="cta primary">Try the Editor →</a>
+        <a href={`${base}/editor/`} class="cta primary" data-i18n="cta-editor">Try the Editor →</a>
         <a href="https://github.com/Frexida/agentflow" class="cta secondary" target="_blank">⭐ GitHub</a>
+      </div>
+    </section>
+
+    <!-- Demo -->
+    <section class="demo">
+      <div class="demo-container">
+        <img src={`${base}/demo.gif`} alt="AgentFlow demo" loading="lazy" />
       </div>
     </section>
 
     <!-- How it works -->
     <section class="steps">
-      <h2>How it works</h2>
+      <h2 data-i18n="how-title">How it works</h2>
       <div class="step-grid">
         <div class="step">
           <div class="step-num">1</div>
-          <h3>Design</h3>
-          <p>Add agents, set roles, personalities, models. Connect them with authority, communication, or review links.</p>
+          <h3 data-i18n="step1-title">Design</h3>
+          <p data-i18n="step1-desc">Add agents, set roles, personalities, models. Connect them with authority, communication, or review links.</p>
         </div>
         <div class="step">
           <div class="step-num">2</div>
-          <h3>Organize</h3>
-          <p>Group agents into teams. Define hierarchies. Auto-layout with dagre or arrange freely.</p>
+          <h3 data-i18n="step2-title">Organize</h3>
+          <p data-i18n="step2-desc">Group agents into teams. Define hierarchies. Auto-layout with dagre or arrange freely.</p>
         </div>
         <div class="step">
           <div class="step-num">3</div>
-          <h3>Export</h3>
-          <p>One click generates production-ready OpenClaw config, workspace setup script, and full metadata.</p>
+          <h3 data-i18n="step3-title">Export</h3>
+          <p data-i18n="step3-desc">One click generates production-ready OpenClaw config, workspace setup script, and full metadata.</p>
         </div>
       </div>
     </section>
 
     <!-- Features -->
     <section class="features">
-      <h2>Built for OpenClaw</h2>
+      <h2 data-i18n="features-title">Built for OpenClaw</h2>
       <div class="feature-grid">
         <div class="feature">
           <span class="icon">🎨</span>
-          <h3>Visual Org Chart</h3>
-          <p>Drawflow-based node editor. Drag, drop, connect agents visually.</p>
+          <h3 data-i18n="f1-title">Visual Org Chart</h3>
+          <p data-i18n="f1-desc">Drawflow-based node editor. Drag, drop, connect agents visually.</p>
         </div>
         <div class="feature">
           <span class="icon">🤖</span>
-          <h3>Agent Profiles</h3>
-          <p>Name, role, personality (SOUL.md), model selection, tool profiles, initial memory.</p>
+          <h3 data-i18n="f2-title">Agent Profiles</h3>
+          <p data-i18n="f2-desc">Name, role, personality (SOUL.md), model selection, tool profiles, initial memory.</p>
         </div>
         <div class="feature">
           <span class="icon">🔗</span>
-          <h3>Relationship Types</h3>
-          <p>Authority (🔴), Communication (🔵), Review (🟡) — based on MOISE+ organizational theory.</p>
+          <h3 data-i18n="f3-title">Relationship Types</h3>
+          <p data-i18n="f3-desc">Authority (🔴), Communication (🔵), Review (🟡) — based on MOISE+ organizational theory.</p>
         </div>
         <div class="feature">
           <span class="icon">📦</span>
-          <h3>One-Click Export</h3>
-          <p>Generates config.apply-ready JSON, setup scripts, and workspace files.</p>
+          <h3 data-i18n="f4-title">One-Click Export</h3>
+          <p data-i18n="f4-desc">Generates config.apply-ready JSON, setup scripts, and workspace files.</p>
         </div>
         <div class="feature">
           <span class="icon">👥</span>
-          <h3>Group Management</h3>
-          <p>Organize agents into teams and sub-teams with nested group support.</p>
+          <h3 data-i18n="f5-title">Group Management</h3>
+          <p data-i18n="f5-desc">Organize agents into teams and sub-teams with nested group support.</p>
         </div>
         <div class="feature">
           <span class="icon">✅</span>
-          <h3>Validation</h3>
-          <p>Catches errors before export: duplicate names, missing fields, orphan nodes.</p>
+          <h3 data-i18n="f6-title">Validation</h3>
+          <p data-i18n="f6-desc">Catches errors before export: duplicate names, missing fields, orphan nodes.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Gateway Integration -->
+    <section class="gateway">
+      <h2 data-i18n="gw-title">🌐 Gateway Integration</h2>
+      <p class="section-sub" data-i18n="gw-sub">Connect directly to your OpenClaw Gateway for seamless live workflows.</p>
+      <div class="feature-grid">
+        <div class="feature gw">
+          <span class="icon">📡</span>
+          <h3 data-i18n="gw1-title">Live Monitoring</h3>
+          <p data-i18n="gw1-desc">WebSocket connection to your Gateway. See agent status and config changes in real time.</p>
+        </div>
+        <div class="feature gw">
+          <span class="icon">📥</span>
+          <h3 data-i18n="gw2-title">Import / Apply</h3>
+          <p data-i18n="gw2-desc">Pull your current org config from Gateway, edit visually, and apply changes back — all from the browser.</p>
+        </div>
+        <div class="feature gw">
+          <span class="icon">🔀</span>
+          <h3 data-i18n="gw3-title">Diff Preview</h3>
+          <p data-i18n="gw3-desc">Review every change before applying. Side-by-side diff view shows exactly what will be modified.</p>
+        </div>
+        <div class="feature gw">
+          <span class="icon">🕐</span>
+          <h3 data-i18n="gw4-title">History (10 Generations)</h3>
+          <p data-i18n="gw4-desc">Automatic versioning with 10-generation history. Roll back to any previous config instantly.</p>
+        </div>
+        <div class="feature gw">
+          <span class="icon">📜</span>
+          <h3 data-i18n="gw5-title">Setup Script Generation</h3>
+          <p data-i18n="gw5-desc">Auto-generate shell scripts to bootstrap workspaces, install dependencies, and configure agents.</p>
         </div>
       </div>
     </section>
 
     <!-- Deploy options -->
     <section class="deploy">
-      <h2>Deploy Anywhere</h2>
+      <h2 data-i18n="deploy-title">Deploy Anywhere</h2>
       <div class="deploy-grid">
         <div class="deploy-option">
           <h3>🐳 Docker</h3>
@@ -89,16 +134,16 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
           <code>npm run build</code>
         </div>
         <div class="deploy-option">
-          <h3>🌐 Hosted</h3>
-          <code>Use it right now ↑</code>
+          <h3 data-i18n="deploy-hosted">🌐 Hosted</h3>
+          <code data-i18n="deploy-hosted-code">Use it right now ↑</code>
         </div>
       </div>
     </section>
 
     <!-- CTA -->
     <section class="bottom-cta">
-      <h2>Start designing your agent team</h2>
-      <a href={`${base}/editor/`} class="cta primary">Open AgentFlow Editor →</a>
+      <h2 data-i18n="bottom-cta-title">Start designing your agent team</h2>
+      <a href={`${base}/editor/`} class="cta primary" data-i18n="cta-editor">Open AgentFlow Editor →</a>
     </section>
 
     <footer>
@@ -107,46 +152,166 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
   </main>
 </Base>
 
+<script is:inline>
+(function() {
+  const t = {
+    en: {
+      badge: '🔧 Open Source · MIT License',
+      tagline: 'Design multi-agent teams visually.<br/>Org chart → OpenClaw config in one click.',
+      sub: 'The first GUI for designing OpenClaw multi-agent organizations.<br/>No code. No YAML. Just drag, connect, export.',
+      'cta-editor': 'Try the Editor →',
+      'how-title': 'How it works',
+      'step1-title': 'Design', 'step1-desc': 'Add agents, set roles, personalities, models. Connect them with authority, communication, or review links.',
+      'step2-title': 'Organize', 'step2-desc': 'Group agents into teams. Define hierarchies. Auto-layout with dagre or arrange freely.',
+      'step3-title': 'Export', 'step3-desc': 'One click generates production-ready OpenClaw config, workspace setup script, and full metadata.',
+      'features-title': 'Built for OpenClaw',
+      'f1-title': 'Visual Org Chart', 'f1-desc': 'Drawflow-based node editor. Drag, drop, connect agents visually.',
+      'f2-title': 'Agent Profiles', 'f2-desc': 'Name, role, personality (SOUL.md), model selection, tool profiles, initial memory.',
+      'f3-title': 'Relationship Types', 'f3-desc': 'Authority (🔴), Communication (🔵), Review (🟡) — based on MOISE+ organizational theory.',
+      'f4-title': 'One-Click Export', 'f4-desc': 'Generates config.apply-ready JSON, setup scripts, and workspace files.',
+      'f5-title': 'Group Management', 'f5-desc': 'Organize agents into teams and sub-teams with nested group support.',
+      'f6-title': 'Validation', 'f6-desc': 'Catches errors before export: duplicate names, missing fields, orphan nodes.',
+      'gw-title': '🌐 Gateway Integration',
+      'gw-sub': 'Connect directly to your OpenClaw Gateway for seamless live workflows.',
+      'gw1-title': 'Live Monitoring', 'gw1-desc': 'WebSocket connection to your Gateway. See agent status and config changes in real time.',
+      'gw2-title': 'Import / Apply', 'gw2-desc': 'Pull your current org config from Gateway, edit visually, and apply changes back — all from the browser.',
+      'gw3-title': 'Diff Preview', 'gw3-desc': 'Review every change before applying. Side-by-side diff view shows exactly what will be modified.',
+      'gw4-title': 'History (10 Generations)', 'gw4-desc': 'Automatic versioning with 10-generation history. Roll back to any previous config instantly.',
+      'gw5-title': 'Setup Script Generation', 'gw5-desc': 'Auto-generate shell scripts to bootstrap workspaces, install dependencies, and configure agents.',
+      'deploy-title': 'Deploy Anywhere',
+      'deploy-hosted': '🌐 Hosted', 'deploy-hosted-code': 'Use it right now ↑',
+      'bottom-cta-title': 'Start designing your agent team'
+    },
+    ja: {
+      badge: '🔧 オープンソース · MIT ライセンス',
+      tagline: 'マルチエージェントチームをビジュアルに設計。<br/>組織図 → OpenClaw設定をワンクリックで。',
+      sub: 'OpenClaw マルチエージェント組織設計のための初のGUI。<br/>コード不要。YAML不要。ドラッグ、接続、エクスポート。',
+      'cta-editor': 'エディタを試す →',
+      'how-title': '使い方',
+      'step1-title': '設計', 'step1-desc': 'エージェントを追加し、役割・性格・モデルを設定。権限・通信・レビューのリンクで接続。',
+      'step2-title': '整理', 'step2-desc': 'エージェントをチームにグループ化。階層を定義。Dagreで自動レイアウトまたは自由配置。',
+      'step3-title': 'エクスポート', 'step3-desc': 'ワンクリックで本番用OpenClaw設定、セットアップスクリプト、メタデータを生成。',
+      'features-title': 'OpenClaw のために構築',
+      'f1-title': 'ビジュアル組織図', 'f1-desc': 'Drawflowベースのノードエディタ。ドラッグ＆ドロップでエージェントを視覚的に接続。',
+      'f2-title': 'エージェントプロファイル', 'f2-desc': '名前、役割、性格（SOUL.md）、モデル選択、ツールプロファイル、初期メモリ。',
+      'f3-title': 'リレーション タイプ', 'f3-desc': '権限（🔴）、通信（🔵）、レビュー（🟡）— MOISE+組織理論に基づく。',
+      'f4-title': 'ワンクリック エクスポート', 'f4-desc': 'config.apply対応のJSON、セットアップスクリプト、ワークスペースファイルを生成。',
+      'f5-title': 'グループ管理', 'f5-desc': 'エージェントをチーム・サブチームに整理。ネストされたグループをサポート。',
+      'f6-title': 'バリデーション', 'f6-desc': 'エクスポート前にエラーを検出：重複名、未入力フィールド、孤立ノード。',
+      'gw-title': '🌐 Gateway 連携',
+      'gw-sub': 'OpenClaw Gatewayに直接接続し、シームレスなライブワークフローを実現。',
+      'gw1-title': 'ライブモニタリング', 'gw1-desc': 'GatewayへのWebSocket接続。エージェントの状態と設定変更をリアルタイムで確認。',
+      'gw2-title': 'インポート / 適用', 'gw2-desc': 'Gatewayから現在の組織設定を取得し、ビジュアルに編集、変更をそのまま適用。',
+      'gw3-title': '差分プレビュー', 'gw3-desc': '適用前にすべての変更をレビュー。サイドバイサイドの差分ビューで変更箇所を正確に表示。',
+      'gw4-title': '履歴（10世代）', 'gw4-desc': '10世代の自動バージョニング。過去の任意の設定に即座にロールバック可能。',
+      'gw5-title': 'セットアップスクリプト生成', 'gw5-desc': 'ワークスペースの構築、依存関係のインストール、エージェント設定のシェルスクリプトを自動生成。',
+      'deploy-title': 'どこでもデプロイ',
+      'deploy-hosted': '🌐 ホスティング', 'deploy-hosted-code': '今すぐ使う ↑',
+      'bottom-cta-title': 'エージェントチームの設計を始めよう'
+    }
+  };
+
+  function setLang(lang) {
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const key = el.getAttribute('data-i18n');
+      if (t[lang] && t[lang][key]) el.innerHTML = t[lang][key];
+    });
+    const btn = document.getElementById('lang-btn');
+    if (btn) btn.textContent = lang === 'en' ? 'JA' : 'EN';
+    document.documentElement.lang = lang;
+    try { localStorage.setItem('af-lang', lang); } catch(e) {}
+  }
+
+  function detectLang() {
+    try { const s = localStorage.getItem('af-lang'); if (s) return s; } catch(e) {}
+    return (navigator.language || '').startsWith('ja') ? 'ja' : 'en';
+  }
+
+  let current = detectLang();
+  document.addEventListener('DOMContentLoaded', () => {
+    setLang(current);
+    document.getElementById('lang-btn').addEventListener('click', () => {
+      current = current === 'en' ? 'ja' : 'en';
+      setLang(current);
+    });
+  });
+})();
+</script>
+
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
   .landing {
-    max-width: 900px;
+    max-width: 960px;
     margin: 0 auto;
     padding: 2rem 1.5rem;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    position: relative;
+  }
+
+  /* Language Toggle */
+  .lang-toggle {
+    position: fixed;
+    top: 1rem;
+    right: 1.5rem;
+    z-index: 100;
+  }
+  .lang-toggle button {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    color: #e2e8f0;
+    padding: 0.4rem 1rem;
+    border-radius: 8px;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    backdrop-filter: blur(12px);
+  }
+  .lang-toggle button:hover {
+    background: rgba(59, 130, 246, 0.2);
+    border-color: #3b82f6;
   }
 
   /* Hero */
   .hero {
     text-align: center;
-    padding: 4rem 0 3rem;
+    padding: 5rem 0 2rem;
   }
   .badge {
     display: inline-block;
-    background: rgba(59, 130, 246, 0.15);
+    background: rgba(59, 130, 246, 0.12);
     color: #60a5fa;
-    padding: 0.3rem 1rem;
+    padding: 0.35rem 1.2rem;
     border-radius: 20px;
-    font-size: 0.85rem;
+    font-size: 0.8rem;
+    font-weight: 500;
     margin-bottom: 1.5rem;
+    letter-spacing: 0.02em;
   }
   .hero h1 {
-    font-size: 3.5rem;
+    font-size: 3.8rem;
+    font-weight: 800;
     margin-bottom: 1rem;
-    background: linear-gradient(135deg, #60a5fa, #a78bfa);
+    background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 50%, #f472b6 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+    letter-spacing: -0.02em;
   }
   .tagline {
-    font-size: 1.4rem;
+    font-size: 1.35rem;
     color: #cbd5e1;
-    line-height: 1.6;
+    line-height: 1.7;
     margin-bottom: 0.75rem;
+    font-weight: 400;
   }
   .sub {
     color: #64748b;
     font-size: 1rem;
-    line-height: 1.6;
-    margin-bottom: 2rem;
+    line-height: 1.7;
+    margin-bottom: 2.5rem;
   }
   .cta-row {
     display: flex;
@@ -156,69 +321,100 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
   }
   .cta {
     display: inline-block;
-    padding: 0.8rem 2rem;
-    border-radius: 8px;
+    padding: 0.85rem 2.2rem;
+    border-radius: 10px;
     text-decoration: none;
     font-weight: 600;
-    font-size: 1.05rem;
-    transition: transform 0.15s, box-shadow 0.15s;
+    font-size: 1rem;
+    font-family: 'Inter', sans-serif;
+    transition: all 0.2s ease;
   }
   .cta:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 20px rgba(59, 130, 246, 0.3);
+    box-shadow: 0 8px 30px rgba(59, 130, 246, 0.25);
   }
   .cta.primary {
-    background: #3b82f6;
+    background: linear-gradient(135deg, #3b82f6, #6366f1);
     color: white;
   }
   .cta.secondary {
-    background: rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.06);
     color: #e2e8f0;
-    border: 1px solid rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.12);
+  }
+  .cta.secondary:hover {
+    background: rgba(255,255,255,0.1);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+  }
+
+  /* Demo */
+  .demo {
+    padding: 1rem 0 2rem;
+  }
+  .demo-container {
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.08);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+  }
+  .demo-container img {
+    width: 100%;
+    display: block;
   }
 
   /* Sections */
   section {
-    padding: 3rem 0;
+    padding: 3.5rem 0;
   }
   h2 {
     text-align: center;
-    font-size: 1.8rem;
-    margin-bottom: 2rem;
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
     color: #f1f5f9;
+    letter-spacing: -0.01em;
+  }
+  .section-sub {
+    text-align: center;
+    color: #64748b;
+    font-size: 1.05rem;
+    margin-bottom: 2.5rem;
+    line-height: 1.6;
   }
 
   /* Steps */
   .step-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 1.5rem;
+    gap: 2rem;
+    margin-top: 2rem;
   }
   .step {
     text-align: center;
     padding: 1.5rem;
   }
   .step-num {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background: #3b82f6;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #3b82f6, #6366f1);
     color: white;
     display: flex;
     align-items: center;
     justify-content: center;
     margin: 0 auto 1rem;
-    font-weight: bold;
+    font-weight: 700;
     font-size: 1.1rem;
   }
   .step h3 {
     margin-bottom: 0.5rem;
     color: #e2e8f0;
+    font-weight: 600;
   }
   .step p {
     color: #94a3b8;
     font-size: 0.9rem;
-    line-height: 1.5;
+    line-height: 1.6;
   }
 
   /* Features */
@@ -228,10 +424,16 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     gap: 1.25rem;
   }
   .feature {
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 12px;
-    padding: 1.5rem;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 14px;
+    padding: 1.75rem;
+    transition: all 0.2s ease;
+  }
+  .feature:hover {
+    background: rgba(255,255,255,0.06);
+    border-color: rgba(99, 102, 241, 0.3);
+    transform: translateY(-2px);
   }
   .feature .icon {
     font-size: 1.8rem;
@@ -240,13 +442,29 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
   }
   .feature h3 {
     font-size: 1rem;
+    font-weight: 600;
     margin-bottom: 0.4rem;
     color: #e2e8f0;
   }
   .feature p {
     color: #94a3b8;
     font-size: 0.85rem;
-    line-height: 1.5;
+    line-height: 1.6;
+  }
+
+  /* Gateway section accent */
+  .gateway {
+    border-top: 1px solid rgba(99, 102, 241, 0.15);
+    padding-top: 4rem;
+  }
+  .gateway h2 {
+    margin-bottom: 0.5rem;
+  }
+  .feature.gw {
+    border-color: rgba(99, 102, 241, 0.12);
+  }
+  .feature.gw:hover {
+    border-color: rgba(99, 102, 241, 0.4);
   }
 
   /* Deploy */
@@ -254,29 +472,32 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 1.25rem;
+    margin-top: 2rem;
   }
   .deploy-option {
     text-align: center;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 12px;
-    padding: 1.5rem;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 14px;
+    padding: 1.75rem;
   }
   .deploy-option h3 {
     margin-bottom: 0.75rem;
+    font-weight: 600;
   }
   .deploy-option code {
-    background: rgba(0,0,0,0.4);
-    padding: 0.4rem 0.8rem;
-    border-radius: 6px;
+    background: rgba(0,0,0,0.5);
+    padding: 0.45rem 0.9rem;
+    border-radius: 8px;
     font-size: 0.85rem;
     color: #a5f3fc;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
   }
 
   /* Bottom CTA */
   .bottom-cta {
     text-align: center;
-    padding: 3rem 0;
+    padding: 4rem 0 3rem;
   }
 
   /* Footer */
@@ -287,10 +508,18 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     font-size: 0.85rem;
     border-top: 1px solid rgba(255,255,255,0.06);
   }
+  footer a {
+    color: #64748b;
+    text-decoration: none;
+  }
+  footer a:hover {
+    color: #94a3b8;
+  }
 
   /* Mobile */
   @media (max-width: 640px) {
-    .hero h1 { font-size: 2.2rem; }
+    .hero { padding-top: 4rem; }
+    .hero h1 { font-size: 2.4rem; }
     .tagline { font-size: 1.1rem; }
     .step-grid, .feature-grid, .deploy-grid {
       grid-template-columns: 1fr;

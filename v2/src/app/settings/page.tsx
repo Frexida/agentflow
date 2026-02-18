@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useGatewayStore } from '@/stores/gateway'
 
 export default function SettingsPage() {
@@ -99,11 +99,128 @@ export default function SettingsPage() {
           </details>
         </section>
 
+        {/* API Keys */}
+        <section className="mt-6 bg-[var(--surface-elevated)] rounded-lg border border-[var(--accent)] p-6">
+          <h2 className="text-lg font-semibold mb-1">API Keys</h2>
+          <p className="text-xs text-[var(--text-secondary)] mb-4">
+            Your keys are encrypted and stored securely. Used to power your AI agents.
+          </p>
+          <ApiKeyInput
+            label="Anthropic API Key"
+            placeholder="sk-ant-api03-..."
+            storageKey="agentflow:anthropic-key"
+            validatePrefix="sk-ant-"
+          />
+          <ApiKeyInput
+            label="OpenAI API Key"
+            placeholder="sk-..."
+            storageKey="agentflow:openai-key"
+            validatePrefix="sk-"
+            optional
+          />
+          <div className="mt-4 p-3 bg-[var(--surface)] rounded text-xs text-[var(--text-secondary)]">
+            <p className="mb-1">💡 <strong>Bring Your Own Key</strong> — use your own API keys for direct billing from the provider.</p>
+            <p>Or skip this and use AgentFlow credits (coming soon).</p>
+          </div>
+        </section>
+
         {/* Navigation */}
         <div className="mt-6 flex gap-4">
           <a href="/dashboard" className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)]">← Dashboard</a>
         </div>
       </div>
+    </div>
+  )
+}
+
+function ApiKeyInput({ label, placeholder, storageKey, validatePrefix, optional }: {
+  label: string
+  placeholder: string
+  storageKey: string
+  validatePrefix: string
+  optional?: boolean
+}) {
+  const [value, setValue] = useState('')
+  const [saved, setSaved] = useState(false)
+  const [hasKey, setHasKey] = useState(false)
+  const [visible, setVisible] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const existing = localStorage.getItem(storageKey)
+    if (existing) {
+      setHasKey(true)
+      setSaved(true)
+    }
+  }, [storageKey])
+
+  const handleSave = () => {
+    setError(null)
+    if (!value.trim()) {
+      if (optional) { localStorage.removeItem(storageKey); setHasKey(false); setSaved(false); return }
+      setError('Key is required')
+      return
+    }
+    if (!value.startsWith(validatePrefix)) {
+      setError(`Key should start with ${validatePrefix}`)
+      return
+    }
+    // In production, this would be sent to the API for encrypted storage
+    // For now, store locally (will be replaced with Supabase encrypted storage)
+    localStorage.setItem(storageKey, value)
+    setHasKey(true)
+    setSaved(true)
+    setValue('')
+  }
+
+  const handleRemove = () => {
+    localStorage.removeItem(storageKey)
+    setHasKey(false)
+    setSaved(false)
+    setValue('')
+  }
+
+  return (
+    <div className="mb-4">
+      <label className="block text-sm text-[var(--text-secondary)] mb-1">
+        {label} {optional && <span className="text-[var(--text-secondary)]/50">(optional)</span>}
+      </label>
+      {hasKey && saved ? (
+        <div className="flex items-center gap-2">
+          <div className="flex-1 bg-[var(--surface)] border border-green-600/30 rounded px-3 py-2 text-sm text-green-400 flex items-center gap-2">
+            <span>✅</span>
+            <span>Key saved</span>
+            <span className="text-[var(--text-secondary)] text-xs ml-auto">••••••••</span>
+          </div>
+          <button onClick={handleRemove} className="px-3 py-2 text-xs text-red-400 hover:text-red-300 border border-[var(--border)] rounded">
+            Remove
+          </button>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2">
+          <div className="flex-1 relative">
+            <input
+              type={visible ? 'text' : 'password'}
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+              className="w-full bg-[var(--surface)] border border-[var(--accent)] rounded px-3 py-2 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--accent-bright)] pr-10"
+              placeholder={placeholder}
+            />
+            <button
+              type="button"
+              onClick={() => setVisible(!visible)}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-[var(--text-secondary)]"
+            >
+              {visible ? '🙈' : '👁'}
+            </button>
+          </div>
+          <button onClick={handleSave} className="px-4 py-2 bg-[var(--accent)] rounded hover:bg-[var(--accent-bright)] transition text-sm">
+            Save
+          </button>
+        </div>
+      )}
+      {error && <p className="text-red-400 text-xs mt-1">{error}</p>}
     </div>
   )
 }

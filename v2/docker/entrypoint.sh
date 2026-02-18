@@ -26,8 +26,9 @@ cat > /root/.openclaw/openclaw.json <<EOF
 }
 EOF
 
-# Find openclaw's dist/index.js
-OPENCLAW_INDEX=$(node -e "console.log(require.resolve('openclaw/dist/index.js'))")
+# Find openclaw global install path and run gateway
+OPENCLAW_BIN=$(which openclaw)
+OPENCLAW_DIR=$(dirname $(dirname "$OPENCLAW_BIN"))
+OPENCLAW_INDEX="$OPENCLAW_DIR/lib/node_modules/openclaw/dist/index.js"
 
-# Start gateway directly (no systemd needed)
 exec node "$OPENCLAW_INDEX" gateway --port 18789

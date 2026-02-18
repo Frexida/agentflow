@@ -144,7 +144,7 @@ export default function TermsPage() {
             <ul className="list-disc pl-5 space-y-2 mt-2">
               <li>We offer a <strong>full refund within 7 days</strong> of your initial subscription if you are not satisfied.</li>
               <li>Refund requests after 7 days are handled on a case-by-case basis.</li>
-              <li>To request a refund, contact us via GitHub.</li>
+              <li>To request a refund, contact us via GitHub or email at admin@frexida.com.</li>
             </ul>
           </section>
 
@@ -223,11 +223,14 @@ export default function TermsPage() {
           <section>
             <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-3">15. Contact</h2>
             <p>
-              Questions? Open an issue on
+              Questions? Open an issue on{' '}
               <a href="https://github.com/Frexida/agentflow" className="text-[var(--accent-bright)] hover:underline" target="_blank" rel="noopener">
                 GitHub
-              </a>
-              
+              </a>{' '}
+              or email us at{' '}
+              <a href="mailto:admin@frexida.com" className="text-[var(--accent-bright)] hover:underline">
+                admin@frexida.com
+              </a>.
             </p>
           </section>
         </div>

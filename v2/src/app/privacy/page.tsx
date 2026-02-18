@@ -64,6 +64,10 @@ export default function PrivacyPage() {
               Questions about privacy? Open an issue on{' '}
               <a href="https://github.com/Frexida/agentflow" className="text-[var(--accent-bright)] hover:underline" target="_blank" rel="noopener">
                 GitHub
+              </a>{' '}
+              or email us at{' '}
+              <a href="mailto:admin@frexida.com" className="text-[var(--accent-bright)] hover:underline">
+                admin@frexida.com
               </a>.
             </p>
           </section>

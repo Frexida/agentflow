@@ -194,6 +194,45 @@ Key source files:
 
 ---
 
+## v2 (Next.js + React Flow)
+
+v2 is a complete rewrite with cloud features:
+
+### Quick Start (v2)
+
+```bash
+cd v2
+cp .env.example .env.local  # Add your Supabase keys
+npm install
+npm run dev
+```
+
+→ Open http://localhost:3000
+
+### Environment Variables
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key  # Server only
+```
+
+### v2 Features
+- **React Flow** canvas with custom agent nodes
+- **Supabase Auth** (Email + GitHub OAuth)
+- **Cloud save** with Row Level Security
+- **Gateway integration** (OpenClaw Protocol v3)
+- **Real-time chat** with agents via Gateway
+- **Dark theme** (OpenClaw red #e94560)
+
+### Deploy to Vercel
+
+1. Import repo, set Root Directory to `v2`
+2. Add environment variables in Vercel dashboard
+3. Deploy
+
+---
+
 ## Contributing
 
 Issues and PRs welcome. See [Issues](https://github.com/Frexida/agentflow/issues) for current tasks.

@@ -59,8 +59,10 @@ export default function TermsPage() {
             </p>
             <ul className="list-disc pl-5 space-y-2 mt-2">
               <li>
-                <strong>You are solely responsible for all costs incurred with your AI provider</strong> (Anthropic, OpenAI, etc.),
+                <strong>You are responsible for costs incurred with your AI provider</strong> (Anthropic, OpenAI, etc.),
                 including charges resulting from agent behavior such as excessive API calls, loops, or unintended usage patterns.
+                However, if excessive costs are directly caused by a verified bug in AgentFlow&apos;s code (not in your agent configuration),
+                we will work with you in good faith to resolve the situation, which may include compensation at our discretion.
               </li>
               <li>
                 We strongly recommend setting <strong>usage limits and spending caps</strong> directly with your AI provider
@@ -122,13 +124,14 @@ export default function TermsPage() {
               <li>Fail to pay for a paid plan after repeated notice</li>
             </ul>
             <p className="mt-2">
-              Before termination, we will make reasonable efforts to notify you and provide an opportunity
-              to export your data, unless the violation is severe or poses an immediate risk to
-              other users or the Service.
+              Before termination, we will make reasonable efforts to notify you, explain the reason,
+              and provide an opportunity to export your data and contest the decision,
+              unless the violation is severe or poses an immediate risk to other users or the Service.
             </p>
             <p className="mt-2">
               You may delete your account at any time from Settings. Upon deletion, all your data
-              (designs, API keys, Gateway) will be permanently removed within 30 days.
+              (designs, API keys, Gateway) will be removed from active systems within 30 days.
+              Data in automated backups will be purged as those backups rotate (typically within 90 days).
             </p>
           </section>
 

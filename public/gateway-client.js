@@ -162,7 +162,7 @@ class GatewayClient extends EventTarget {
   }
 
   async getSessions() {
-    const result = await this.rpc('sessions.list', { messageLimit: 1 });
+    const result = await this.rpc('sessions.list', { includeLastMessage: true });
     this.sessions = result?.sessions || result || [];
     return this.sessions;
   }

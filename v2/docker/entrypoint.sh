@@ -8,7 +8,7 @@ cat > /root/.openclaw/openclaw.json <<EOF
   "gateway": {
     "port": 18789,
     "mode": "local",
-    "bind": "all",
+    "bind": "lan",
     "controlUi": {
       "allowedOrigins": ["https://agentflow-l42k.vercel.app", "https://agentflow.dev"]
     },
@@ -21,12 +21,15 @@ cat > /root/.openclaw/openclaw.json <<EOF
     "profiles": {
       "anthropic:default": {
         "provider": "anthropic",
-        "mode": "api-key",
-        "apiKey": "${ANTHROPIC_API_KEY}"
+        "mode": "api_key"
       }
     }
   },
-  "agents": {}
+  "agents": {},
+  "commands": {
+    "native": "auto",
+    "nativeSkills": "auto"
+  }
 }
 EOF
 

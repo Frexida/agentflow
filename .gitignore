@@ -6,3 +6,6 @@ dist/
 *.log
 v2/node_modules/
 v2/.next/
+.env
+.env.local
+.env*.local

@@ -146,38 +146,60 @@ function ApiKeyInput({ label, placeholder, storageKey, validatePrefix, optional 
   const [visible, setVisible] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    const existing = localStorage.getItem(storageKey)
-    if (existing) {
-      setHasKey(true)
-      setSaved(true)
-    }
-  }, [storageKey])
+  const provider = storageKey.includes('anthropic') ? 'anthropic' : 'openai'
+  const [keyPrefix, setKeyPrefix] = useState('')
 
-  const handleSave = () => {
+  useEffect(() => {
+    // Check cloud first, fallback to localStorage
+    fetch('/api/keys').then(r => r.json()).then(({ keys }) => {
+      const match = keys?.find((k: { provider: string }) => k.provider === provider)
+      if (match) { setHasKey(true); setSaved(true); setKeyPrefix(match.key_prefix) }
+      else {
+        const local = localStorage.getItem(storageKey)
+        if (local) { setHasKey(true); setSaved(true); setKeyPrefix(local.substring(0, 10) + '...') }
+      }
+    }).catch(() => {
+      const local = localStorage.getItem(storageKey)
+      if (local) { setHasKey(true); setSaved(true); setKeyPrefix(local.substring(0, 10) + '...') }
+    })
+  }, [storageKey, provider])
+
+  const handleSave = async () => {
     setError(null)
     if (!value.trim()) {
-      if (optional) { localStorage.removeItem(storageKey); setHasKey(false); setSaved(false); return }
-      setError('Key is required')
-      return
+      if (optional) { handleRemove(); return }
+      setError('Key is required'); return
     }
     if (!value.startsWith(validatePrefix)) {
-      setError(`Key should start with ${validatePrefix}`)
-      return
+      setError(`Key should start with ${validatePrefix}`); return
     }
-    // In production, this would be sent to the API for encrypted storage
-    // For now, store locally (will be replaced with Supabase encrypted storage)
-    localStorage.setItem(storageKey, value)
-    setHasKey(true)
-    setSaved(true)
-    setValue('')
+    try {
+      const res = await fetch('/api/keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ provider, key: value }),
+      })
+      if (res.ok) {
+        const { key_prefix: kp } = await res.json()
+        setKeyPrefix(kp); setHasKey(true); setSaved(true); setValue('')
+        localStorage.removeItem(storageKey) // migrate away from localStorage
+      } else {
+        // Fallback to localStorage
+        localStorage.setItem(storageKey, value)
+        setKeyPrefix(value.substring(0, 10) + '...')
+        setHasKey(true); setSaved(true); setValue('')
+      }
+    } catch {
+      localStorage.setItem(storageKey, value)
+      setKeyPrefix(value.substring(0, 10) + '...')
+      setHasKey(true); setSaved(true); setValue('')
+    }
   }
 
-  const handleRemove = () => {
+  const handleRemove = async () => {
+    try { await fetch(`/api/keys?provider=${provider}`, { method: 'DELETE' }) } catch {}
     localStorage.removeItem(storageKey)
-    setHasKey(false)
-    setSaved(false)
-    setValue('')
+    setHasKey(false); setSaved(false); setValue(''); setKeyPrefix('')
   }
 
   return (
@@ -190,7 +212,7 @@ function ApiKeyInput({ label, placeholder, storageKey, validatePrefix, optional 
           <div className="flex-1 bg-[var(--surface)] border border-green-600/30 rounded px-3 py-2 text-sm text-green-400 flex items-center gap-2">
             <span>✅</span>
             <span>Key saved</span>
-            <span className="text-[var(--text-secondary)] text-xs ml-auto">••••••••</span>
+            <span className="text-[var(--text-secondary)] text-xs ml-auto font-mono">{keyPrefix || '••••••••'}</span>
           </div>
           <button onClick={handleRemove} className="px-3 py-2 text-xs text-red-400 hover:text-red-300 border border-[var(--border)] rounded">
             Remove

@@ -213,23 +213,36 @@ class OrgDatabase extends Dexie {
 
 ---
 
-## 最終選定サマリー
+## 最終選定サマリー（改訂: SvelteKit移行）
 
-| Layer | Library | Version | Size | License |
-|-------|---------|---------|------|---------|
-| Framework | Astro | 5.x | - | MIT |
-| UI Framework | Svelte | 5.x | 20KB | MIT |
-| Canvas | @xyflow/svelte | 1.x | 150KB | MIT |
-| Layout | elkjs | 0.9.x | 500KB | EPL-2.0 |
-| UI Components | shadcn-svelte | latest | copy-paste | MIT |
-| Styling | Tailwind CSS | 4.x | JIT | MIT |
-| State | Svelte stores | built-in | 0KB | MIT |
-| State (cross-island) | nanostores | 0.11.x | 1KB | MIT |
-| Persistence | Dexie.js | 4.x | 30KB | Apache-2.0 |
-| Charts | uPlot | 1.x | 35KB | MIT |
-| Markdown | marked | 15.x | 40KB | MIT |
-| Sanitize | DOMPurify | 3.x | 15KB | Apache-2.0/MPL |
-| **Total client bundle** | | | **~800KB** (gzipped ~250KB) | |
+> 静的縛りを外し、SvelteKitフルスタックに移行。
+> npm install && npm start でセルフホスト完結。
+
+### M1 最小構成（必須）
+| Layer | Library | License | Notes |
+|-------|---------|---------|-------|
+| Framework | **SvelteKit** | MIT | Astroから移行。SSR + API routes |
+| Canvas | **@xyflow/svelte** | MIT | 4辺ポート、ルーティング、ミニマップ組み込み |
+| Styling | **Tailwind CSS v4** | MIT | JIT、ダークテーマ |
+| State | **Svelte stores** | MIT | built-in、追加不要 |
+| DB | **better-sqlite3** | MIT | npm install完結、ファイルDB |
+
+### 必要になったら追加
+| Library | Trigger | License |
+|---------|---------|---------|
+| dagre | Auto Layout実装時 | MIT |
+| shadcn-svelte | UI複雑化時 | MIT |
+| marked + DOMPurify | チャットmarkdown表示時 | MIT |
+| uPlot | ダッシュボードグラフ時 | MIT |
+| elkjs | グループレイアウト時 | EPL-2.0 |
+
+### デプロイ
+```bash
+npm install
+npm run build
+npm start        # → http://localhost:3000
+```
+データ: `~/.agentflow/data.db` (SQLite)
 
 ---
 

@@ -86,7 +86,7 @@ export default function CanvasToolbar() {
     <div className="absolute top-4 left-4 z-10 flex items-center gap-2">
       {/* Add Agent */}
       {adding ? (
-        <div className="flex items-center gap-1 bg-[var(--surface-elevated)] border border-[var(--accent)] rounded-lg px-2 py-1">
+        <div className="flex items-center gap-1 bg-[var(--surface-elevated)] border border-[var(--border)] rounded-lg px-2 py-1">
           <input
             type="text"
             value={newName}
@@ -100,17 +100,14 @@ export default function CanvasToolbar() {
           <button onClick={() => setAdding(false)} className="text-red-400 hover:text-red-300 text-sm px-1">✕</button>
         </div>
       ) : (
-        <ToolButton onClick={() => setAdding(true)} title="Add Agent">➕</ToolButton>
+        <ToolButton onClick={() => setAdding(true)} title="Add Agent" highlight>+ Add Agent</ToolButton>
       )}
 
-      {/* Add Group */}
-      <ToolButton onClick={handleAddGroup} title="Add Group">📁</ToolButton>
-
       {/* Auto Layout */}
-      <ToolButton onClick={handleAutoLayout} title="Auto Layout">📐</ToolButton>
+      <ToolButton onClick={handleAutoLayout} title="Auto Layout">○ Auto Layout</ToolButton>
 
-      {/* Fit View */}
-      <ToolButton onClick={handleFitView} title="Fit View">🔍</ToolButton>
+      {/* Add Group */}
+      <ToolButton onClick={handleAddGroup} title="Add Group">▣ Groups</ToolButton>
 
       {/* Structure Mode */}
       <ToolButton
@@ -118,13 +115,14 @@ export default function CanvasToolbar() {
         title={`Mode: ${structureMode}`}
         active={structureMode === 'tree'}
       >
-        {structureMode === 'tree' ? '🌲' : '🔄'}
+        {structureMode === 'tree' ? '△ Tree' : '◉ Graph'}
       </ToolButton>
+
       {/* Save */}
-      <ToolButton onClick={handleSave} title={saving ? 'Saving...' : 'Save'}>💾</ToolButton>
+      <ToolButton onClick={handleSave} title={saving ? 'Saving...' : 'Save'}>Save</ToolButton>
 
       {/* Export */}
-      <ToolButton onClick={() => setExportOpen(true)} title="Export / Import">📦</ToolButton>
+      <ToolButton onClick={() => setExportOpen(true)} title="Export / Import">Export</ToolButton>
 
       {saveStatus && (
         <span className="text-xs bg-[var(--surface-elevated)] px-2 py-1 rounded border border-[var(--accent)]">
@@ -142,22 +140,28 @@ function ToolButton({
   title,
   children,
   active,
+  highlight,
 }: {
   onClick: () => void
   title: string
   children: React.ReactNode
   active?: boolean
+  highlight?: boolean
 }) {
   return (
     <button
       onClick={onClick}
       title={title}
       className={`
-        w-9 h-9 flex items-center justify-center rounded-lg text-lg
-        bg-[var(--surface-elevated)] border transition-all
-        hover:border-[var(--accent-bright)] hover:shadow-md
+        px-3 py-1.5 flex items-center justify-center rounded text-xs font-medium
+        transition-all whitespace-nowrap
         focus-visible:outline-2 focus-visible:outline-[var(--accent-bright)] focus-visible:outline-offset-2
-        ${active ? 'border-[var(--accent-bright)] shadow-sm shadow-[var(--accent-bright)]/20' : 'border-[var(--accent)]'}
+        ${highlight
+          ? 'bg-[var(--accent-bright)] text-white hover:brightness-110 border border-transparent'
+          : active
+            ? 'bg-[var(--surface-elevated)] border border-[var(--accent-bright)] text-[var(--accent-bright)]'
+            : 'bg-[var(--surface-elevated)] border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--accent-bright)]'
+        }
       `}
     >
       {children}

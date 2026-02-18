@@ -65,13 +65,14 @@ const demoNodes: Node<AgentNodeData>[] = [
   },
 ]
 
+const edgeStyle = { stroke: '#e94560', strokeWidth: 2, strokeDasharray: '8 4' }
 const demoEdges = [
-  { id: 'e-ceo-pm', source: 'ceo', target: 'pm-1', sourceHandle: 'output_1', targetHandle: 'input_1', animated: true },
-  { id: 'e-ceo-dev', source: 'ceo', target: 'dev-1', sourceHandle: 'output_1', targetHandle: 'input_1', animated: true },
-  { id: 'e-ceo-research', source: 'ceo', target: 'research-1', sourceHandle: 'output_1', targetHandle: 'input_1', animated: true },
-  { id: 'e-pm-dev', source: 'pm-1', target: 'dev-1', sourceHandle: 'output_2', targetHandle: 'input_2', animated: true },
-  { id: 'e-pm-media', source: 'pm-1', target: 'media-1', sourceHandle: 'output_1', targetHandle: 'input_1', animated: true },
-  { id: 'e-pm-ethics', source: 'pm-1', target: 'ethics-1', sourceHandle: 'output_2', targetHandle: 'input_2', animated: true, style: { strokeDasharray: '5 5' } },
+  { id: 'e-ceo-pm', source: 'ceo', target: 'pm-1', sourceHandle: 'output_1', targetHandle: 'input_1', animated: true, style: edgeStyle, markerEnd: { type: 'arrowclosed' as const, color: '#e94560' } },
+  { id: 'e-ceo-dev', source: 'ceo', target: 'dev-1', sourceHandle: 'output_1', targetHandle: 'input_1', animated: true, style: edgeStyle, markerEnd: { type: 'arrowclosed' as const, color: '#e94560' } },
+  { id: 'e-ceo-research', source: 'ceo', target: 'research-1', sourceHandle: 'output_1', targetHandle: 'input_1', animated: true, style: edgeStyle, markerEnd: { type: 'arrowclosed' as const, color: '#e94560' } },
+  { id: 'e-pm-dev', source: 'pm-1', target: 'dev-1', sourceHandle: 'output_2', targetHandle: 'input_2', animated: true, style: edgeStyle, markerEnd: { type: 'arrowclosed' as const, color: '#e94560' } },
+  { id: 'e-pm-media', source: 'pm-1', target: 'media-1', sourceHandle: 'output_1', targetHandle: 'input_1', animated: true, style: edgeStyle, markerEnd: { type: 'arrowclosed' as const, color: '#e94560' } },
+  { id: 'e-pm-ethics', source: 'pm-1', target: 'ethics-1', sourceHandle: 'output_2', targetHandle: 'input_2', animated: true, style: edgeStyle, markerEnd: { type: 'arrowclosed' as const, color: '#e94560' } },
 ]
 
 function EditorCanvas() {
@@ -114,6 +115,7 @@ function EditorCanvas() {
         onNodeDoubleClick={onNodeDoubleClick}
         onNodeContextMenu={onNodeContextMenu}
         onPaneClick={() => setContextMenu(null)}
+        defaultEdgeOptions={{ style: edgeStyle, animated: true, markerEnd: { type: 'arrowclosed' as never, color: '#e94560' } }}
         fitView
         className="bg-[var(--surface)]"
         deleteKeyCode={['Backspace', 'Delete']}

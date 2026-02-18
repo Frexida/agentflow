@@ -1925,12 +1925,21 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       const src = data[srcId];
       const tgt = data[tgtId];
       if (!src || !tgt) return ['output_1', 'input_1'];
-      const dx = tgt.pos_x - src.pos_x;
-      const dy = tgt.pos_y - src.pos_y;
+      // Get node centers (approximate width 200, height 120)
+      const sw = 200, sh = 120;
+      const srcCx = src.pos_x + sw / 2, srcCy = src.pos_y + sh / 2;
+      const tgtCx = tgt.pos_x + sw / 2, tgtCy = tgt.pos_y + sh / 2;
+      const dx = tgtCx - srcCx;
+      const dy = tgtCy - srcCy;
+      // Pick ports based on dominant direction
       if (Math.abs(dx) > Math.abs(dy)) {
-        return dx > 0 ? ['output_2', 'input_2'] : ['output_2', 'input_2'];
+        // Horizontal dominant
+        if (dx > 0) return ['output_2', 'input_2']; // target is right: src right port → tgt left port
+        else return ['input_2', 'output_2']; // target is left: src left port → tgt right port (reversed)
       } else {
-        return dy > 0 ? ['output_1', 'input_1'] : ['output_1', 'input_1'];
+        // Vertical dominant
+        if (dy > 0) return ['output_1', 'input_1']; // target is below: src bottom → tgt top
+        else return ['input_1', 'output_1']; // target is above: src top → tgt bottom (reversed)
       }
     }
 

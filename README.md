@@ -15,6 +15,11 @@
 ---
 
 <div align="center">
+  <img src="docs/demo-gateway.gif" alt="AgentFlow Editor — Gateway Import" width="800" />
+  <p><em>Import from your running OpenClaw gateway and visualize your agent org in seconds.</em></p>
+</div>
+
+<div align="center">
   <img src="docs/screenshots/editor-demo.png" alt="AgentFlow Editor" width="800" />
   <p><em>Design your agent organization visually — drag, connect, export.</em></p>
 </div>

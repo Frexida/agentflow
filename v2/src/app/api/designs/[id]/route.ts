@@ -1,9 +1,12 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 // GET /api/designs/:id — get single design
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
+  if (!UUID_RE.test(id)) return NextResponse.json({ error: 'Invalid ID' }, { status: 400 })
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -23,12 +26,18 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
 // PUT /api/designs/:id — update design
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
+  if (!UUID_RE.test(id)) return NextResponse.json({ error: 'Invalid ID' }, { status: 400 })
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const body = await request.json()
+  let body: Record<string, unknown>
+  try {
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
+  }
   const updates: Record<string, unknown> = { updated_at: new Date().toISOString() }
   if (body.name !== undefined) updates.name = body.name
   if (body.data !== undefined) updates.data = body.data
@@ -48,6 +57,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 // DELETE /api/designs/:id — delete design
 export async function DELETE(_: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
+  if (!UUID_RE.test(id)) return NextResponse.json({ error: 'Invalid ID' }, { status: 400 })
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 

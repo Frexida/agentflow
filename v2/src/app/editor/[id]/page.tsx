@@ -16,6 +16,7 @@ import AgentNode from '@/components/canvas/AgentNode'
 import CanvasToolbar from '@/components/canvas/CanvasToolbar'
 import NodeEditModal from '@/components/canvas/NodeEditModal'
 import ChatPanel from '@/components/chat/ChatPanel'
+import TimelinePanel from '@/components/canvas/TimelinePanel'
 import { useOrgStore } from '@/stores/org'
 import type { AgentNodeData } from '@/types/org'
 
@@ -73,6 +74,7 @@ function EditorCanvas() {
   const { nodes, edges, setNodes, setEdges, onNodesChange, onEdgesChange, onConnect } = useOrgStore()
   const [editNodeId, setEditNodeId] = useState<string | null>(null)
   const [chatOpen, setChatOpen] = useState(false)
+  const [timelineOpen, setTimelineOpen] = useState(false)
 
   useEffect(() => {
     if (nodes.length === 0) {
@@ -108,14 +110,24 @@ function EditorCanvas() {
       </ReactFlow>
       <NodeEditModal nodeId={editNodeId} onClose={() => setEditNodeId(null)} />
       <ChatPanel open={chatOpen} onClose={() => setChatOpen(false)} />
-      {/* Chat toggle */}
-      <button
-        onClick={() => setChatOpen(!chatOpen)}
-        className="fixed bottom-4 right-4 z-30 w-12 h-12 rounded-full bg-[var(--accent)] hover:bg-[var(--accent-bright)] flex items-center justify-center text-xl transition shadow-lg"
-        title="Chat"
-      >
-        💬
-      </button>
+      <TimelinePanel open={timelineOpen} onClose={() => setTimelineOpen(false)} />
+      {/* Float buttons */}
+      <div className="fixed bottom-4 right-4 z-30 flex flex-col gap-2">
+        <button
+          onClick={() => setTimelineOpen(!timelineOpen)}
+          className="w-12 h-12 rounded-full bg-[var(--accent)] hover:bg-[var(--accent-bright)] flex items-center justify-center text-xl transition shadow-lg"
+          title="Timeline"
+        >
+          📋
+        </button>
+        <button
+          onClick={() => setChatOpen(!chatOpen)}
+          className="w-12 h-12 rounded-full bg-[var(--accent)] hover:bg-[var(--accent-bright)] flex items-center justify-center text-xl transition shadow-lg"
+          title="Chat"
+        >
+          💬
+        </button>
+      </div>
     </div>
   )
 }

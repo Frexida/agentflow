@@ -1,0 +1,18 @@
+app = "agentflow-gateways"
+primary_region = "nrt"
+
+[build]
+  dockerfile = "Dockerfile.gateway"
+
+[[services]]
+  internal_port = 18789
+  protocol = "tcp"
+
+  [[services.ports]]
+    port = 443
+    handlers = ["tls", "http"]
+
+[env]
+  # These are overridden per-machine via Machines API
+  OPENCLAW_TOKEN = ""
+  ANTHROPIC_API_KEY = ""

@@ -2,6 +2,7 @@
 set -e
 
 # Generate openclaw.json from environment
+mkdir -p /root/.openclaw
 cat > /root/.openclaw/openclaw.json <<EOF
 {
   "version": 1,
@@ -23,5 +24,8 @@ cat > /root/.openclaw/openclaw.json <<EOF
 }
 EOF
 
-# Start gateway
-exec openclaw gateway start --foreground
+# Find openclaw's dist/index.js
+OPENCLAW_INDEX=$(node -e "console.log(require.resolve('openclaw/dist/index.js'))")
+
+# Start gateway directly (no systemd needed)
+exec node "$OPENCLAW_INDEX" gateway --port 18789

@@ -62,7 +62,7 @@ export async function createGateway(config: MachineConfig): Promise<Machine> {
       guest: {
         cpu_kind: 'shared',
         cpus: 1,
-        memory_mb: 256,
+        memory_mb: 512,
       },
       services: [
         {

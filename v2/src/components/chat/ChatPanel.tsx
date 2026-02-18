@@ -1,8 +1,16 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useChatStore } from '@/stores/chat'
 import { useGatewayStore } from '@/stores/gateway'
+import {
+  useExternalStoreRuntime,
+  AssistantRuntimeProvider,
+  ThreadPrimitive,
+  MessagePrimitive,
+  ComposerPrimitive,
+} from '@assistant-ui/react'
+import type { ThreadMessageLike } from '@assistant-ui/react'
 import type { ChatMessage } from '@/types/gateway'
 
 function cleanMessage(content: unknown): string {
@@ -18,24 +26,112 @@ function cleanMessage(content: unknown): string {
   return String(content)
 }
 
-export default function ChatPanel({ open, onClose, embedded }: { open: boolean; onClose: () => void; embedded?: boolean }) {
-  const { activeSession, activeAgentId, messages, setMessages } = useChatStore()
-  const { client, connected, sessions } = useGatewayStore()
-  const [input, setInput] = useState('')
-  const [sending, setSending] = useState(false)
-  const scrollRef = useRef<HTMLDivElement>(null)
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+function convertMessage(msg: ChatMessage): ThreadMessageLike {
+  return {
+    role: msg.role === 'user' ? 'user' : 'assistant',
+    content: cleanMessage(msg.content),
+    createdAt: msg.timestamp ? new Date(msg.timestamp) : undefined,
+  }
+}
 
-  const currentMessages = activeSession ? (messages.get(activeSession) || []) : []
+function SessionSelector() {
+  const { connected, sessions } = useGatewayStore()
 
-  // Auto-scroll
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
-    }
-  }, [currentMessages.length])
+  return (
+    <div className="p-4 space-y-2">
+      <p className="text-xs text-[var(--text-secondary)] font-medium uppercase tracking-wider">
+        Select an agent
+      </p>
+      {sessions.map((s) => (
+        <button
+          key={s.sessionKey}
+          onClick={() =>
+            useChatStore.getState().setActiveSession(s.sessionKey, s.agentId || 'unknown')
+          }
+          className="w-full text-left p-3 rounded-lg bg-[var(--surface)] hover:bg-[var(--accent)]/20 border border-[var(--border)] hover:border-[var(--accent-bright)]/40 text-sm transition-all group"
+        >
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-emerald-500 opacity-80" />
+            <span className="font-medium text-[var(--text-primary)] group-hover:text-[var(--accent-bright)]">
+              {s.agentId || s.sessionKey}
+            </span>
+          </div>
+          <span className="text-xs text-[var(--text-secondary)] ml-4">{s.kind}</span>
+        </button>
+      ))}
+      {sessions.length === 0 && (
+        <div className="text-center py-8">
+          <div className="text-2xl mb-2">💬</div>
+          <p className="text-xs text-[var(--text-secondary)]">
+            {connected ? 'No sessions found' : 'Connect to Gateway first'}
+          </p>
+        </div>
+      )}
+    </div>
+  )
+}
 
-  // Poll for new messages
+function UserMessage() {
+  return (
+    <MessagePrimitive.Root className="flex justify-end mb-3 px-4">
+      <div className="max-w-[85%] rounded-2xl rounded-br-md px-4 py-2.5 text-sm bg-[var(--accent-bright)] text-white shadow-sm">
+        <MessagePrimitive.Content />
+      </div>
+    </MessagePrimitive.Root>
+  )
+}
+
+function AssistantMessage() {
+  return (
+    <MessagePrimitive.Root className="flex justify-start mb-3 px-4">
+      <div className="max-w-[85%] rounded-2xl rounded-bl-md px-4 py-2.5 text-sm bg-[var(--surface)] text-[var(--text-primary)] border border-[var(--border)] shadow-sm">
+        <MessagePrimitive.Content />
+      </div>
+    </MessagePrimitive.Root>
+  )
+}
+
+function ChatThread() {
+  return (
+    <ThreadPrimitive.Root className="flex flex-col h-full">
+      <ThreadPrimitive.Viewport className="flex-1 overflow-y-auto py-4">
+        <ThreadPrimitive.Messages
+          components={{
+            UserMessage,
+            AssistantMessage,
+          }}
+        />
+        <ThreadPrimitive.Empty>
+          <div className="flex flex-col items-center justify-center h-full text-center px-4">
+            <div className="text-3xl mb-3">🤖</div>
+            <p className="text-sm text-[var(--text-secondary)]">Send a message to start</p>
+          </div>
+        </ThreadPrimitive.Empty>
+      </ThreadPrimitive.Viewport>
+
+      <div className="p-3 border-t border-[var(--border)]">
+        <ComposerPrimitive.Root className="flex gap-2">
+          <ComposerPrimitive.Input
+            placeholder="Message..."
+            className="flex-1 bg-[var(--surface)] border border-[var(--border)] rounded-lg px-3 py-2.5 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--accent-bright)] transition-colors resize-none placeholder:text-[var(--text-secondary)]/50"
+            autoFocus
+          />
+          <ComposerPrimitive.Send className="px-4 py-2.5 bg-[var(--accent-bright)] hover:bg-[var(--accent-glow)] rounded-lg text-sm text-white font-medium transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
+            ↑
+          </ComposerPrimitive.Send>
+        </ComposerPrimitive.Root>
+      </div>
+    </ThreadPrimitive.Root>
+  )
+}
+
+function ActiveChat() {
+  const { activeSession } = useChatStore()
+  const { client } = useGatewayStore()
+  const messages = useChatStore((s) => (activeSession ? s.messages.get(activeSession) || [] : []))
+  const [isRunning, setIsRunning] = useState(false)
+
+  // Poll for messages
   const pollMessages = useCallback(async () => {
     if (!client?.isConnected() || !activeSession) return
     try {
@@ -44,115 +140,109 @@ export default function ChatPanel({ open, onClose, embedded }: { open: boolean; 
         ...m,
         content: cleanMessage(m.content),
       }))
-      setMessages(activeSession, cleaned)
+      useChatStore.getState().setMessages(activeSession, cleaned)
     } catch {
       // ignore
     }
-  }, [client, activeSession, setMessages])
+  }, [client, activeSession])
 
   useEffect(() => {
-    if (open && activeSession) {
-      pollMessages()
-      pollRef.current = setInterval(pollMessages, 5000)
-    }
-    return () => {
-      if (pollRef.current) clearInterval(pollRef.current)
-    }
-  }, [open, activeSession, pollMessages])
+    pollMessages()
+    const interval = setInterval(pollMessages, 5000)
+    return () => clearInterval(interval)
+  }, [pollMessages])
 
-  const handleSend = async () => {
-    if (!input.trim() || !client?.isConnected() || !activeSession) return
-    setSending(true)
-    try {
-      await client.chatSend(activeSession, input.trim())
-      setInput('')
-      // Poll immediately for response
-      setTimeout(pollMessages, 1000)
-    } catch {
-      // ignore
-    } finally {
-      setSending(false)
-    }
-  }
+  const convertedMessages = useMemo(
+    () => messages.map(convertMessage),
+    [messages]
+  )
+
+  const handleSend = useCallback(
+    async (message: { content: ReadonlyArray<{ type: string; text?: string }> }) => {
+      if (!client?.isConnected() || !activeSession) return
+      const text = message.content
+        .filter((p) => p.type === 'text')
+        .map((p) => p.text || '')
+        .join('\n')
+        .trim()
+      if (!text) return
+
+      setIsRunning(true)
+      try {
+        await client.chatSend(activeSession, text)
+        // Poll for response
+        setTimeout(pollMessages, 1000)
+        setTimeout(pollMessages, 3000)
+        setTimeout(pollMessages, 6000)
+      } catch {
+        // ignore
+      } finally {
+        setTimeout(() => setIsRunning(false), 5000)
+      }
+    },
+    [client, activeSession, pollMessages]
+  )
+
+  const runtime = useExternalStoreRuntime({
+    messages: convertedMessages,
+    isRunning,
+    convertMessage: (m) => m,
+    onNew: handleSend,
+  })
+
+  return (
+    <AssistantRuntimeProvider runtime={runtime}>
+      <ChatThread />
+    </AssistantRuntimeProvider>
+  )
+}
+
+export default function ChatPanel({
+  open,
+  onClose,
+  embedded,
+}: {
+  open: boolean
+  onClose: () => void
+  embedded?: boolean
+}) {
+  const { activeSession, activeAgentId } = useChatStore()
 
   if (!open) return null
 
   return (
-    <div className={embedded ? 'flex flex-col h-full' : 'fixed right-0 top-0 h-screen w-80 bg-[var(--surface-elevated)] border-l border-[var(--accent)] flex flex-col z-40'}>
+    <div
+      className={
+        embedded
+          ? 'flex flex-col h-full'
+          : 'fixed right-0 top-0 h-screen w-96 bg-[var(--surface-elevated)] border-l border-[var(--border)] flex flex-col z-40 shadow-2xl'
+      }
+    >
       {/* Header */}
-      {!embedded && <div className="flex items-center justify-between p-3 border-b border-[var(--accent)]">
-        <div>
-          <h3 className="font-semibold text-sm">Chat</h3>
-          {activeAgentId && <span className="text-xs text-[var(--text-secondary)]">{activeAgentId}</span>}
-        </div>
-        <button onClick={onClose} className="text-[var(--text-secondary)] hover:text-red-400">✕</button>
-      </div>}
-
-      {/* Session selector */}
-      {!activeSession && (
-        <div className="p-3 space-y-2">
-          <p className="text-xs text-[var(--text-secondary)]">Select an agent session:</p>
-          {sessions.map((s) => (
-            <button
-              key={s.sessionKey}
-              onClick={() => useChatStore.getState().setActiveSession(s.sessionKey, s.agentId || 'unknown')}
-              className="w-full text-left p-2 rounded bg-[var(--surface)] hover:bg-[var(--accent)]/30 text-sm transition"
-            >
-              <span className="font-medium">{s.agentId || s.sessionKey}</span>
-              <span className="text-xs text-[var(--text-secondary)] ml-2">{s.kind}</span>
-            </button>
-          ))}
-          {sessions.length === 0 && (
-            <p className="text-xs text-[var(--text-secondary)]">
-              {connected ? 'No sessions found' : 'Connect to Gateway first'}
-            </p>
-          )}
-        </div>
-      )}
-
-      {/* Messages */}
-      {activeSession && (
-        <>
-          <div ref={scrollRef} className="flex-1 overflow-auto p-3 space-y-3">
-            {currentMessages.map((msg, i) => (
-              <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[85%] rounded-lg px-3 py-2 text-sm ${
-                  msg.role === 'user'
-                    ? 'bg-[var(--accent)] text-white'
-                    : 'bg-[var(--surface)] text-[var(--text-primary)]'
-                }`}>
-                  <p className="whitespace-pre-wrap break-words">{msg.content}</p>
-                </div>
-              </div>
-            ))}
-            {currentMessages.length === 0 && (
-              <p className="text-center text-xs text-[var(--text-secondary)] py-8">No messages yet</p>
+      {!embedded && (
+        <div className="flex items-center justify-between p-3 border-b border-[var(--border)]">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-emerald-500" />
+            <h3 className="font-semibold text-sm">Chat</h3>
+            {activeAgentId && (
+              <span className="text-xs text-[var(--text-secondary)] bg-[var(--surface)] px-2 py-0.5 rounded-full">
+                {activeAgentId}
+              </span>
             )}
           </div>
-
-          {/* Input */}
-          <div className="p-3 border-t border-[var(--accent)]">
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
-                placeholder="Message..."
-                className="flex-1 bg-[var(--surface)] border border-[var(--accent)] rounded px-3 py-2 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--accent-bright)]"
-                disabled={sending}
-              />
-              <button
-                onClick={handleSend}
-                disabled={sending || !input.trim()}
-                className="px-3 py-2 bg-[var(--accent)] rounded text-sm hover:bg-[var(--accent-bright)] transition disabled:opacity-50"
-              >
-                {sending ? '...' : '→'}
-              </button>
-            </div>
-          </div>
-        </>
+          <button
+            onClick={onClose}
+            className="text-[var(--text-secondary)] hover:text-[var(--accent-bright)] transition-colors p-1"
+          >
+            ✕
+          </button>
+        </div>
       )}
+
+      {/* Content */}
+      <div className="flex-1 overflow-hidden">
+        {activeSession ? <ActiveChat /> : <SessionSelector />}
+      </div>
     </div>
   )
 }

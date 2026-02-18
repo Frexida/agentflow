@@ -636,6 +636,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       <button class="btn-copy" id="export-copy">📋 Copy</button>
       <button class="btn-download" id="export-apply-gw" style="background:#f59e0b;color:#000;display:none">⚡ Apply to Gateway</button>
       <button class="btn-download" id="export-revert-gw" style="background:#dc2626;color:#fff;display:none">↩️ Revert</button>
+      <button class="btn-download" id="export-history-gw" style="background:#6366f1;color:#fff;display:none">📜 History</button>
       <button class="btn-close" id="export-close">Close</button>
     </div>
   </div>
@@ -650,6 +651,17 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       <button class="btn-download" id="diff-confirm-apply" style="background:#f59e0b;color:#000">✅ Confirm Apply</button>
       <button class="btn-close" id="diff-cancel">Cancel</button>
     </div>
+  </div>
+
+  <!-- Config History modal -->
+  <div id="history-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:610"></div>
+  <div id="history-modal" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#1a1a1a;border:1px solid #333;border-radius:12px;padding:24px;z-index:611;width:600px;max-width:90vw;max-height:80vh;overflow-y:auto;flex-direction:column">
+    <h3 style="color:#e5e7eb;margin:0 0 12px;display:flex;justify-content:space-between;align-items:center">
+      📜 Config History
+      <button id="history-modal-close" style="background:none;border:none;color:#6b7280;font-size:20px;cursor:pointer">✕</button>
+    </h3>
+    <p style="color:#9ca3af;font-size:13px;margin:0 0 12px">Previous configs saved before each Apply. Click to restore.</p>
+    <div id="history-list" style="display:flex;flex-direction:column;gap:8px"></div>
   </div>
 
   <!-- Template modal -->
@@ -1288,15 +1300,15 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       // Show/hide Apply/Revert buttons
       const applyBtn = document.getElementById('export-apply-gw');
       const revertBtn = document.getElementById('export-revert-gw');
+      const historyBtn = document.getElementById('export-history-gw');
       const gwConnected = window.gatewayClient?.connected;
-      const backupRaw = localStorage.getItem('agentflow-config-backup');
-      const hasBackup = !!backupRaw;
+      const history = JSON.parse(localStorage.getItem('agentflow-config-history') || '[]');
       applyBtn.style.display = gwConnected ? 'inline-block' : 'none';
-      revertBtn.style.display = (gwConnected && hasBackup) ? 'inline-block' : 'none';
-      if (hasBackup) {
+      revertBtn.style.display = (gwConnected && history.length > 0) ? 'inline-block' : 'none';
+      historyBtn.style.display = (gwConnected && history.length > 0) ? 'inline-block' : 'none';
+      if (history.length > 0) {
         try {
-          const b = JSON.parse(backupRaw);
-          const t = new Date(b.timestamp).toLocaleString();
+          const t = new Date(history[0].timestamp).toLocaleString();
           revertBtn.textContent = `↩️ Revert (${t})`;
         } catch {}
       }
@@ -1421,9 +1433,12 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     document.getElementById('diff-confirm-apply').addEventListener('click', async () => {
       if (!pendingApply) return;
       try {
-        // Save backup
-        localStorage.setItem('agentflow-config-backup', JSON.stringify(pendingApply.backup));
-        console.log('[AgentFlow] Config backup saved to localStorage');
+        // Save backup to history (keep last 10)
+        const configHistory = JSON.parse(localStorage.getItem('agentflow-config-history') || '[]');
+        configHistory.unshift(pendingApply.backup);
+        if (configHistory.length > 10) configHistory.length = 10;
+        localStorage.setItem('agentflow-config-history', JSON.stringify(configHistory));
+        console.log(`[AgentFlow] Config backup saved (${configHistory.length} versions)`);
 
         toast('Applying merged config...');
         await window.gatewayClient.rpc('config.apply', { raw: JSON.stringify(pendingApply.merged, null, 2), baseHash: pendingApply.baseHash });
@@ -1452,25 +1467,88 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
         toast('❌ Gateway not connected');
         return;
       }
-      const backupRaw = localStorage.getItem('agentflow-config-backup');
-      if (!backupRaw) {
+      const configHistory = JSON.parse(localStorage.getItem('agentflow-config-history') || '[]');
+      if (configHistory.length === 0) {
         toast('❌ No backup found');
         return;
       }
-      const backup = JSON.parse(backupRaw);
-      if (!confirm(`↩️ Revert to config backup from ${backup.timestamp}?\n\nThis will restore the previous config and restart the gateway.`)) return;
+      const backup = configHistory[0];
+      if (!confirm(`↩️ Revert to config from ${backup.timestamp}?\n\nThis will restore the previous config and restart the gateway.`)) return;
       try {
-        // Get fresh baseHash for the revert
         const freshResult = await window.gatewayClient.rpc('config.get', {});
         const freshHash = freshResult?.baseHash || freshResult?.hash || '';
         await window.gatewayClient.rpc('config.apply', { raw: JSON.stringify(backup.config, null, 2), baseHash: freshHash });
         toast('✅ Config reverted! Gateway restarting...');
-        localStorage.removeItem('agentflow-config-backup');
+        configHistory.shift();
+        localStorage.setItem('agentflow-config-history', JSON.stringify(configHistory));
         closeExportModal();
       } catch (err) {
         toast('❌ Revert failed: ' + err.message);
       }
     });
+
+    // --- Config History ---
+    function openHistoryModal() {
+      const history = JSON.parse(localStorage.getItem('agentflow-config-history') || '[]');
+      const list = document.getElementById('history-list');
+      if (history.length === 0) {
+        list.innerHTML = '<p style="color:#6b7280">No history yet. Configs are saved before each Apply.</p>';
+      } else {
+        list.innerHTML = history.map((entry, i) => {
+          const t = new Date(entry.timestamp).toLocaleString();
+          const agentCount = entry.config?.agents?.list?.length || 0;
+          return `<div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:#1f1f1f;border:1px solid #333;border-radius:8px">
+            <div>
+              <div style="color:#e5e7eb;font-size:14px">${i === 0 ? '🔵 Latest' : `#${i + 1}`} — ${t}</div>
+              <div style="color:#9ca3af;font-size:12px">${agentCount} agents</div>
+            </div>
+            <div style="display:flex;gap:8px">
+              <button class="history-restore" data-idx="${i}" style="padding:6px 12px;background:#22c55e;color:white;border:none;border-radius:6px;cursor:pointer;font-size:12px">Restore</button>
+              <button class="history-view" data-idx="${i}" style="padding:6px 12px;background:#333;color:#e5e7eb;border:none;border-radius:6px;cursor:pointer;font-size:12px">View</button>
+            </div>
+          </div>`;
+        }).join('');
+      }
+      document.getElementById('history-overlay').style.display = 'block';
+      document.getElementById('history-modal').style.display = 'flex';
+
+      // Restore handler
+      list.querySelectorAll('.history-restore').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const idx = parseInt(btn.dataset.idx);
+          const entry = history[idx];
+          if (!confirm(`Restore config from ${new Date(entry.timestamp).toLocaleString()}?\n\nThis will restart the gateway.`)) return;
+          try {
+            const freshResult = await window.gatewayClient.rpc('config.get', {});
+            const freshHash = freshResult?.baseHash || freshResult?.hash || '';
+            await window.gatewayClient.rpc('config.apply', { raw: JSON.stringify(entry.config, null, 2), baseHash: freshHash });
+            toast('✅ Config restored! Gateway restarting...');
+            closeHistoryModal();
+            closeExportModal();
+          } catch (err) {
+            toast('❌ Restore failed: ' + err.message);
+          }
+        });
+      });
+
+      // View handler
+      list.querySelectorAll('.history-view').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const idx = parseInt(btn.dataset.idx);
+          const entry = history[idx];
+          const w = window.open('', '_blank');
+          w.document.write(`<pre style="background:#111;color:#e5e7eb;padding:20px;font-family:monospace">${JSON.stringify(entry.config, null, 2).replace(/</g, '&lt;')}</pre>`);
+        });
+      });
+    }
+
+    function closeHistoryModal() {
+      document.getElementById('history-overlay').style.display = 'none';
+      document.getElementById('history-modal').style.display = 'none';
+    }
+    document.getElementById('history-modal-close').addEventListener('click', closeHistoryModal);
+    document.getElementById('history-overlay').addEventListener('click', closeHistoryModal);
+    document.getElementById('export-history-gw').addEventListener('click', openHistoryModal);
 
     document.getElementById('btn-export').addEventListener('click', () => {
       const { errors, warnings } = validateOrg(org);

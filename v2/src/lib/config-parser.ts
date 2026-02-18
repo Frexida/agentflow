@@ -89,8 +89,8 @@ export function configToGraph(yamlString: string): {
  * React Flow nodes + edges → OpenClaw YAML config (agents section only)
  */
 export function graphToConfig(
-  nodes: Node<AgentNodeData>[],
-  edges: Edge<AgentEdgeData>[],
+  nodes: Node[],
+  edges: Edge[],
   existingYaml?: string
 ): string {
   // Parse existing config to preserve non-agent sections
@@ -103,8 +103,11 @@ export function graphToConfig(
     }
   }
 
+  // Filter to agent nodes only
+  const agentNodes = nodes.filter((n) => n.type === 'agent' || !n.type)
+
   // Build agents list
-  const agentsList = nodes.map((node) => {
+  const agentsList = agentNodes.map((node) => {
     const data = node.data
     const outEdges = edges.filter((e) => e.source === node.id)
     const allowAgents = outEdges

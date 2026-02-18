@@ -43,7 +43,8 @@ export function useSessionMonitor(enabled: boolean) {
     })
 
     nodes.forEach((node) => {
-      const agentId = node.data.agentId
+      if (node.type !== 'agent') return
+      const agentId = node.data.agentId as string
       const status = statusMap.get(agentId)
       if (status && status !== node.data.status) {
         updateAgent(node.id, { status })

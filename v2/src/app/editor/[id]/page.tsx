@@ -13,8 +13,10 @@ import {
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import AgentNode from '@/components/canvas/AgentNode'
+import GroupNode from '@/components/canvas/GroupNode'
 import CanvasToolbar from '@/components/canvas/CanvasToolbar'
 import NodeEditModal from '@/components/canvas/NodeEditModal'
+import NodeContextMenu from '@/components/canvas/NodeContextMenu'
 import ChatPanel from '@/components/chat/ChatPanel'
 import TimelinePanel from '@/components/canvas/TimelinePanel'
 import { useOrgStore } from '@/stores/org'
@@ -22,7 +24,7 @@ import { useGatewayStore } from '@/stores/gateway'
 import { useSessionMonitor } from '@/lib/session-monitor'
 import type { AgentNodeData } from '@/types/org'
 
-const nodeTypes = { agent: AgentNode }
+const nodeTypes = { agent: AgentNode, group: GroupNode }
 
 const demoNodes: Node<AgentNodeData>[] = [
   {
@@ -79,6 +81,7 @@ function EditorCanvas() {
   const [editNodeId, setEditNodeId] = useState<string | null>(null)
   const [chatOpen, setChatOpen] = useState(false)
   const [timelineOpen, setTimelineOpen] = useState(false)
+  const [contextMenu, setContextMenu] = useState<{ nodeId: string; x: number; y: number } | null>(null)
 
   useEffect(() => {
     if (nodes.length === 0) {
@@ -90,7 +93,13 @@ function EditorCanvas() {
   const memoNodeTypes = useMemo(() => nodeTypes, [])
 
   const onNodeDoubleClick = useCallback((_: React.MouseEvent, node: Node) => {
+    if (node.type === 'group') return
     setEditNodeId(node.id)
+  }, [])
+
+  const onNodeContextMenu = useCallback((event: React.MouseEvent, node: Node) => {
+    event.preventDefault()
+    setContextMenu({ nodeId: node.id, x: event.clientX, y: event.clientY })
   }, [])
 
   return (
@@ -103,6 +112,8 @@ function EditorCanvas() {
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onNodeDoubleClick={onNodeDoubleClick}
+        onNodeContextMenu={onNodeContextMenu}
+        onPaneClick={() => setContextMenu(null)}
         fitView
         className="bg-[var(--surface)]"
         deleteKeyCode={['Backspace', 'Delete']}
@@ -113,6 +124,14 @@ function EditorCanvas() {
         <CanvasToolbar />
       </ReactFlow>
       <NodeEditModal nodeId={editNodeId} onClose={() => setEditNodeId(null)} />
+      {contextMenu && (
+        <NodeContextMenu
+          nodeId={contextMenu.nodeId}
+          x={contextMenu.x}
+          y={contextMenu.y}
+          onClose={() => setContextMenu(null)}
+        />
+      )}
       <ChatPanel open={chatOpen} onClose={() => setChatOpen(false)} />
       <TimelinePanel open={timelineOpen} onClose={() => setTimelineOpen(false)} />
       {/* Float buttons */}

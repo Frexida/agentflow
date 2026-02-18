@@ -30,3 +30,8 @@ export interface AgentEdgeData extends Record<string, unknown> {
   edgeType: EdgeType
   direction: Direction
 }
+
+export interface GroupNodeData extends Record<string, unknown> {
+  label: string
+  color?: string
+}

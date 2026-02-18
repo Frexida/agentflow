@@ -9,7 +9,7 @@ import ExportModal from './ExportModal'
 import { saveOrg } from '@/lib/api'
 
 export default function CanvasToolbar() {
-  const { nodes, edges, addAgent, setNodes, structureMode, setStructureMode } = useOrgStore()
+  const { nodes, edges, addAgent, addGroup, setNodes, structureMode, setStructureMode } = useOrgStore()
   const { fitView } = useReactFlow()
   const [adding, setAdding] = useState(false)
   const [newName, setNewName] = useState('')
@@ -67,6 +67,11 @@ export default function CanvasToolbar() {
     setAdding(false)
   }, [newName, nodes, addAgent])
 
+  const handleAddGroup = useCallback(() => {
+    const maxY = nodes.reduce((max, n) => Math.max(max, n.position.y), 0)
+    addGroup('New Group', { x: 100, y: maxY + 200 })
+  }, [nodes, addGroup])
+
   const handleAutoLayout = useCallback(() => {
     const laid = autoLayout(nodes, edges, { direction: 'TB' })
     setNodes(laid)
@@ -97,6 +102,9 @@ export default function CanvasToolbar() {
       ) : (
         <ToolButton onClick={() => setAdding(true)} title="Add Agent">➕</ToolButton>
       )}
+
+      {/* Add Group */}
+      <ToolButton onClick={handleAddGroup} title="Add Group">📁</ToolButton>
 
       {/* Auto Layout */}
       <ToolButton onClick={handleAutoLayout} title="Auto Layout">📐</ToolButton>

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useCallback, useState } from 'react'
+import { useParams } from 'next/navigation'
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -80,17 +81,42 @@ function EditorCanvas() {
   const { nodes, edges, setNodes, setEdges, onNodesChange, onEdgesChange, onConnect } = useOrgStore()
   const { connected } = useGatewayStore()
   useSessionMonitor(connected)
+  const params = useParams()
+  const designId = params.id as string
   const [editNodeId, setEditNodeId] = useState<string | null>(null)
   const [chatOpen, setChatOpen] = useState(false)
   const [timelineOpen, setTimelineOpen] = useState(false)
   const [contextMenu, setContextMenu] = useState<{ nodeId: string; x: number; y: number } | null>(null)
+  const [loading, setLoading] = useState(true)
 
+  // Load design from cloud or use demo data
   useEffect(() => {
-    if (nodes.length === 0) {
-      setNodes(demoNodes)
-      setEdges(demoEdges)
+    async function loadDesign() {
+      if (designId && designId !== 'demo' && designId !== 'new') {
+        try {
+          const res = await fetch(`/api/designs/${designId}`)
+          if (res.ok) {
+            const { design } = await res.json()
+            if (design?.data?.nodes?.length > 0) {
+              setNodes(design.data.nodes)
+              setEdges(design.data.edges || [])
+              setLoading(false)
+              return
+            }
+          }
+        } catch {
+          // Fall through to demo data
+        }
+      }
+      // Demo data fallback
+      if (nodes.length === 0) {
+        setNodes(demoNodes)
+        setEdges(demoEdges)
+      }
+      setLoading(false)
     }
-  }, [])
+    loadDesign()
+  }, [designId])
 
   const memoNodeTypes = useMemo(() => nodeTypes, [])
 

@@ -28,6 +28,13 @@ code, pre, .font-mono {
   outline-offset: 2px;
 }
 
+.onboarding-highlight {
+  position: relative;
+  z-index: 9999 !important;
+  box-shadow: 0 0 0 4px var(--accent-bright), 0 0 20px var(--accent-glow);
+  border-radius: 8px;
+}
+
 /* Skip link for accessibility */
 .skip-link {
   position: absolute;

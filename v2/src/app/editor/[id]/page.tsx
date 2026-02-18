@@ -24,6 +24,8 @@ import { useOrgStore } from '@/stores/org'
 import { useGatewayStore } from '@/stores/gateway'
 import { useSessionMonitor } from '@/lib/session-monitor'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
+import { useOnboarding } from '@/hooks/useOnboarding'
+import OnboardingTooltip from '@/components/canvas/OnboardingTooltip'
 import type { AgentNodeData } from '@/types/org'
 
 const nodeTypes = { agent: AgentNode, group: GroupNode }
@@ -84,6 +86,7 @@ function EditorCanvas() {
   const params = useParams()
   const designId = params.id as string
   const { undo, redo } = useKeyboardShortcuts(designId)
+  const onboarding = useOnboarding()
 
   // Listen for toolbar undo/redo button clicks
   useEffect(() => {
@@ -174,6 +177,15 @@ function EditorCanvas() {
       )}
       <StatusBar />
       <SidePanel editNodeId={editNodeId} onEditClose={() => setEditNodeId(null)} />
+      {onboarding.step && (
+        <OnboardingTooltip
+          step={onboarding.step}
+          currentStep={onboarding.currentStep}
+          totalSteps={onboarding.totalSteps}
+          onNext={onboarding.next}
+          onSkip={onboarding.skip}
+        />
+      )}
     </div>
   )
 }

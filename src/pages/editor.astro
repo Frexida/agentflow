@@ -525,12 +525,14 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     }
     #gateway-overlay[style*="block"], #export-overlay[style*="block"],
     #diff-overlay[style*="block"], #history-overlay[style*="block"],
-    #link-modal-overlay[style*="block"], #template-overlay[style*="block"] {
+    #link-modal-overlay[style*="block"], #template-overlay[style*="block"],
+    #wizard-overlay[style*="block"] {
       animation: overlayIn 200ms ease-out;
     }
     #gateway-modal[style*="block"], #export-modal[style*="flex"],
     #diff-modal[style*="flex"], #history-modal[style*="flex"],
-    #link-modal[style*="block"], #template-modal[style*="block"] {
+    #link-modal[style*="block"], #template-modal[style*="block"],
+    #wizard-modal[style*="block"] {
       animation: modalIn 250ms ease-out;
     }
 
@@ -741,6 +743,121 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       #export-modal { width: 95vw; padding: 16px; }
       #export-preview { font-size: 11px; min-height: 200px; }
     }
+    /* ── Task Wizard ── */
+    #wizard-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:509; }
+    #wizard-modal {
+      display: none;
+      position: fixed;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      background: var(--bg-raised);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-lg);
+      padding: var(--sp-6);
+      z-index: 510;
+      width: 680px;
+      max-width: 95vw;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    #wizard-modal h3 {
+      color: var(--text-primary);
+      margin: 0 0 var(--sp-2);
+      font-size: 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    #wizard-modal .wizard-subtitle {
+      color: var(--text-tertiary);
+      font-size: 13px;
+      margin-bottom: var(--sp-5);
+    }
+    .wizard-cards {
+      display: flex;
+      flex-direction: column;
+      gap: var(--sp-3);
+      margin-bottom: var(--sp-5);
+    }
+    .wizard-card {
+      text-align: left;
+      padding: var(--sp-5);
+      background: var(--bg-input);
+      border: 2px solid var(--border-default);
+      border-radius: var(--radius-md);
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: border-color var(--duration-normal) var(--ease-out),
+                  transform var(--duration-normal) var(--ease-out),
+                  box-shadow var(--duration-normal) var(--ease-out);
+    }
+    .wizard-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+      border-color: var(--border-hover);
+    }
+    .wizard-card.selected {
+      border-color: var(--accent-blue);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15), 0 4px 16px rgba(0,0,0,0.3);
+    }
+    .wizard-card .wc-title {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: var(--sp-1);
+    }
+    .wizard-card .wc-desc {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: var(--sp-2);
+      line-height: 1.5;
+    }
+    .wizard-card .wc-examples {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      margin-bottom: var(--sp-1);
+    }
+    .wizard-card .wc-preset {
+      font-size: 11px;
+      color: var(--accent-blue);
+      font-weight: 500;
+    }
+    .wizard-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .wizard-footer .wizard-ref {
+      font-size: 10px;
+      color: var(--text-muted);
+      font-style: italic;
+    }
+    .wizard-footer .wizard-actions {
+      display: flex;
+      gap: var(--sp-2);
+    }
+    #wizard-apply {
+      padding: var(--sp-2) var(--sp-5);
+      background: var(--accent-blue);
+      color: white;
+      border: none;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      transition: background var(--duration-fast), opacity var(--duration-fast);
+    }
+    #wizard-apply:hover { background: var(--accent-blue-hover); }
+    #wizard-apply:disabled { opacity: 0.4; cursor: not-allowed; }
+    #wizard-cancel {
+      padding: var(--sp-2) var(--sp-4);
+      background: var(--bg-input);
+      border: 1px solid var(--border-default);
+      color: var(--text-secondary);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      font-size: 13px;
+    }
+
     @media (max-width: 480px) {
       .toolbar button { padding: 4px 8px; font-size: 11px; }
       .agent-card { min-width: 140px; padding: 8px; }
@@ -757,6 +874,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     <button id="btn-auto-layout" class="secondary">⬡ Auto Layout</button>
     <button id="btn-groups" class="secondary">📁 Groups</button>
     <button id="btn-templates" class="secondary">📋 Templates</button>
+    <button id="btn-wizard" class="secondary">🧩 Wizard</button>
     <div class="mode-toggle">
       <button id="btn-mode-graph" class="active" title="Graph mode (free connections)">🔄 Graph</button>
       <button id="btn-mode-tree" title="Tree mode (no cycles, single parent)">🌲 Tree</button>
@@ -969,6 +1087,40 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
         <div style="font-size:12px;color:#9ca3af">Lead + Member×3. Equal collaboration for small teams.</div>
         <div style="font-size:11px;color:#6b7280;margin-top:6px">4 agents / communication</div>
       </button>
+    </div>
+  </div>
+
+  <!-- Task Characteristics Wizard -->
+  <div id="wizard-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:509"></div>
+  <div id="wizard-modal">
+    <h3>🧩 Task Characteristics Wizard <button id="wizard-modal-close" style="background:none;border:none;color:var(--text-tertiary);font-size:20px;cursor:pointer">✕</button></h3>
+    <p class="wizard-subtitle">Choose the interdependence pattern that best fits your team's workflow.</p>
+    <div class="wizard-cards">
+      <button class="wizard-card" data-wizard="independent">
+        <div class="wc-title">🔹 Independent（各自独立）</div>
+        <div class="wc-desc">各メンバーが独立してタスクを遂行。中央の調整役が結果を集約。</div>
+        <div class="wc-examples">例: 研究室、フリーランスチーム</div>
+        <div class="wc-preset">→ Tree mode · Unidirectional · Hub-and-spoke layout</div>
+      </button>
+      <button class="wizard-card" data-wizard="sequential">
+        <div class="wc-title">🔸 Sequential（順序型）</div>
+        <div class="wc-desc">タスクが順番に引き継がれる。前工程の出力が次工程の入力。</div>
+        <div class="wc-examples">例: CI/CDパイプライン、製造ライン</div>
+        <div class="wc-preset">→ Tree mode (DAG) · Unidirectional · Linear chain layout</div>
+      </button>
+      <button class="wizard-card" data-wizard="reciprocal">
+        <div class="wc-title">🔴 Reciprocal（相互協力）</div>
+        <div class="wc-desc">密にやり取りしながら進める。フィードバックループあり。</div>
+        <div class="wc-examples">例: スクラムチーム、共同研究</div>
+        <div class="wc-preset">→ Graph mode · Bidirectional · Mesh layout</div>
+      </button>
+    </div>
+    <div class="wizard-footer">
+      <span class="wizard-ref">Based on Thompson's (1967) task interdependence model</span>
+      <div class="wizard-actions">
+        <button id="wizard-cancel">Cancel</button>
+        <button id="wizard-apply" disabled>▶ Start with this pattern</button>
+      </div>
     </div>
   </div>
 
@@ -2185,6 +2337,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
           organizationId: org.id,
           organizationName: org.name,
           exportedAt: new Date().toISOString(),
+          taskType: org.taskType || null,
           workspaceFiles,
           links: org.links.map(l => ({ source: l.source, target: l.target, type: l.type, ...(l.label && { label: l.label }) })),
         },
@@ -2508,6 +2661,100 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       card.addEventListener('click', () => applyTemplate(card.dataset.template));
       card.addEventListener('mouseenter', () => card.style.borderColor = '#3b82f6');
       card.addEventListener('mouseleave', () => card.style.borderColor = '#333');
+    });
+
+    // --- Task Characteristics Wizard ---
+    const wizardModal = document.getElementById('wizard-modal');
+    const wizardOverlay = document.getElementById('wizard-overlay');
+    const wizardApply = document.getElementById('wizard-apply');
+    let selectedWizard = null;
+
+    function openWizardModal() {
+      wizardModal.style.display = 'block';
+      wizardOverlay.style.display = 'block';
+      selectedWizard = null;
+      wizardApply.disabled = true;
+      document.querySelectorAll('.wizard-card').forEach(c => c.classList.remove('selected'));
+    }
+    function closeWizardModal() {
+      wizardModal.style.display = 'none';
+      wizardOverlay.style.display = 'none';
+    }
+
+    document.getElementById('btn-wizard').addEventListener('click', openWizardModal);
+    document.getElementById('wizard-modal-close').addEventListener('click', closeWizardModal);
+    document.getElementById('wizard-cancel').addEventListener('click', closeWizardModal);
+    wizardOverlay.addEventListener('click', closeWizardModal);
+
+    document.querySelectorAll('.wizard-card').forEach(card => {
+      card.addEventListener('click', () => {
+        document.querySelectorAll('.wizard-card').forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+        selectedWizard = card.dataset.wizard;
+        wizardApply.disabled = false;
+      });
+    });
+
+    wizardApply.addEventListener('click', () => {
+      if (!selectedWizard) return;
+      if (org.agents.length > 0 && !confirm('Replace current organization? The wizard will create a new structure.')) return;
+
+      editor.clear();
+      org.agents = [];
+      org.links = [];
+      org.groups = [];
+      nodeToAgent = {};
+      connectionTypes = {};
+      closePanel();
+
+      org.taskType = selectedWizard;
+
+      if (selectedWizard === 'independent') {
+        org.name = 'Independent Team';
+        setCanvasMode('tree');
+        const coordinator = addAgent({ name: 'Coordinator', role: 'Central coordinator — collects and integrates results', icon: '🎯', model: MODELS[0], personality: 'Aggregates outputs from independent workers. Ensures alignment with overall goals.' }, 350, 60);
+        const w1 = addAgent({ name: 'Worker-A', role: 'Independent contributor', icon: '🔹', model: MODELS[1], personality: 'Works autonomously. Reports results to coordinator.' }, 100, 280);
+        const w2 = addAgent({ name: 'Worker-B', role: 'Independent contributor', icon: '🔹', model: MODELS[1], personality: 'Works autonomously. Reports results to coordinator.' }, 350, 280);
+        const w3 = addAgent({ name: 'Worker-C', role: 'Independent contributor', icon: '🔹', model: MODELS[2], personality: 'Works autonomously. Reports results to coordinator.' }, 600, 280);
+        connectAgents(coordinator, w1, 'authority');
+        connectAgents(coordinator, w2, 'authority');
+        connectAgents(coordinator, w3, 'authority');
+
+      } else if (selectedWizard === 'sequential') {
+        org.name = 'Sequential Pipeline';
+        setCanvasMode('tree');
+        const s1 = addAgent({ name: 'Stage-1', role: 'Input & requirements gathering', icon: '📥', model: MODELS[0], personality: 'Gathers initial inputs. Prepares structured output for next stage.' }, 350, 60);
+        const s2 = addAgent({ name: 'Stage-2', role: 'Processing & transformation', icon: '⚙️', model: MODELS[1], personality: 'Processes input from Stage-1. Transforms and enriches data.' }, 350, 220);
+        const s3 = addAgent({ name: 'Stage-3', role: 'Validation & quality check', icon: '🔍', model: MODELS[2], personality: 'Validates output from Stage-2. Ensures quality standards.' }, 350, 380);
+        const s4 = addAgent({ name: 'Stage-4', role: 'Output & delivery', icon: '📤', model: MODELS[1], personality: 'Final packaging and delivery of results.' }, 350, 540);
+        connectAgents(s1, s2, 'authority');
+        connectAgents(s2, s3, 'authority');
+        connectAgents(s3, s4, 'authority');
+
+      } else if (selectedWizard === 'reciprocal') {
+        org.name = 'Reciprocal Team';
+        setCanvasMode('graph');
+        const a = addAgent({ name: 'Member-A', role: 'Cross-functional collaborator', icon: '🔴', model: MODELS[0], personality: 'Active collaborator. Gives and receives feedback continuously.' }, 200, 80);
+        const b = addAgent({ name: 'Member-B', role: 'Cross-functional collaborator', icon: '🟠', model: MODELS[1], personality: 'Active collaborator. Gives and receives feedback continuously.' }, 500, 80);
+        const c = addAgent({ name: 'Member-C', role: 'Cross-functional collaborator', icon: '🟡', model: MODELS[2], personality: 'Active collaborator. Gives and receives feedback continuously.' }, 200, 300);
+        const d = addAgent({ name: 'Member-D', role: 'Cross-functional collaborator', icon: '🟣', model: MODELS[0], personality: 'Active collaborator. Gives and receives feedback continuously.' }, 500, 300);
+        connectAgents(a, b, 'communication', 'bidirectional');
+        connectAgents(a, c, 'communication', 'bidirectional');
+        connectAgents(b, d, 'communication', 'bidirectional');
+        connectAgents(c, d, 'communication', 'bidirectional');
+        connectAgents(a, d, 'communication', 'bidirectional');
+        connectAgents(b, c, 'communication', 'bidirectional');
+      }
+
+      updateOrgDisplay();
+      // Auto layout
+      setTimeout(() => {
+        document.getElementById('btn-auto-layout').click();
+        scheduleSave();
+        toast(`✅ ${org.name} — ${selectedWizard} pattern applied`);
+      }, 100);
+
+      closeWizardModal();
     });
 
     // --- Init: load from storage or create demo ---

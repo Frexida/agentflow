@@ -1289,9 +1289,17 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       const applyBtn = document.getElementById('export-apply-gw');
       const revertBtn = document.getElementById('export-revert-gw');
       const gwConnected = window.gatewayClient?.connected;
-      const hasBackup = !!localStorage.getItem('agentflow-config-backup');
+      const backupRaw = localStorage.getItem('agentflow-config-backup');
+      const hasBackup = !!backupRaw;
       applyBtn.style.display = gwConnected ? 'inline-block' : 'none';
       revertBtn.style.display = (gwConnected && hasBackup) ? 'inline-block' : 'none';
+      if (hasBackup) {
+        try {
+          const b = JSON.parse(backupRaw);
+          const t = new Date(b.timestamp).toLocaleString();
+          revertBtn.textContent = `↩️ Revert (${t})`;
+        } catch {}
+      }
       showExportTab('config');
     }
 

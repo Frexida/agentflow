@@ -14,7 +14,10 @@ export async function GET() {
     .eq('user_id', user.id)
     .order('updated_at', { ascending: false })
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    console.error('[API] GET /designs error:', error)
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
   return NextResponse.json({ designs: data })
 }
 
@@ -33,12 +36,20 @@ export async function POST(request: Request) {
   }
   const { name, data: designData } = body
 
+  // Input validation
+  if (name !== undefined && (typeof name !== 'string' || name.length > 255)) {
+    return NextResponse.json({ error: 'Invalid name (max 255 chars)' }, { status: 400 })
+  }
+
   const { data, error } = await supabase
     .from('designs')
-    .insert({ user_id: user.id, name: name || 'Untitled', data: designData || {} })
+    .insert({ user_id: user.id, name: (typeof name === 'string' ? name : 'Untitled'), data: designData || {} })
     .select('id, name, updated_at')
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    console.error('[API] POST /designs error:', error)
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
   return NextResponse.json({ design: data }, { status: 201 })
 }

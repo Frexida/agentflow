@@ -19,6 +19,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
     .eq('user_id', user.id)
     .single()
 
+  if (error) console.error('[API] GET /designs/:id error:', error)
   if (error || !data) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   return NextResponse.json({ design: data })
 }
@@ -39,7 +40,12 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
   const updates: Record<string, unknown> = { updated_at: new Date().toISOString() }
-  if (body.name !== undefined) updates.name = body.name
+  if (body.name !== undefined) {
+    if (typeof body.name !== 'string' || body.name.length > 255) {
+      return NextResponse.json({ error: 'Invalid name (max 255 chars)' }, { status: 400 })
+    }
+    updates.name = body.name
+  }
   if (body.data !== undefined) updates.data = body.data
 
   const { data, error } = await supabase
@@ -50,7 +56,10 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     .select('id, name, updated_at')
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    console.error('[API] PUT /designs/:id error:', error)
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
   return NextResponse.json({ design: data })
 }
 
@@ -69,6 +78,9 @@ export async function DELETE(_: Request, { params }: { params: Promise<{ id: str
     .eq('id', id)
     .eq('user_id', user.id)
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    console.error('[API] DELETE /designs/:id error:', error)
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
   return NextResponse.json({ ok: true })
 }

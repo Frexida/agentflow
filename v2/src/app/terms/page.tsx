@@ -181,11 +181,21 @@ export default function TermsPage() {
               incidental, special, or consequential damages arising from your use of the Service,
               including but not limited to costs incurred through third-party AI providers.
             </p>
+            <p className="mt-3">
+              <strong>Liability Cap:</strong> In any event, our total aggregate liability to you for all claims
+              arising from or related to the Service shall not exceed the greater of:
+            </p>
+            <ul className="list-disc pl-5 space-y-2 mt-2">
+              <li>The total amount you paid to Frexida in the 12 months preceding the claim, or</li>
+              <li>USD $100</li>
+            </ul>
+            <p className="mt-3">
+              <strong>Exception:</strong> This limitation does not apply to damages arising from our gross negligence
+              or willful misconduct.
+            </p>
             <p className="mt-2">
               Nothing in these terms excludes or limits liability that cannot be excluded or limited under
               applicable law, including the Consumer Contract Act of Japan (消費者契約法) where applicable.
-              In cases where mandatory consumer protection laws apply, our liability shall be limited to
-              the minimum extent permitted by such laws.
             </p>
           </section>
 

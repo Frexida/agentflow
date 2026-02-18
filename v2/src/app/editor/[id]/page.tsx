@@ -27,6 +27,7 @@ import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { useOnboarding } from '@/hooks/useOnboarding'
 import OnboardingTooltip from '@/components/canvas/OnboardingTooltip'
 import Checklist from '@/components/canvas/Checklist'
+import CommandPalette from '@/components/canvas/CommandPalette'
 import type { AgentNodeData } from '@/types/org'
 
 const nodeTypes = { agent: AgentNode, group: GroupNode }
@@ -178,6 +179,7 @@ function EditorCanvas() {
       )}
       <StatusBar />
       <SidePanel editNodeId={editNodeId} onEditClose={() => setEditNodeId(null)} />
+      <CommandPalette />
       <Checklist />
       {onboarding.step && (
         <OnboardingTooltip

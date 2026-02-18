@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
-import { stripe, PLANS, PlanKey } from '@/lib/stripe';
+import { getStripe, PLANS, PlanKey } from '@/lib/stripe';
 
 function createSupabase() {
   const cookieStore = cookies();
@@ -45,14 +45,14 @@ export async function POST(req: NextRequest) {
     let customerId = subscription?.stripe_customer_id;
 
     if (!customerId) {
-      const customer = await stripe.customers.create({
+      const customer = await getStripe().customers.create({
         email: user.email,
         metadata: { supabase_user_id: user.id },
       });
       customerId = customer.id;
     }
 
-    const session = await stripe.checkout.sessions.create({
+    const session = await getStripe().checkout.sessions.create({
       customer: customerId,
       mode: 'subscription',
       line_items: [{ price: PLANS[plan].priceId, quantity: 1 }],

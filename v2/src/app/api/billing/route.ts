@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
-import { stripe } from '@/lib/stripe';
+import { getStripe } from '@/lib/stripe';
 
 function createSupabase() {
   const cookieStore = cookies();
@@ -66,7 +66,7 @@ export async function POST() {
       return NextResponse.json({ error: 'No subscription found' }, { status: 404 });
     }
 
-    const session = await stripe.billingPortal.sessions.create({
+    const session = await getStripe().billingPortal.sessions.create({
       customer: subscription.stripe_customer_id,
       return_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://agentflow-l42k.vercel.app'}/settings`,
     });

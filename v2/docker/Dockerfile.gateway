@@ -1,0 +1,18 @@
+FROM node:22-slim
+
+# Install OpenClaw
+RUN npm install -g openclaw
+
+# Create workspace
+RUN mkdir -p /root/.openclaw/workspace
+
+# Gateway config will be injected via environment variables
+# OPENCLAW_TOKEN, ANTHROPIC_API_KEY, OPENAI_API_KEY
+
+# Startup script
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+EXPOSE 18789
+
+ENTRYPOINT ["/entrypoint.sh"]

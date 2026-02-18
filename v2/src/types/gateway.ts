@@ -16,6 +16,15 @@ export interface ChatMessage {
   role: 'user' | 'assistant'
   content: string
   timestamp: number
+  agentId?: string
+  sessionKey?: string
+}
+
+export interface ChatChannel {
+  id: string
+  name: string
+  agents: string[] // sessionKeys of participating agents
+  messages: ChatMessage[]
 }
 
 export interface RPCRequest {

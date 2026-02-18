@@ -5,7 +5,7 @@
 | バッチID | 名称 | 実行タイミング | 説明 |
 |----------|------|----------------|------|
 | BATCH-001 | Session Polling | 10秒間隔 | セッション状態の更新 |
-| BATCH-002 | Config Polling | 30秒間隔 | Config変更の検知 |
+| BATCH-002 | Config Polling | 10秒間隔 | Config変更の検知 |
 | BATCH-003 | Chat Polling | 5秒間隔 | チャット履歴の更新 |
 | BATCH-004 | History Cleanup | 1日1回 | 古い履歴の削除 |
 | BATCH-005 | Health Check | 60秒間隔 | Gateway接続確認 |

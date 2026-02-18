@@ -12,14 +12,14 @@
 
 | 項目 | 値 |
 |------|-----|
-| プロトコル | HTTP/HTTPS |
-| デフォルトURL | http://localhost:8080 |
-| 認証 | Bearer Token (optional) |
-| Content-Type | application/json |
+| プロトコル | **WebSocket** |
+| デフォルトURL | ws://localhost:18789 |
+| 認証 | Token (接続時に送信) |
+| フォーマット | JSON-RPC 2.0 |
 
-### 2.2 RPC エンドポイント
+### 2.2 RPC 通信
 
-全てのRPCは `POST /rpc` に対して以下の形式で送信:
+全てのRPCは **WebSocket接続上でJSON-RPC 2.0** 形式で送信:
 
 ```json
 {

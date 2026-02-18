@@ -97,7 +97,16 @@
 | org_id | TEXT | FK → organizations.id | 所属組織 |
 | name | TEXT | NOT NULL | グループ名 |
 | color | TEXT | | 表示色 |
-| agent_ids | TEXT | | JSON配列 |
+| position_x | REAL | | X座標 |
+| position_y | REAL | | Y座標 |
+| width | REAL | | 幅 |
+| height | REAL | | 高さ |
+
+### 2.4.1 group_members (中間テーブル)
+| カラム名 | 型 | 制約 | 説明 |
+|----------|-----|------|------|
+| group_id | TEXT | FK → groups.id, PK | グループ |
+| agent_id | TEXT | FK → agents.id, PK | エージェント |
 
 ### 2.5 config_history
 | カラム名 | 型 | 制約 | 説明 |

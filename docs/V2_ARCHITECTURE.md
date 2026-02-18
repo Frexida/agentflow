@@ -9,98 +9,109 @@
 ## Stack
 | Layer | Choice | Reason |
 |-------|--------|--------|
-| Framework | **Astro + Svelte** | LP静的生成 + Svelteコンポーネント、GitHub Pages維持 |
-| Canvas | **Svelte Flow** (@xyflow/svelte) | 4辺ポート、スマートルーティング、ミニマップ、ズーム組み込み。MIT |
-| State | **Svelte stores + nanostores** | フレームワーク非依存、シンプル |
-| Chat UI | **自前Svelte** or **@chatscope** | シンプルなバブルUI、Gateway RPC連携 |
-| UI Components | **Melt UI** or **shadcn-svelte** | Svelte向けヘッドレスUI |
+| Framework | **Next.js** (App Router) | SSR + API Routes + Vercel統合、React経験活用 |
+| Canvas | **React Flow** (@xyflow/react) | 週100万DL、豊富な情報、4辺ポート・ルーティング内蔵 |
+| State | **Zustand** | React外アクセス可、TypeScript親和、軽量 |
+| ORM | **Drizzle ORM** | SQLite/PostgreSQL両対応、TypeScriptファースト |
+| UI Components | **shadcn/ui** | Radix UIベース、Tailwind統合 |
 | Styling | **Tailwind CSS** | ユーティリティファースト、ダークテーマ |
+| DB (self-host) | **SQLite** (better-sqlite3) | npm install完結 |
+| DB (SaaS) | **Vercel Postgres** (Neon) | マネージド、無料枠あり |
 
 ## Pages
 ```
-/                    → LP (既存)
-/dashboard           → 組織一覧 + 統計 + Gateway接続設定
-/editor/[id]         → キャンバスエディタ (Svelte Flow)
-/settings            → APIキー、Gateway設定、プロフィール
+/                    → LP (SSG)
+/dashboard           → 組織一覧 + 統計 (SSR)
+/editor/[id]         → キャンバスエディタ (CSR, React Flow)
+/settings            → Gateway接続設定 (SSR)
 ```
 
 ## Directory Structure
 ```
 src/
-  pages/
-    index.astro              # LP (i18n EN/JA)
-    dashboard.astro          # 組織一覧 + 統計
-    editor/[id].astro        # キャンバスエディタ
-    settings.astro           # 設定
+  app/
+    layout.tsx                # ルートレイアウト (ThemeProvider, Sidebar)
+    page.tsx                  # LP (i18n EN/JA) — SSG
+    dashboard/
+      page.tsx                # 組織一覧 + 統計
+      loading.tsx
+    editor/
+      [id]/
+        page.tsx              # キャンバスエディタ (React Flow)
+    settings/
+      page.tsx                # Gateway接続設定
+    api/
+      orgs/
+        route.ts              # CRUD: GET/POST
+        [id]/
+          route.ts            # CRUD: GET/PUT/DELETE
+      gateway/
+        connect/route.ts      # Gateway接続テスト
+        config/route.ts       # config.get / config.apply proxy
+      sessions/route.ts       # sessions.list proxy
+      chat/route.ts           # chat.send / chat.history proxy
   components/
     canvas/
-      AgentNode.svelte       # カスタムノード (アイコン、名前、ロール、モデル、ステータス)
-      AgentEdge.svelte       # カスタムエッジ (authority/comm/review + 方向)
-      CanvasToolbar.svelte   # ツールバー (追加、レイアウト、モード切替等)
-      Minimap.svelte         # ミニマップ
+      AgentNode.tsx           # カスタムノード
+      AgentEdge.tsx           # カスタムエッジ
+      CanvasToolbar.tsx       # ツールバー
+      TaskWizard.tsx          # Thompson 1967 ウィザード
     chat/
-      ChatPanel.svelte       # サイドパネル チャットUI
-      MessageBubble.svelte   # メッセージバブル (user/assistant)
-      ChatInput.svelte       # テキスト入力 + 送信
+      ChatPanel.tsx           # サイドパネル チャットUI
+      MessageBubble.tsx       # メッセージバブル
+      ChatInput.tsx           # テキスト入力 + 送信
     dashboard/
-      OrgCard.svelte         # 組織カード (名前、エージェント数、ステータス)
-      StatsBar.svelte        # トークン使用量、コスト、セッション数
-      AgentList.svelte       # エージェント一覧テーブル
-    shared/
-      Sidebar.svelte         # 左サイドバーナビゲーション
-      Toast.svelte           # 通知
-      Modal.svelte           # モーダル
+      OrgCard.tsx             # 組織カード
+      StatsBar.tsx            # トークン使用量、コスト
+      AgentList.tsx           # エージェント一覧
+    ui/                       # shadcn/ui コンポーネント
   stores/
-    org.ts                   # 組織データ (agents, links, groups)
-    gateway.ts               # Gateway接続状態 + RPC
-    chat.ts                  # チャット状態 (messages, polling)
-    sessions.ts              # セッション一覧 + 統計
-    canvas.ts                # キャンバス状態 (mode, selection)
+    org.ts                    # 組織データ (nodes, edges, groups)
+    gateway.ts                # Gateway接続状態 + RPC
+    chat.ts                   # チャット状態
+    sessions.ts               # セッション一覧 + 統計
+    ui.ts                     # UI状態 (sidebar, panels, mode)
   lib/
-    gateway-client.ts        # Gateway WebSocket RPC client
-    config-parser.ts         # OpenClaw config ↔ AgentFlow org 変換
-    org-theory.ts            # Thompson 1967 wizard logic
-    types.ts                 # TypeScript型定義
+    gateway-client.ts         # Gateway WebSocket JSON-RPC 2.0 client
+    config-parser.ts          # OpenClaw config ↔ React Flow変換
+    org-theory.ts             # Thompson 1967 wizard logic
+    auto-layout.ts            # dagre自動レイアウト
+  db/
+    index.ts                  # DB接続 (SQLite or Postgres)
+    schema.ts                 # Drizzle スキーマ
+  types/
+    org.ts                    # 組織関連型
+    gateway.ts                # Gateway関連型
 ```
-
-## Dashboard Features
-- 保存した組織図の一覧 (localStorage / IndexedDB)
-- 統計: Active Agents, Total Tokens, Cost, Sessions
-- 各エージェントの稼働状態 (live/idle/offline)
-- Gateway接続ステータス
 
 ## Editor Features (carried from v1)
 - ノード追加/編集/削除/ドラッグ
-- Svelte Flowのカスタムノード (アイコン、名前、ロール、モデル、ステータスドット)
-- カスタムエッジ (3タイプ × 2方向 + フローアニメーション)
+- React Flowカスタムノード (アイコン、名前、ロール、モデル、ステータスドット)
+- カスタムエッジ (authority/communication/review × uni/bidirectional + フローアニメーション)
+- 4ポートシステム: top(input_1), bottom(output_1), left(input_2), right(output_2)
 - ミニマップ、ズームコントロール
-- Auto Layout (dagre or elkjs)
-- 構造モード (Tree / Graph)
-- タスク特性ウィザード
-- テンプレート
-- グループ (部門)
-- チャットパネル (サイドパネル)
-- タイムラインパネル
-- Config Import/Export
-- Config自動更新 (baseHash polling)
-
-## Token/Cost Dashboard
-- sessions.list の totalTokens, cost を集計
-- per-agent breakdown
-- 時系列グラフ (簡易、Chart.js or uPlot)
-- モデル別使用量
+- Auto Layout (dagre)
+- 構造モード (Tree / Graph) + DFSサイクル検出
+- タスク特性ウィザード (Independent/Sequential/Reciprocal)
+- テンプレート、グループ (部門)
+- チャットパネル、タイムラインパネル
+- Config Import/Export/Apply
+- Config自動更新 (baseHash polling 10s)
 
 ## Migration Strategy
 1. v2ブランチ作成
-2. Svelte Flow + 基本エディタ (ノード、エッジ、レイアウト)
+2. Next.js + React Flow基本エディタ (ノード、エッジ、レイアウト)
 3. チャット + タイムライン移植
 4. ダッシュボード新規作成
-5. v1のeditor.astroと並行動作で確認
-6. v2安定後にv1を削除、mainにマージ
+5. v1と並行動作で確認
+6. v2安定後にv1削除、mainにマージ
 
-## Timeline Estimate
-- Phase 1 (エディタ基盤): 3-5日
-- Phase 2 (チャット + モニター移植): 2-3日
-- Phase 3 (ダッシュボード): 2-3日
-- Phase 4 (テスト + 移行): 1-2日
-- Total: ~2週間
+## Related Documents
+- `01_infrastructure.md` — インフラ構成図
+- `02_middleware.md` — ミドルウェア設定書
+- `03_database.md` — データベース設計書
+- `04_class_method.md` — クラス・メソッド定義書
+- `SYSTEM_ARCHITECTURE.md` — システム機能構成図
+- `ER_DIAGRAM.md` — ER図
+- `EXTERNAL_INTERFACE.md` — 外部I/F仕様書
+- `BATCH_PROCESSING.md` — バッチ処理設計書

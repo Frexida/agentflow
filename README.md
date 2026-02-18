@@ -15,7 +15,7 @@
 ---
 
 <div align="center">
-  <img src="docs/画面収録-2026-02-18-9.39.38.gif" alt="AgentFlow Demo" width="800" />
+  <img src="docs/GIFSpeed.gif" alt="AgentFlow Demo" width="800" />
   <p><em>Design, connect, and export your agent organization — all in the browser.</em></p>
 </div>
 

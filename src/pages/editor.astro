@@ -609,7 +609,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     #gateway-status.ok { color: #22c55e; }
     #gateway-status.error { color: #ef4444; }
 
-    /* Chat history panel */
+    /* Chat panel */
     #chat-panel {
       position: fixed;
       top: var(--sp-12);
@@ -634,24 +634,144 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       color: #e5e7eb;
       font-size: 14px;
       font-weight: 600;
+      background: var(--bg-raised);
+      flex-shrink: 0;
     }
+    #chat-panel .chat-header-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    #chat-panel .chat-agent-icon {
+      font-size: 24px;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: var(--radius-pill);
+      background: linear-gradient(135deg, #1e3a5f 0%, #2d2640 50%, #1a3a2a 100%);
+      flex-shrink: 0;
+    }
+    #chat-panel .chat-header-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    #chat-panel .chat-agent-status {
+      font-size: 11px;
+      font-weight: 400;
+      color: var(--text-muted);
+    }
+    #chat-panel .chat-agent-status.online { color: var(--accent-green); }
     #chat-panel .chat-messages {
       flex: 1;
       overflow-y: auto;
       padding: 12px;
     }
     .chat-msg {
-      margin-bottom: 10px;
+      margin-bottom: 8px;
       padding: 8px 12px;
-      border-radius: 8px;
+      border-radius: 12px;
       font-size: 13px;
       line-height: 1.5;
-      max-width: 90%;
+      max-width: 85%;
+      font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+      white-space: pre-wrap;
+      word-break: break-word;
     }
-    .chat-msg.user { background: #1e3a5f; color: #93c5fd; margin-left: auto; }
-    .chat-msg.assistant { background: #1a2a1a; color: #86efac; }
-    .chat-msg.system { background: #2a2a1a; color: #fcd34d; font-size: 11px; }
-    .chat-msg .msg-meta { font-size: 10px; color: #6b7280; margin-bottom: 2px; }
+    .chat-msg.user {
+      background: var(--accent-blue);
+      color: #fff;
+      margin-left: auto;
+      border-bottom-right-radius: 4px;
+    }
+    .chat-msg.assistant {
+      background: var(--bg-raised);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+      border-bottom-left-radius: 4px;
+    }
+    .chat-msg.system {
+      background: var(--bg-inset);
+      color: var(--accent-yellow);
+      font-size: 11px;
+      text-align: center;
+      max-width: 100%;
+      border-radius: var(--radius-md);
+    }
+    .chat-msg .msg-ts {
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-top: 4px;
+      display: block;
+    }
+    .chat-msg.user .msg-ts { text-align: right; }
+    .chat-input-area {
+      padding: 10px 12px;
+      border-top: 1px solid var(--border-subtle);
+      display: flex;
+      gap: 8px;
+      align-items: flex-end;
+      background: var(--bg-raised);
+      flex-shrink: 0;
+    }
+    .chat-input-area textarea {
+      flex: 1;
+      background: var(--bg-input);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-md);
+      color: var(--text-primary);
+      font-size: 13px;
+      font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+      padding: 8px 10px;
+      resize: none;
+      max-height: 120px;
+      min-height: 36px;
+      outline: none;
+      transition: border-color var(--duration-fast);
+    }
+    .chat-input-area textarea:focus {
+      border-color: var(--accent-blue);
+    }
+    .chat-input-area button {
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-md);
+      background: var(--accent-blue);
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: background var(--duration-fast), opacity var(--duration-fast);
+    }
+    .chat-input-area button:hover { background: var(--accent-blue-hover); }
+    .chat-input-area button:disabled { opacity: 0.4; cursor: not-allowed; }
+    .chat-not-connected {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      color: var(--text-muted);
+      gap: 12px;
+      padding: 24px;
+      text-align: center;
+    }
+    .chat-not-connected .chat-connect-hint { font-size: 14px; }
+    .chat-not-connected button {
+      padding: 8px 16px;
+      background: var(--accent-blue);
+      color: white;
+      border: none;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      font-size: 13px;
+    }
 
     /* Message flow animation on connections */
     @keyframes flowPulse {
@@ -1177,13 +1297,26 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     </details>
   </div>
 
-  <!-- Chat history panel -->
+  <!-- Chat panel -->
   <div id="chat-panel">
     <div class="chat-header">
-      <span id="chat-agent-name">Agent Chat</span>
+      <div class="chat-header-left">
+        <span id="chat-agent-icon" class="chat-agent-icon">🤖</span>
+        <div class="chat-header-info">
+          <span id="chat-agent-name">Agent Chat</span>
+          <span id="chat-agent-status" class="chat-agent-status">offline</span>
+        </div>
+      </div>
       <button id="chat-panel-close" style="background:none;border:none;color:#6b7280;font-size:20px;cursor:pointer">✕</button>
     </div>
     <div class="chat-messages" id="chat-messages"></div>
+    <div class="chat-input-area" id="chat-input-area">
+      <textarea id="chat-input" placeholder="Type a message..." rows="1"></textarea>
+      <button id="chat-send-btn" title="Send">
+        <span id="chat-send-icon">➤</span>
+        <span id="chat-send-spinner" style="display:none">⏳</span>
+      </button>
+    </div>
   </div>
 
   <!-- Export preview modal -->
@@ -1974,9 +2107,12 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     function openPanel(agentId) {
       const agent = agentById(agentId);
       if (!agent) return;
-      // Close timeline panel (mutually exclusive)
+      // Close other panels (mutually exclusive)
       const tlp = document.getElementById('timeline-panel');
       if (tlp) tlp.classList.remove('open');
+      // Close chat panel
+      const cp = document.getElementById('chat-panel');
+      if (cp) cp.classList.remove('open');
       editingAgentId = agentId;
       document.getElementById('edit-icon').value = agent.icon || '';
       document.getElementById('edit-name').value = agent.name || '';
@@ -3735,76 +3871,233 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       processSessionsUpdate(sessions);
     });
 
-    // --- Chat history panel (click agent while connected) ---
+    // --- Chat panel (click agent while connected) ---
     let chatAgentId = null;
+    let chatSessionKey = null;
+    let chatPollTimer = null;
+    let chatLastMessageId = null;
+    let chatMessages_data = [];
+    const chatInput = document.getElementById('chat-input');
+    const chatSendBtn = document.getElementById('chat-send-btn');
+    const chatInputArea = document.getElementById('chat-input-area');
 
-    function openChatPanel(agentId) {
-      if (!gw.connected) return;
-      chatAgentId = agentId;
+    async function findSessionKeyForAgent(agentId) {
+      // Get sessions list and find one matching this agent
+      try {
+        const sessions = gw.sessions || [];
+        // Also try fresh fetch
+        let allSessions = sessions;
+        try {
+          const fresh = await gw.getSessions();
+          allSessions = fresh || sessions;
+        } catch {}
+
+        for (const session of allSessions) {
+          const matched = matchSessionToAgent(session);
+          if (matched && matched.id === agentId) {
+            return session.sessionKey || session.key || session.id || null;
+          }
+        }
+      } catch {}
+      return null;
+    }
+
+    async function openChatPanel(agentId) {
       const agent = agentById(agentId);
-      document.getElementById('chat-agent-name').textContent = agent ? `💬 ${agent.name}` : 'Agent Chat';
+      // Close other panels
+      panel.classList.remove('open');
+      editingAgentId = null;
+      const tlp = document.getElementById('timeline-panel');
+      if (tlp) tlp.classList.remove('open');
+
+      chatAgentId = agentId;
+      chatSessionKey = null;
+      chatLastMessageId = null;
+      chatMessages_data = [];
+
+      // Update header
+      document.getElementById('chat-agent-icon').textContent = agent?.icon || '🤖';
+      document.getElementById('chat-agent-name').textContent = agent?.name || 'Agent Chat';
+
+      if (!gw.connected) {
+        // Show not-connected state
+        document.getElementById('chat-agent-status').textContent = 'offline';
+        document.getElementById('chat-agent-status').className = 'chat-agent-status';
+        chatMessages.innerHTML = `<div class="chat-not-connected">
+          <div style="font-size:32px">🔌</div>
+          <div class="chat-connect-hint">Connect to Gateway first</div>
+          <button onclick="document.getElementById('btn-gateway').click()">Connect</button>
+        </div>`;
+        chatInputArea.style.display = 'none';
+        chatPanel.classList.add('open');
+        return;
+      }
+
+      chatInputArea.style.display = 'flex';
       chatPanel.classList.add('open');
-      loadChatHistory(agentId);
+      chatMessages.innerHTML = '<div style="text-align:center;color:#555;padding:20px">Finding session...</div>';
+
+      // Find session key
+      chatSessionKey = await findSessionKeyForAgent(agentId);
+      if (!chatSessionKey) {
+        document.getElementById('chat-agent-status').textContent = 'no session';
+        document.getElementById('chat-agent-status').className = 'chat-agent-status';
+        chatMessages.innerHTML = '<div style="text-align:center;color:#555;padding:20px">No active session for this agent</div>';
+        chatInputArea.style.display = 'none';
+        return;
+      }
+
+      document.getElementById('chat-agent-status').textContent = 'online';
+      document.getElementById('chat-agent-status').className = 'chat-agent-status online';
+
+      // Load initial history
+      await loadChatHistory();
+      startChatPolling();
     }
 
     function closeChatPanel() {
       chatPanel.classList.remove('open');
       chatAgentId = null;
+      chatSessionKey = null;
+      stopChatPolling();
     }
 
     document.getElementById('chat-panel-close').addEventListener('click', closeChatPanel);
 
-    async function loadChatHistory(agentId) {
+    function formatMsgTime(ts) {
+      if (!ts) return '';
+      const d = new Date(ts);
+      if (isNaN(d.getTime())) return '';
+      return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+    }
+
+    function renderChatMessages() {
+      chatMessages.innerHTML = '';
+      if (chatMessages_data.length === 0) {
+        chatMessages.innerHTML = '<div style="text-align:center;color:#555;padding:20px">No messages yet</div>';
+        return;
+      }
+      for (const msg of chatMessages_data) {
+        const role = msg.role || 'system';
+        const content = typeof msg.content === 'string' ? msg.content : (msg.content?.[0]?.text || JSON.stringify(msg.content));
+        const div = document.createElement('div');
+        div.className = `chat-msg ${role}`;
+        const ts = formatMsgTime(msg.timestamp || msg.ts || msg.createdAt);
+        div.innerHTML = `${escapeHtml(content)}${ts ? `<span class="msg-ts">${ts}</span>` : ''}`;
+        chatMessages.appendChild(div);
+      }
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    async function loadChatHistory() {
+      if (!chatSessionKey) return;
       chatMessages.innerHTML = '<div style="text-align:center;color:#555;padding:20px">Loading...</div>';
       try {
-        // Try common session key patterns
-        const keys = [`${agentId}:main`, agentId, `${agentId}:discord`];
-        let history = null;
-        for (const key of keys) {
-          try {
-            history = await gw.getChatHistory(key, 30);
-            if (history) break;
-          } catch { continue; }
+        const history = await gw.getChatHistory(chatSessionKey, 20);
+        const msgs = history?.messages || history || [];
+        chatMessages_data = Array.isArray(msgs) ? msgs : [];
+        if (chatMessages_data.length > 0) {
+          const last = chatMessages_data[chatMessages_data.length - 1];
+          chatLastMessageId = last.id || last.messageId || null;
         }
-
-        if (!history || !history.messages || history.messages.length === 0) {
-          chatMessages.innerHTML = '<div style="text-align:center;color:#555;padding:20px">No messages found</div>';
-          return;
-        }
-
-        chatMessages.innerHTML = '';
-        for (const msg of history.messages) {
-          const role = msg.role || 'system';
-          const content = typeof msg.content === 'string' ? msg.content : (msg.content?.[0]?.text || JSON.stringify(msg.content));
-          const div = document.createElement('div');
-          div.className = `chat-msg ${role}`;
-          const truncated = content.length > 300 ? content.slice(0, 300) + '…' : content;
-          div.innerHTML = `<div class="msg-meta">${role}</div>${escapeHtml(truncated)}`;
-          chatMessages.appendChild(div);
-        }
-        chatMessages.scrollTop = chatMessages.scrollHeight;
+        renderChatMessages();
       } catch (e) {
         chatMessages.innerHTML = `<div style="text-align:center;color:#ef4444;padding:20px">Error: ${e.message}</div>`;
       }
     }
 
+    async function pollChatMessages() {
+      if (!chatSessionKey || !gw.connected) return;
+      try {
+        const history = await gw.getChatHistory(chatSessionKey, 20);
+        const msgs = history?.messages || history || [];
+        if (!Array.isArray(msgs) || msgs.length === 0) return;
+        const lastNew = msgs[msgs.length - 1];
+        const newId = lastNew.id || lastNew.messageId || null;
+        if (newId && newId !== chatLastMessageId) {
+          chatMessages_data = msgs;
+          chatLastMessageId = newId;
+          renderChatMessages();
+        } else if (!newId && msgs.length !== chatMessages_data.length) {
+          chatMessages_data = msgs;
+          renderChatMessages();
+        }
+      } catch {}
+    }
+
+    function startChatPolling() {
+      stopChatPolling();
+      chatPollTimer = setInterval(pollChatMessages, 3000);
+    }
+
+    function stopChatPolling() {
+      if (chatPollTimer) {
+        clearInterval(chatPollTimer);
+        chatPollTimer = null;
+      }
+    }
+
+    // Send message
+    async function sendChatMessage() {
+      const text = chatInput.value.trim();
+      if (!text || !chatSessionKey || !gw.connected) return;
+
+      chatSendBtn.disabled = true;
+      document.getElementById('chat-send-icon').style.display = 'none';
+      document.getElementById('chat-send-spinner').style.display = 'inline';
+
+      // Optimistic add
+      chatMessages_data.push({ role: 'user', content: text, timestamp: new Date().toISOString() });
+      renderChatMessages();
+      chatInput.value = '';
+      chatInput.style.height = 'auto';
+
+      try {
+        await gw.sendMessage(chatSessionKey, text);
+        // Poll immediately to get response
+        setTimeout(pollChatMessages, 500);
+      } catch (e) {
+        chatMessages_data.push({ role: 'system', content: `Send failed: ${e.message}` });
+        renderChatMessages();
+      } finally {
+        chatSendBtn.disabled = false;
+        document.getElementById('chat-send-icon').style.display = 'inline';
+        document.getElementById('chat-send-spinner').style.display = 'none';
+      }
+    }
+
+    chatSendBtn.addEventListener('click', sendChatMessage);
+    chatInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendChatMessage();
+      }
+    });
+
+    // Auto-resize textarea
+    chatInput.addEventListener('input', () => {
+      chatInput.style.height = 'auto';
+      chatInput.style.height = Math.min(chatInput.scrollHeight, 120) + 'px';
+    });
+
     function escapeHtml(str) {
       return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     }
 
-    // Override agent card click when gateway is connected
+    // Agent card click → open chat when gateway connected, timeline filter
     container.addEventListener('click', (e) => {
-      if (!gw.connected) return;
       const card = e.target.closest('.agent-card');
       if (!card) return;
+      // Don't interfere with connection path clicks
+      if (e.target.closest('.main-path') || e.target.closest('.connection')) return;
       const agentId = card.dataset.agentId;
-      if (agentId && !e.detail >= 2) { // single click only
-        openChatPanel(agentId);
-        // Also filter timeline if open
-        if (timelinePanel.classList.contains('open')) {
-          timelineFilterAgent = agentId;
-          renderTimeline();
-        }
+      if (!agentId || e.detail >= 2) return; // skip double-clicks
+      // Open chat (works both connected and not)
+      openChatPanel(agentId);
+      // Also filter timeline if open
+      if (timelinePanel.classList.contains('open')) {
+        timelineFilterAgent = agentId;
+        renderTimeline();
       }
     });
 

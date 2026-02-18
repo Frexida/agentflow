@@ -164,8 +164,12 @@ export class GatewayClient {
   async sessionsList(): Promise<GatewaySession[]> {
     const result = await this.request('sessions.list', {
       includeLastMessage: true,
-    }) as { sessions: GatewaySession[] }
-    return result.sessions || []
+    }) as { sessions: Array<Record<string, unknown>> }
+    // Gateway returns 'key', our type uses 'sessionKey'
+    return (result.sessions || []).map(s => ({
+      ...s,
+      sessionKey: (s.key as string) || '',
+    })) as unknown as GatewaySession[]
   }
 
   async chatSend(sessionKey: string, message: string): Promise<void> {
@@ -190,7 +194,7 @@ export class GatewayClient {
   }
 
   async configApply(raw: string, baseHash: string): Promise<void> {
-    await this.request('config.apply', { raw, baseHash, reason: 'AgentFlow v2' })
+    await this.request('config.apply', { raw, baseHash })
   }
 
   // Event emitter

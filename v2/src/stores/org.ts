@@ -11,7 +11,7 @@ interface OrgStore {
   // React Flow state
   nodes: Node<AgentNodeData>[]
   edges: Edge<AgentEdgeData>[]
-  setNodes: (nodes: Node<AgentNodeData>[]) => void
+  setNodes: (nodes: Node[]) => void
   setEdges: (edges: Edge<AgentEdgeData>[]) => void
 
   // React Flow callbacks
@@ -35,7 +35,7 @@ export const useOrgStore = create<OrgStore>((set, get) => ({
 
   nodes: [],
   edges: [],
-  setNodes: (nodes) => set({ nodes }),
+  setNodes: (nodes) => set({ nodes: nodes as Node<AgentNodeData>[] }),
   setEdges: (edges) => set({ edges }),
 
   onNodesChange: (changes) =>

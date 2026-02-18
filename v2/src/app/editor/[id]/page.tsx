@@ -3,6 +3,7 @@
 import { useEffect, useMemo } from 'react'
 import {
   ReactFlow,
+  ReactFlowProvider,
   Background,
   Controls,
   MiniMap,
@@ -11,6 +12,7 @@ import {
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import AgentNode from '@/components/canvas/AgentNode'
+import CanvasToolbar from '@/components/canvas/CanvasToolbar'
 import { useOrgStore } from '@/stores/org'
 import type { AgentNodeData } from '@/types/org'
 
@@ -64,7 +66,7 @@ const demoEdges = [
   { id: 'e-pm-ethics', source: 'pm-1', target: 'ethics-1', sourceHandle: 'output_2', targetHandle: 'input_2', animated: true, style: { strokeDasharray: '5 5' } },
 ]
 
-export default function EditorPage() {
+function EditorCanvas() {
   const { nodes, edges, setNodes, setEdges, onNodesChange, onEdgesChange, onConnect } = useOrgStore()
 
   useEffect(() => {
@@ -87,14 +89,21 @@ export default function EditorPage() {
         onConnect={onConnect}
         fitView
         className="bg-[var(--surface)]"
+        deleteKeyCode={['Backspace', 'Delete']}
       >
         <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#333" />
         <Controls className="!bg-[var(--surface-elevated)] !border-[var(--accent)]" />
-        <MiniMap
-          style={{ background: '#16213e' }}
-          nodeColor="#0f3460"
-        />
+        <MiniMap style={{ background: '#16213e' }} nodeColor="#0f3460" />
+        <CanvasToolbar />
       </ReactFlow>
     </div>
+  )
+}
+
+export default function EditorPage() {
+  return (
+    <ReactFlowProvider>
+      <EditorCanvas />
+    </ReactFlowProvider>
   )
 }

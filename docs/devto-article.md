@@ -3,7 +3,7 @@ title: "We Built a Visual Org Designer for AI Agent Teams — Here's What We Lea
 published: false
 description: "AgentFlow: an open-source drag-and-drop editor for designing multi-agent organizations. Built with React Flow + Next.js, exports directly to OpenClaw config."
 tags: ai, opensource, nextjs, agents
-cover_image: 
+cover_image: https://raw.githubusercontent.com/Frexida/agentflow/main/docs/images/editor-demo.gif
 ---
 
 You manage one AI agent — easy. You manage six — chaos.
@@ -39,8 +39,7 @@ You can't see it. You have to *read* it.
 
 AgentFlow gives you a visual canvas. Drag agents, draw connections, see the structure.
 
-<!-- TODO: Replace with actual screenshot/GIF when ナツ provides demo recording -->
-![AgentFlow Editor](./images/editor-demo.gif)
+![AgentFlow Editor Demo](https://raw.githubusercontent.com/Frexida/agentflow/main/docs/images/editor-demo.gif)
 
 ### What you can do:
 

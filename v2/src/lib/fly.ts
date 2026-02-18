@@ -52,7 +52,7 @@ export async function createGateway(config: MachineConfig): Promise<Machine> {
     name: machineName,
     region: config.region || 'nrt', // Tokyo default
     config: {
-      image: 'registry.fly.io/agentflow-gateways:deployment-01KHS9MG82YN7W6516RS3D3Y4Z',
+      image: 'registry.fly.io/agentflow-gateways:latest',
       env: {
         OPENCLAW_GATEWAY_TOKEN: config.gatewayToken,
         OPENCLAW_TOKEN: config.gatewayToken, // entrypoint.sh reads this

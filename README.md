@@ -6,7 +6,8 @@
 
 エージェント組織設計ツール — 組織図エディタ → OpenClaw config エクスポート
 
-[![Live Demo](https://img.shields.io/badge/Live_Demo-Try_Now-blue?style=for-the-badge)](https://frexida.github.io/agentflow/editor/)
+[![Live Demo v2](https://img.shields.io/badge/Live_Demo_v2-Try_Now-e94560?style=for-the-badge)](https://agentflow-l42k.vercel.app)
+[![Live Demo v1](https://img.shields.io/badge/v1_Demo-GitHub_Pages-blue?style=for-the-badge)](https://frexida.github.io/agentflow/editor/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
 [![GitHub Pages](https://img.shields.io/badge/Deploy-GitHub_Pages-222?style=for-the-badge&logo=github)](https://frexida.github.io/agentflow/)
 
@@ -224,6 +225,13 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key  # Server only
 - **Gateway integration** (OpenClaw Protocol v3)
 - **Real-time chat** with agents via Gateway
 - **Dark theme** (OpenClaw red #e94560)
+- **⌨️ Keyboard shortcuts** — Ctrl+Z/Y (Undo/Redo), Ctrl+S (Save), Ctrl+D (Duplicate), Ctrl+A (Select All), Delete
+- **↩️ Undo/Redo** — 50-state history stack with toolbar buttons
+- **⌘K Command palette** — Fuzzy search commands + navigate to agents
+- **💡 Onboarding tour** — 4-step guided walkthrough for new users
+- **📋 Quick start checklist** — Progress tracker with auto-detection
+- **🖼️ Export PNG/SVG/JSON** — High-res image export for presentations
+- **📜 Version history** — Manual + auto-save (5min), restore any version
 
 ### Deploy to Vercel
 

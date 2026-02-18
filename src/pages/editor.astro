@@ -1327,6 +1327,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 
   <script src={`${base}/drawflow.min.js`} is:inline></script>
   <script src="https://cdn.jsdelivr.net/npm/dagre@0.8.5/dist/dagre.min.js" is:inline></script>
+  <script src="https://cdn.jsdelivr.net/npm/pathfinding@0.4.18/visual/lib/pathfinding-browser.min.js" is:inline></script>
   <script src={`${base}/gateway-client.js`} is:inline></script>
   <script is:inline>
   (function() {
@@ -1470,40 +1471,124 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       return _origUpdateConnectionNodes(id);
     };
 
-    editor.createCurvature = function(startX, startY, endX, endY, curvature, type) {
-      const gap = 40;
-      const dx = endX - startX;
-      const dy = endY - startY;
-      const absDx = Math.abs(dx);
-      const absDy = Math.abs(dy);
-      const threshold = 60;
+    // --- Pathfinding-based smart routing ---
+    const CELL_SIZE = 20;
+    const GRID_PADDING = 200;
+    const _pathCache = {};
+    let _pathCacheDirty = false;
 
-      if (dy > gap && absDx < threshold) {
+    function _clearPathCache() { for (const k in _pathCache) delete _pathCache[k]; _pathCacheDirty = false; }
+
+    function _buildPathfindingGrid(skipNodeIds) {
+      const data = editor.export()?.drawflow?.Home?.data;
+      if (!data) return null;
+
+      // Compute canvas bounds from all nodes
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      const nodeRects = [];
+      for (const [nid, node] of Object.entries(data)) {
+        const el = container.querySelector(`#node-${nid}`);
+        const w = el ? el.offsetWidth : GRID_W;
+        const h = el ? el.offsetHeight : GRID_H;
+        const x = node.pos_x;
+        const y = node.pos_y;
+        nodeRects.push({ id: nid, x, y, w, h });
+        if (x - GRID_PADDING < minX) minX = x - GRID_PADDING;
+        if (y - GRID_PADDING < minY) minY = y - GRID_PADDING;
+        if (x + w + GRID_PADDING > maxX) maxX = x + w + GRID_PADDING;
+        if (y + h + GRID_PADDING > maxY) maxY = y + h + GRID_PADDING;
+      }
+
+      const gridW = Math.ceil((maxX - minX) / CELL_SIZE);
+      const gridH = Math.ceil((maxY - minY) / CELL_SIZE);
+      if (gridW <= 0 || gridH <= 0 || gridW > 500 || gridH > 500) return null;
+
+      const grid = new PF.Grid(gridW, gridH);
+      const margin = 10;
+      const skipSet = new Set(skipNodeIds || []);
+
+      for (const r of nodeRects) {
+        if (skipSet.has(r.id)) continue;
+        const cx1 = Math.max(0, Math.floor((r.x - margin - minX) / CELL_SIZE));
+        const cy1 = Math.max(0, Math.floor((r.y - margin - minY) / CELL_SIZE));
+        const cx2 = Math.min(gridW - 1, Math.ceil((r.x + r.w + margin - minX) / CELL_SIZE));
+        const cy2 = Math.min(gridH - 1, Math.ceil((r.y + r.h + margin - minY) / CELL_SIZE));
+        for (let gx = cx1; gx <= cx2; gx++) {
+          for (let gy = cy1; gy <= cy2; gy++) {
+            grid.setWalkableAt(gx, gy, false);
+          }
+        }
+      }
+
+      return { grid, minX, minY, gridW, gridH };
+    }
+
+    const _pfFinder = typeof PF !== 'undefined' ? new PF.AStarFinder({ allowDiagonal: false }) : null;
+
+    editor.createCurvature = function(startX, startY, endX, endY, curvature, type) {
+      // Fallback function
+      const fallback = () => {
+        const gap = 40;
         const midY = (startY + endY) / 2;
         return ` M ${startX} ${startY} L ${startX} ${midY} L ${endX} ${midY} L ${endX} ${endY}`;
+      };
+
+      if (!_pfFinder || typeof PF === 'undefined') return fallback();
+
+      // Cache key
+      const cacheKey = `${Math.round(startX)},${Math.round(startY)},${Math.round(endX)},${Math.round(endY)}`;
+      if (_pathCache[cacheKey]) return _pathCache[cacheKey];
+
+      // Find which nodes contain start/end points to skip them as obstacles
+      const data = editor.export()?.drawflow?.Home?.data;
+      const skipIds = [];
+      if (data) {
+        for (const [nid, node] of Object.entries(data)) {
+          const el = container.querySelector(`#node-${nid}`);
+          const w = el ? el.offsetWidth : GRID_W;
+          const h = el ? el.offsetHeight : GRID_H;
+          const nx = node.pos_x, ny = node.pos_y;
+          if (startX >= nx - 20 && startX <= nx + w + 20 && startY >= ny - 20 && startY <= ny + h + 20) skipIds.push(nid);
+          if (endX >= nx - 20 && endX <= nx + w + 20 && endY >= ny - 20 && endY <= ny + h + 20) skipIds.push(nid);
+        }
       }
 
-      if (dy > gap && absDx >= threshold) {
-        const midY = startY + gap;
-        return ` M ${startX} ${startY} L ${startX} ${midY} L ${endX} ${midY} L ${endX} ${endY}`;
+      const info = _buildPathfindingGrid(skipIds);
+      if (!info) { const r = fallback(); _pathCache[cacheKey] = r; return r; }
+
+      const { grid, minX, minY, gridW, gridH } = info;
+      const sx = Math.max(0, Math.min(gridW - 1, Math.round((startX - minX) / CELL_SIZE)));
+      const sy = Math.max(0, Math.min(gridH - 1, Math.round((startY - minY) / CELL_SIZE)));
+      const ex = Math.max(0, Math.min(gridW - 1, Math.round((endX - minX) / CELL_SIZE)));
+      const ey = Math.max(0, Math.min(gridH - 1, Math.round((endY - minY) / CELL_SIZE)));
+
+      // Ensure start/end cells are walkable
+      grid.setWalkableAt(sx, sy, true);
+      grid.setWalkableAt(ex, ey, true);
+
+      let path;
+      try {
+        path = _pfFinder.findPath(sx, sy, ex, ey, grid);
+      } catch (e) {
+        const r = fallback(); _pathCache[cacheKey] = r; return r;
       }
 
-      if (absDy <= gap && absDx >= threshold) {
-        const dropY = Math.max(startY, endY) + gap;
-        return ` M ${startX} ${startY} L ${startX} ${dropY} L ${endX} ${dropY} L ${endX} ${endY}`;
-      }
+      if (!path || path.length < 2) { const r = fallback(); _pathCache[cacheKey] = r; return r; }
 
-      if (dy <= 0) {
-        const sideDir = dx >= 0 ? 1 : -1;
-        const detourX = (dx === 0 ? sideDir : (dx > 0 ? 1 : -1));
-        const sideOffset = detourX * (Math.max(80, absDx * 0.5 + 40));
-        const belowStart = startY + gap;
-        const aboveEnd = endY - gap;
-        return ` M ${startX} ${startY} L ${startX} ${belowStart} L ${startX + sideOffset} ${belowStart} L ${startX + sideOffset} ${aboveEnd} L ${endX} ${aboveEnd} L ${endX} ${endY}`;
-      }
+      // Compress path (remove collinear intermediate points)
+      path = PF.Util.compressPath(path);
 
-      const midY = (startY + endY) / 2;
-      return ` M ${startX} ${startY} L ${startX} ${midY} L ${endX} ${midY} L ${endX} ${endY}`;
+      // Convert grid coords back to canvas coords, use exact start/end
+      let d = ` M ${startX} ${startY}`;
+      for (let i = 1; i < path.length - 1; i++) {
+        const px = path[i][0] * CELL_SIZE + minX;
+        const py = path[i][1] * CELL_SIZE + minY;
+        d += ` L ${px} ${py}`;
+      }
+      d += ` L ${endX} ${endY}`;
+
+      _pathCache[cacheKey] = d;
+      return d;
     };
 
     // After connections are rendered, apply offsets by adjusting SVG paths
@@ -1623,15 +1708,36 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     }
 
     // Hook into Drawflow's dispatch to apply offsets after connection updates
+    let _nodeMovedTimer = null;
+    function _debouncedRedraw() {
+      _clearPathCache();
+      _computeConnectionOffsets();
+      // Force re-render all connections
+      const data = editor.export()?.drawflow?.Home?.data;
+      if (data) {
+        for (const nid of Object.keys(data)) {
+          _origUpdateConnectionNodes('node-' + nid);
+        }
+      }
+      requestAnimationFrame(() => {
+        _applyConnectionOffsets();
+        _rewriteHorizontalPaths();
+      });
+    }
+
     const _origDispatch = editor.dispatch.bind(editor);
     editor.dispatch = function(event, details) {
       _origDispatch(event, details);
-      if (event === 'connectionCreated' || event === 'connectionRemoved' || event === 'nodeRemoved' || event === 'nodeMoved') {
+      if (event === 'connectionCreated' || event === 'connectionRemoved' || event === 'nodeRemoved') {
+        _clearPathCache();
         _computeConnectionOffsets();
         requestAnimationFrame(() => {
           _applyConnectionOffsets();
           _rewriteHorizontalPaths();
         });
+      } else if (event === 'nodeMoved') {
+        if (_nodeMovedTimer) clearTimeout(_nodeMovedTimer);
+        _nodeMovedTimer = setTimeout(_debouncedRedraw, 200);
       }
     };
 

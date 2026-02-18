@@ -172,7 +172,7 @@ class GatewayClient extends EventTarget {
   }
 
   async sendMessage(sessionKey, message) {
-    return await this.rpc('chat.send', { sessionKey, message });
+    return await this.rpc('chat.send', { sessionKey, message, idempotencyKey: crypto.randomUUID() });
   }
 
   startPolling(intervalMs = 5000) {

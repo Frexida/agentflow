@@ -1014,6 +1014,8 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     }
     document.getElementById('btn-mode-graph').addEventListener('click', () => setCanvasMode('graph'));
     document.getElementById('btn-mode-tree').addEventListener('click', () => setCanvasMode('tree'));
+    // Apply initial mode from localStorage
+    setCanvasMode(canvasMode);
 
     function hasCycle(links, nodeToAgent) {
       // Build adjacency from org.links
@@ -2306,11 +2308,13 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
           const srcAgent = agentById(link.source);
           const tgtAgent = agentById(link.target);
           if (srcAgent && tgtAgent) {
-            connectAgents(srcAgent, tgtAgent, link.type || 'authority');
+            connectAgents(srcAgent, tgtAgent, link.type || 'authority', link.direction || 'unidirectional');
           }
         }
         // Restore groups
         org.groups = config.org.groups || [];
+        // Restore canvas mode
+        if (config.org.canvas?.mode) setCanvasMode(config.org.canvas.mode);
 
       } else if (isOpenClawConfig) {
         // OpenClaw config format
@@ -2478,18 +2482,25 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     }
 
     // connectAgents needs to be accessible from templates
-    function connectAgents(srcAgent, tgtAgent, linkType) {
+    function connectAgents(srcAgent, tgtAgent, linkType, direction) {
       const srcNodeId = Object.keys(nodeToAgent).find(k => nodeToAgent[k] === srcAgent.id);
       const tgtNodeId = Object.keys(nodeToAgent).find(k => nodeToAgent[k] === tgtAgent.id);
       if (!srcNodeId || !tgtNodeId) return;
       editor.addConnection(srcNodeId, tgtNodeId, 'output_1', 'input_1');
       const connKey = `${srcNodeId}_${tgtNodeId}`;
       const ct = connectionTypes[connKey];
-      if (ct && linkType !== 'authority') {
-        ct.type = linkType;
+      if (ct) {
+        if (linkType !== 'authority') {
+          ct.type = linkType;
+          const link = org.links.find(l => l.id === ct.linkId);
+          if (link) link.type = linkType;
+          applyConnectionColor(srcNodeId, tgtNodeId, linkType);
+        }
+        const dir = direction || 'unidirectional';
+        ct.direction = dir;
         const link = org.links.find(l => l.id === ct.linkId);
-        if (link) link.type = linkType;
-        applyConnectionColor(srcNodeId, tgtNodeId, linkType);
+        if (link) link.direction = dir;
+        applyConnectionDirection(srcNodeId, tgtNodeId, dir);
       }
     }
 

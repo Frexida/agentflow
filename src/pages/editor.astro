@@ -95,6 +95,15 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       background: var(--bg-base);
     }
 
+    /* Grid background — 200×100 cells matching agent node size */
+    #drawflow .drawflow {
+      background-image:
+        linear-gradient(to right,  var(--border-subtle) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--border-subtle) 1px, transparent 1px);
+      background-size: 200px 100px;
+      background-position: 0 0;
+    }
+
     /* ── Toolbar ── */
     .toolbar {
       height: var(--sp-12);
@@ -1117,6 +1126,25 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     let editingAgentId = null;
     const panel = document.getElementById('side-panel');
 
+    // --- Grid Snap ---
+    const GRID_W = 200, GRID_H = 100;
+    function snapToGrid(x, y) {
+      return { x: Math.round(x / GRID_W) * GRID_W, y: Math.round(y / GRID_H) * GRID_H };
+    }
+    editor.on('nodeMoved', function(nodeId) {
+      const data = editor.export().drawflow.Home.data;
+      const node = data[nodeId];
+      if (!node) return;
+      const snapped = snapToGrid(node.pos_x, node.pos_y);
+      if (snapped.x !== node.pos_x || snapped.y !== node.pos_y) {
+        data[nodeId].pos_x = snapped.x;
+        data[nodeId].pos_y = snapped.y;
+        editor.import({ drawflow: { Home: { data } } });
+        setTimeout(() => { applyAllConnectionColors(); renderGroupOverlays(); }, 50);
+      }
+      scheduleSave();
+    });
+
     editor.on('nodeSelected', function(nodeId) {
       // single click - no action
     });
@@ -1438,7 +1466,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       if (nodeIds.length === 0) return;
 
       const g = new dagre.graphlib.Graph();
-      g.setGraph({ rankdir: 'TB', nodesep: 80, ranksep: 140 });
+      g.setGraph({ rankdir: 'TB', nodesep: GRID_W, ranksep: GRID_H * 2 });
       g.setDefaultEdgeLabel(() => ({}));
 
       nodeIds.forEach(id => g.setNode(id, { width: 200, height: 100 }));
@@ -1452,8 +1480,9 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       dagre.layout(g);
       nodeIds.forEach(id => {
         const pos = g.node(id);
-        data[id].pos_x = pos.x - 100;
-        data[id].pos_y = pos.y - 50;
+        const snapped = snapToGrid(pos.x - 100, pos.y - 50);
+        data[id].pos_x = snapped.x;
+        data[id].pos_y = snapped.y;
       });
 
       editor.import({ drawflow: { Home: { data } } });

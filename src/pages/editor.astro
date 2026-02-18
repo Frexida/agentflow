@@ -4116,7 +4116,16 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       }
       for (const msg of chatMessages_data) {
         const role = msg.role || 'system';
-        let content = typeof msg.content === 'string' ? msg.content : (msg.content?.[0]?.text || JSON.stringify(msg.content));
+        let content = '';
+        if (typeof msg.content === 'string') {
+          content = msg.content;
+        } else if (Array.isArray(msg.content)) {
+          // Find the text block, skip thinking blocks
+          const textBlock = msg.content.find(b => b.type === 'text');
+          content = textBlock?.text || '';
+        } else {
+          content = JSON.stringify(msg.content);
+        }
         content = cleanChatMessage(content);
         // Skip empty, NO_REPLY, or HEARTBEAT_OK messages
         if (!content || /^\s*(NO_REPLY|HEARTBEAT_OK)\s*$/.test(content)) continue;

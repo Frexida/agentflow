@@ -4,3 +4,5 @@ dist/
 .wrangler/
 .dev.vars
 *.log
+v2/node_modules/
+v2/.next/

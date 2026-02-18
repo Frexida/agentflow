@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useCallback, useState } from 'react'
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -9,10 +9,12 @@ import {
   MiniMap,
   BackgroundVariant,
   type Node,
+  type NodeMouseHandler,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import AgentNode from '@/components/canvas/AgentNode'
 import CanvasToolbar from '@/components/canvas/CanvasToolbar'
+import NodeEditModal from '@/components/canvas/NodeEditModal'
 import { useOrgStore } from '@/stores/org'
 import type { AgentNodeData } from '@/types/org'
 
@@ -68,6 +70,7 @@ const demoEdges = [
 
 function EditorCanvas() {
   const { nodes, edges, setNodes, setEdges, onNodesChange, onEdgesChange, onConnect } = useOrgStore()
+  const [editNodeId, setEditNodeId] = useState<string | null>(null)
 
   useEffect(() => {
     if (nodes.length === 0) {
@@ -78,6 +81,10 @@ function EditorCanvas() {
 
   const memoNodeTypes = useMemo(() => nodeTypes, [])
 
+  const onNodeDoubleClick = useCallback((_: React.MouseEvent, node: Node) => {
+    setEditNodeId(node.id)
+  }, [])
+
   return (
     <div className="w-screen h-screen">
       <ReactFlow
@@ -87,6 +94,7 @@ function EditorCanvas() {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
+        onNodeDoubleClick={onNodeDoubleClick}
         fitView
         className="bg-[var(--surface)]"
         deleteKeyCode={['Backspace', 'Delete']}
@@ -96,6 +104,7 @@ function EditorCanvas() {
         <MiniMap style={{ background: '#16213e' }} nodeColor="#0f3460" />
         <CanvasToolbar />
       </ReactFlow>
+      <NodeEditModal nodeId={editNodeId} onClose={() => setEditNodeId(null)} />
     </div>
   )
 }

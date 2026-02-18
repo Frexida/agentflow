@@ -19,10 +19,10 @@ export default function TermsPage() {
               The Service allows you to design multi-agent team structures and export configurations for OpenClaw.
             </p>
             <p className="mt-2">
-              This Terms of Service applies to the hosted service at{' '}
+              This Terms of Service applies to the hosted service at
               <a href="https://agentflow.frexida.com" className="text-[var(--accent-bright)] hover:underline">agentflow.frexida.com</a>.
-              If you self-host AgentFlow using the open source code, only the{' '}
-              <a href="https://opensource.org/licenses/MIT" className="text-[var(--accent-bright)] hover:underline" target="_blank" rel="noopener">MIT License</a>{' '}
+              If you self-host AgentFlow using the open source code, only the
+              <a href="https://opensource.org/licenses/MIT" className="text-[var(--accent-bright)] hover:underline" target="_blank" rel="noopener">MIT License</a>
               applies — not this Terms of Service.
             </p>
           </section>
@@ -144,14 +144,14 @@ export default function TermsPage() {
             <ul className="list-disc pl-5 space-y-2 mt-2">
               <li>We offer a <strong>full refund within 7 days</strong> of your initial subscription if you are not satisfied.</li>
               <li>Refund requests after 7 days are handled on a case-by-case basis.</li>
-              <li>To request a refund, contact us via GitHub or Discord.</li>
+              <li>To request a refund, contact us via GitHub.</li>
             </ul>
           </section>
 
           <section>
             <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-3">10. Open Source &amp; Self-Hosting</h2>
             <p>
-              AgentFlow&apos;s source code is available under the MIT License at{' '}
+              AgentFlow&apos;s source code is available under the MIT License at
               <a href="https://github.com/Frexida/agentflow" className="text-[var(--accent-bright)] hover:underline" target="_blank" rel="noopener">
                 github.com/Frexida/agentflow
               </a>.
@@ -223,14 +223,11 @@ export default function TermsPage() {
           <section>
             <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-3">15. Contact</h2>
             <p>
-              Questions? Open an issue on{' '}
+              Questions? Open an issue on
               <a href="https://github.com/Frexida/agentflow" className="text-[var(--accent-bright)] hover:underline" target="_blank" rel="noopener">
                 GitHub
-              </a>{' '}
-              or reach us on{' '}
-              <a href="https://discord.com/invite/clawd" className="text-[var(--accent-bright)] hover:underline" target="_blank" rel="noopener">
-                Discord
-              </a>.
+              </a>
+              
             </p>
           </section>
         </div>

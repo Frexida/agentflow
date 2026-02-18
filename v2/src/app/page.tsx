@@ -54,7 +54,7 @@ export default function Home() {
       <nav className="fixed top-0 w-full z-50 bg-[var(--surface)]/80 backdrop-blur-md border-b border-[var(--border)]">
         <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-[var(--accent-bright)] text-xl font-bold">🔀</span>
+            <img src="/logo.png" alt="AgentFlow" className="h-7 w-7" />
             <span className="font-semibold text-[var(--text-primary)]">AgentFlow</span>
           </div>
           <div className="flex items-center gap-6 text-sm">
@@ -293,7 +293,7 @@ export default function Home() {
         <div className="max-w-5xl mx-auto grid grid-cols-4 gap-8">
           <div>
             <div className="flex items-center gap-2 mb-4">
-              <span className="text-[var(--accent-bright)] text-xl font-bold">🔀</span>
+              <img src="/logo.png" alt="AgentFlow" className="h-7 w-7" />
               <span className="font-semibold">AgentFlow</span>
             </div>
             <p className="text-xs text-[var(--text-secondary)] leading-relaxed">

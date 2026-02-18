@@ -18,9 +18,8 @@ import GroupNode from '@/components/canvas/GroupNode'
 import CanvasToolbar from '@/components/canvas/CanvasToolbar'
 import NodeEditModal from '@/components/canvas/NodeEditModal'
 import NodeContextMenu from '@/components/canvas/NodeContextMenu'
-import ChatPanel from '@/components/chat/ChatPanel'
-import TimelinePanel from '@/components/canvas/TimelinePanel'
 import StatusBar from '@/components/canvas/StatusBar'
+import SidePanel from '@/components/canvas/SidePanel'
 import { useOrgStore } from '@/stores/org'
 import { useGatewayStore } from '@/stores/gateway'
 import { useSessionMonitor } from '@/lib/session-monitor'
@@ -84,8 +83,6 @@ function EditorCanvas() {
   const params = useParams()
   const designId = params.id as string
   const [editNodeId, setEditNodeId] = useState<string | null>(null)
-  const [chatOpen, setChatOpen] = useState(false)
-  const [timelineOpen, setTimelineOpen] = useState(false)
   const [contextMenu, setContextMenu] = useState<{ nodeId: string; x: number; y: number } | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -161,26 +158,8 @@ function EditorCanvas() {
           onClose={() => setContextMenu(null)}
         />
       )}
-      <ChatPanel open={chatOpen} onClose={() => setChatOpen(false)} />
-      <TimelinePanel open={timelineOpen} onClose={() => setTimelineOpen(false)} />
       <StatusBar />
-      {/* Float buttons */}
-      <div className="fixed bottom-4 right-4 z-30 flex flex-col gap-2">
-        <button
-          onClick={() => setTimelineOpen(!timelineOpen)}
-          className="w-12 h-12 rounded-full bg-[var(--accent)] hover:bg-[var(--accent-bright)] flex items-center justify-center text-xl transition shadow-lg"
-          title="Timeline"
-        >
-          📋
-        </button>
-        <button
-          onClick={() => setChatOpen(!chatOpen)}
-          className="w-12 h-12 rounded-full bg-[var(--accent)] hover:bg-[var(--accent-bright)] flex items-center justify-center text-xl transition shadow-lg"
-          title="Chat"
-        >
-          💬
-        </button>
-      </div>
+      <SidePanel editNodeId={editNodeId} onEditClose={() => setEditNodeId(null)} />
     </div>
   )
 }

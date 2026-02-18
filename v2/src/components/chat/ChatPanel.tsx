@@ -18,7 +18,7 @@ function cleanMessage(content: unknown): string {
   return String(content)
 }
 
-export default function ChatPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
+export default function ChatPanel({ open, onClose, embedded }: { open: boolean; onClose: () => void; embedded?: boolean }) {
   const { activeSession, activeAgentId, messages, setMessages } = useChatStore()
   const { client, connected, sessions } = useGatewayStore()
   const [input, setInput] = useState('')
@@ -78,15 +78,15 @@ export default function ChatPanel({ open, onClose }: { open: boolean; onClose: (
   if (!open) return null
 
   return (
-    <div className="fixed right-0 top-0 h-screen w-80 bg-[var(--surface-elevated)] border-l border-[var(--accent)] flex flex-col z-40">
+    <div className={embedded ? 'flex flex-col h-full' : 'fixed right-0 top-0 h-screen w-80 bg-[var(--surface-elevated)] border-l border-[var(--accent)] flex flex-col z-40'}>
       {/* Header */}
-      <div className="flex items-center justify-between p-3 border-b border-[var(--accent)]">
+      {!embedded && <div className="flex items-center justify-between p-3 border-b border-[var(--accent)]">
         <div>
           <h3 className="font-semibold text-sm">Chat</h3>
           {activeAgentId && <span className="text-xs text-[var(--text-secondary)]">{activeAgentId}</span>}
         </div>
         <button onClick={onClose} className="text-[var(--text-secondary)] hover:text-red-400">✕</button>
-      </div>
+      </div>}
 
       {/* Session selector */}
       {!activeSession && (

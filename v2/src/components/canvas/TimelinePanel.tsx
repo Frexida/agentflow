@@ -24,7 +24,7 @@ function getColor(agentId: string): string {
   return agentColors[agentId] || '#6b7280'
 }
 
-export default function TimelinePanel({ open, onClose }: { open: boolean; onClose: () => void }) {
+export default function TimelinePanel({ open, onClose, embedded }: { open: boolean; onClose: () => void; embedded?: boolean }) {
   const { sessions, connected, refreshSessions } = useGatewayStore()
   const [entries, setEntries] = useState<TimelineEntry[]>([])
   const [filter, setFilter] = useState<string | null>(null)
@@ -60,7 +60,7 @@ export default function TimelinePanel({ open, onClose }: { open: boolean; onClos
   if (!open) return null
 
   return (
-    <div className="fixed left-0 bottom-0 w-full h-64 bg-[var(--surface-elevated)] border-t border-[var(--accent)] z-40 flex flex-col">
+    <div className={embedded ? 'flex flex-col h-full' : 'fixed left-0 bottom-0 w-full h-64 bg-[var(--surface-elevated)] border-t border-[var(--accent)] z-40 flex flex-col'}>
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-2 border-b border-[var(--accent)]">
         <div className="flex items-center gap-3">

@@ -359,6 +359,23 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       animation: flowPulse 1.5s ease-in-out infinite;
     }
 
+    /* Diff preview modal */
+    #diff-modal {
+      position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%);
+      background: #1e1e2e; border: 1px solid #374151; border-radius: 12px;
+      padding: 20px; width: 700px; max-width: 90vw; max-height: 80vh;
+      z-index: 601; display: none; flex-direction: column;
+    }
+    #diff-modal h3 { display: flex; justify-content: space-between; align-items: center; margin: 0 0 12px; }
+    #diff-preview {
+      background: #0d1117; border: 1px solid #30363d; border-radius: 8px;
+      padding: 12px; overflow: auto; flex: 1; min-height: 200px; max-height: 50vh;
+      font-size: 12px; line-height: 1.5; white-space: pre; color: #c9d1d9;
+    }
+    #diff-preview .diff-add { color: #3fb950; }
+    #diff-preview .diff-del { color: #f85149; }
+    #diff-preview .diff-section { color: #58a6ff; font-weight: bold; }
+
     /* Export preview modal */
     #export-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:599; }
     #export-modal {
@@ -620,6 +637,18 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       <button class="btn-download" id="export-apply-gw" style="background:#f59e0b;color:#000;display:none">⚡ Apply to Gateway</button>
       <button class="btn-download" id="export-revert-gw" style="background:#dc2626;color:#fff;display:none">↩️ Revert</button>
       <button class="btn-close" id="export-close">Close</button>
+    </div>
+  </div>
+
+  <!-- Diff Preview Modal -->
+  <div id="diff-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:600"></div>
+  <div id="diff-modal">
+    <h3>🔍 Config Diff Preview <button id="diff-modal-close" style="background:none;border:none;color:#6b7280;font-size:20px;cursor:pointer">✕</button></h3>
+    <p id="diff-summary" style="color:#9ca3af;margin:0 0 8px;font-size:13px"></p>
+    <pre id="diff-preview"></pre>
+    <div class="export-actions">
+      <button class="btn-download" id="diff-confirm-apply" style="background:#f59e0b;color:#000">✅ Confirm Apply</button>
+      <button class="btn-close" id="diff-cancel">Cancel</button>
     </div>
   </div>
 
@@ -1304,30 +1333,54 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       toast('Export complete (3 files)');
     });
 
+    // --- Diff utility ---
+    function jsonDiff(oldObj, newObj, path = '') {
+      const lines = [];
+      const allKeys = new Set([...Object.keys(oldObj || {}), ...Object.keys(newObj || {})]);
+      for (const key of [...allKeys].sort()) {
+        const fullPath = path ? `${path}.${key}` : key;
+        const oldVal = oldObj?.[key];
+        const newVal = newObj?.[key];
+        if (JSON.stringify(oldVal) === JSON.stringify(newVal)) continue;
+        if (oldVal === undefined) {
+          lines.push({ type: 'add', path: fullPath, value: newVal });
+        } else if (newVal === undefined) {
+          lines.push({ type: 'del', path: fullPath, value: oldVal });
+        } else if (typeof oldVal === 'object' && typeof newVal === 'object' && !Array.isArray(oldVal) && !Array.isArray(newVal) && oldVal !== null && newVal !== null) {
+          lines.push(...jsonDiff(oldVal, newVal, fullPath));
+        } else {
+          lines.push({ type: 'del', path: fullPath, value: oldVal });
+          lines.push({ type: 'add', path: fullPath, value: newVal });
+        }
+      }
+      return lines;
+    }
+
+    function renderDiff(diffs) {
+      if (diffs.length === 0) return '<span style="color:#8b949e">No changes detected.</span>';
+      return diffs.map(d => {
+        const val = typeof d.value === 'object' ? JSON.stringify(d.value, null, 2) : String(d.value);
+        const shortVal = val.length > 200 ? val.slice(0, 200) + '...' : val;
+        if (d.type === 'add') return `<span class="diff-add">+ ${d.path}: ${shortVal}</span>`;
+        if (d.type === 'del') return `<span class="diff-del">- ${d.path}: ${shortVal}</span>`;
+        return '';
+      }).join('\n');
+    }
+
+    let pendingApply = null; // { merged, baseHash, backup }
+
     document.getElementById('export-apply-gw').addEventListener('click', async () => {
       if (!window.gatewayClient?.connected) {
         toast('❌ Gateway not connected');
         return;
       }
-      if (!confirm('⚠️ Apply agent config to your running OpenClaw Gateway?\n\nThis will update the agents section and restart the gateway.\nOther settings (Discord, auth, etc.) will be preserved.\n\nAre you sure?')) return;
       try {
-        toast('Fetching current config from Gateway...');
-        // Get current full config
+        toast('Fetching current config for diff...');
         const currentResult = await window.gatewayClient.rpc('config.get', {});
         const currentConfig = currentResult?.config || currentResult || {};
         const baseHash = currentResult?.baseHash || currentResult?.hash || '';
 
-        // Backup current config before apply
-        const backupKey = 'agentflow-config-backup';
-        const backup = {
-          config: currentConfig,
-          baseHash,
-          timestamp: new Date().toISOString(),
-        };
-        localStorage.setItem(backupKey, JSON.stringify(backup));
-        console.log('[AgentFlow] Config backup saved to localStorage');
-
-        // Merge: only replace agents section, keep everything else
+        // Build merged config
         const newExport = exportResult.config;
         const merged = { ...currentConfig };
         merged.agents = {
@@ -1336,14 +1389,55 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
           list: newExport.agents?.list || []
         };
 
+        // Compute diff
+        const diffs = jsonDiff(currentConfig, merged);
+        document.getElementById('diff-preview').innerHTML = renderDiff(diffs);
+        document.getElementById('diff-summary').textContent = `${diffs.filter(d=>d.type==='add').length} additions, ${diffs.filter(d=>d.type==='del').length} removals`;
+
+        // Store for confirm
+        pendingApply = {
+          merged,
+          baseHash,
+          backup: { config: currentConfig, baseHash, timestamp: new Date().toISOString() }
+        };
+
+        // Show diff modal
+        document.getElementById('diff-overlay').style.display = 'block';
+        document.getElementById('diff-modal').style.display = 'flex';
+      } catch (err) {
+        toast('❌ Failed to fetch config: ' + err.message);
+      }
+    });
+
+    // Confirm apply after diff review
+    document.getElementById('diff-confirm-apply').addEventListener('click', async () => {
+      if (!pendingApply) return;
+      try {
+        // Save backup
+        localStorage.setItem('agentflow-config-backup', JSON.stringify(pendingApply.backup));
+        console.log('[AgentFlow] Config backup saved to localStorage');
+
         toast('Applying merged config...');
-        await window.gatewayClient.rpc('config.apply', { raw: JSON.stringify(merged, null, 2), baseHash });
+        await window.gatewayClient.rpc('config.apply', { raw: JSON.stringify(pendingApply.merged, null, 2), baseHash: pendingApply.baseHash });
         toast('✅ Config applied! Backup saved. Use Revert if needed.');
+        pendingApply = null;
+        document.getElementById('diff-overlay').style.display = 'none';
+        document.getElementById('diff-modal').style.display = 'none';
         closeExportModal();
       } catch (err) {
         toast('❌ Apply failed: ' + err.message);
       }
     });
+
+    // Close diff modal
+    function closeDiffModal() {
+      document.getElementById('diff-overlay').style.display = 'none';
+      document.getElementById('diff-modal').style.display = 'none';
+      pendingApply = null;
+    }
+    document.getElementById('diff-modal-close').addEventListener('click', closeDiffModal);
+    document.getElementById('diff-cancel').addEventListener('click', closeDiffModal);
+    document.getElementById('diff-overlay').addEventListener('click', closeDiffModal);
 
     document.getElementById('export-revert-gw').addEventListener('click', async () => {
       if (!window.gatewayClient?.connected) {

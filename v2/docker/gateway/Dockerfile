@@ -1,6 +1,6 @@
 FROM node:22-slim
 
-RUN apt-get update && apt-get install -y git openssl && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y bash git openssl && rm -rf /var/lib/apt/lists/*
 
 # Install openclaw globally
 RUN npm install -g openclaw@latest

@@ -10,6 +10,10 @@ if [ ! -f "$CONFIG_FILE" ]; then
   
   cat > "$CONFIG_FILE" << EOF
 {
+  "commands": {
+    "native": "auto",
+    "nativeSkills": "auto"
+  },
   "gateway": {
     "mode": "local",
     "bind": "lan",
@@ -17,19 +21,10 @@ if [ ! -f "$CONFIG_FILE" ]; then
     "auth": {
       "token": "$TOKEN"
     }
-  },
-  "providers": {
-    "anthropic": {
-      "apiKey": "${ANTHROPIC_API_KEY:-}"
-    },
-    "openai": {
-      "apiKey": "${OPENAI_API_KEY:-}"
-    }
-  },
-  "agents": {}
+  }
 }
 EOF
-  echo "Generated config with token: ${TOKEN:0:8}..."
+  echo "Config generated. Token prefix: ${TOKEN:0:8}..."
 fi
 
 # Start gateway (explicit host/port to ensure 0.0.0.0 binding)

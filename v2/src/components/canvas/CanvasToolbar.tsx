@@ -21,27 +21,44 @@ export default function CanvasToolbar() {
     setSaving(true)
     try {
       const orgId = window.location.pathname.split('/').pop() || 'demo'
-      await saveOrg(orgId, {
-        agents: nodes.map(n => ({
-          id: n.id,
-          agentId: (n.data as AgentNodeData).agentId,
-          name: (n.data as AgentNodeData).name,
-          role: (n.data as AgentNodeData).role,
-          model: (n.data as AgentNodeData).model,
-          icon: (n.data as AgentNodeData).icon,
-          systemPrompt: (n.data as AgentNodeData).systemPrompt,
-          positionX: n.position.x,
-          positionY: n.position.y,
-        })),
-        edges: edges.map(e => ({
-          id: e.id,
-          source: e.source,
-          target: e.target,
-          sourceHandle: e.sourceHandle || undefined,
-          targetHandle: e.targetHandle || undefined,
-        })),
+      const designData = {
+        nodes: nodes.map(n => ({ ...n, data: { ...n.data } })),
+        edges: edges.map(e => ({ ...e })),
+      }
+
+      // Try cloud save first
+      const res = await fetch(`/api/designs/${orgId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data: designData }),
       })
-      setSaveStatus('✅ Saved')
+
+      if (res.ok) {
+        setSaveStatus('✅ Saved to cloud')
+      } else {
+        // Fallback to local save
+        await saveOrg(orgId, {
+          agents: nodes.map(n => ({
+            id: n.id,
+            agentId: (n.data as AgentNodeData).agentId,
+            name: (n.data as AgentNodeData).name,
+            role: (n.data as AgentNodeData).role,
+            model: (n.data as AgentNodeData).model,
+            icon: (n.data as AgentNodeData).icon,
+            systemPrompt: (n.data as AgentNodeData).systemPrompt,
+            positionX: n.position.x,
+            positionY: n.position.y,
+          })),
+          edges: edges.map(e => ({
+            id: e.id,
+            source: e.source,
+            target: e.target,
+            sourceHandle: e.sourceHandle || undefined,
+            targetHandle: e.targetHandle || undefined,
+          })),
+        })
+        setSaveStatus('✅ Saved locally')
+      }
       setTimeout(() => setSaveStatus(null), 2000)
     } catch {
       setSaveStatus('❌ Failed')

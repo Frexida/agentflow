@@ -2,28 +2,41 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useGatewayStore } from '@/stores/gateway'
 import { useSessionsStore } from '@/stores/sessions'
+import { createClient } from '@/lib/supabase/client'
 
-interface OrgItem {
+interface Design {
   id: string
   name: string
-  agentCount: number
-  updatedAt: string
+  updated_at: string
+  created_at: string
 }
-
-const demoOrgs: OrgItem[] = [
-  { id: 'demo', name: 'AgentFlow Team', agentCount: 6, updatedAt: '2026-02-18' },
-]
 
 const statusIcons = { active: '🟢', idle: '🟡', offline: '⚫' }
 
 export default function DashboardPage() {
-  const [orgs] = useState<OrgItem[]>(demoOrgs)
+  const [designs, setDesigns] = useState<Design[]>([])
+  const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
   const [newName, setNewName] = useState('')
+  const router = useRouter()
   const { connected, refreshSessions } = useGatewayStore()
   const { agentStats, totalSessions, activeSessions } = useSessionsStore()
+
+  // Fetch designs from cloud
+  useEffect(() => {
+    async function fetchDesigns() {
+      const res = await fetch('/api/designs')
+      if (res.ok) {
+        const { designs } = await res.json()
+        setDesigns(designs || [])
+      }
+      setLoading(false)
+    }
+    fetchDesigns()
+  }, [])
 
   const syncSessions = useCallback(async () => {
     if (!connected) return
@@ -38,10 +51,26 @@ export default function DashboardPage() {
     return () => clearInterval(timer)
   }, [syncSessions])
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!newName.trim()) return
-    setNewName('')
-    setCreating(false)
+    const res = await fetch('/api/designs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: newName.trim(), data: { nodes: [], edges: [] } }),
+    })
+    if (res.ok) {
+      const { design } = await res.json()
+      setNewName('')
+      setCreating(false)
+      router.push(`/editor/${design.id}`)
+    }
+  }
+
+  const handleSignOut = async () => {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    router.push('/login')
+    router.refresh()
   }
 
   return (
@@ -51,6 +80,12 @@ export default function DashboardPage() {
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-2xl font-bold">Dashboard</h1>
           <div className="flex gap-3">
+            <button
+              onClick={handleSignOut}
+              className="px-4 py-2 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition"
+            >
+              Sign Out
+            </button>
             <Link href="/settings" className="px-4 py-2 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition">
               ⚙️ Settings
             </Link>
@@ -65,9 +100,9 @@ export default function DashboardPage() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-4 gap-4 mb-8">
-          <StatCard label="Total Sessions" value={totalSessions} icon="📊" />
+          <StatCard label="Designs" value={designs.length} icon="📐" />
           <StatCard label="Active Agents" value={activeSessions} icon="🟢" />
-          <StatCard label="Total Agents" value={agentStats.length} icon="🤖" />
+          <StatCard label="Total Sessions" value={totalSessions} icon="📊" />
           <StatCard
             label="Gateway"
             value={connected ? 'Connected' : 'Disconnected'}
@@ -116,27 +151,41 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Org List */}
-        <h2 className="font-semibold mb-4">Organizations</h2>
-        <div className="grid gap-4">
-          {orgs.map((org) => (
-            <Link
-              key={org.id}
-              href={`/editor/${org.id}`}
-              className="block p-6 bg-[var(--surface-elevated)] rounded-lg border border-[var(--accent)] hover:border-[var(--accent-bright)] transition group"
+        {/* Design List */}
+        <h2 className="font-semibold mb-4">Your Designs</h2>
+        {loading ? (
+          <p className="text-[var(--text-secondary)]">Loading...</p>
+        ) : designs.length === 0 ? (
+          <div className="text-center py-12 bg-[var(--surface-elevated)] rounded-lg border border-[var(--border)]">
+            <p className="text-[var(--text-secondary)] mb-4">No designs yet</p>
+            <button
+              onClick={() => setCreating(true)}
+              className="px-4 py-2 bg-[var(--accent-bright)] rounded-lg hover:bg-[var(--accent-glow)] transition text-sm"
             >
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-semibold group-hover:text-[var(--accent-bright)] transition">{org.name}</h3>
-                  <p className="text-sm text-[var(--text-secondary)] mt-1">
-                    {org.agentCount} agents · Updated {org.updatedAt}
-                  </p>
+              Create your first organization
+            </button>
+          </div>
+        ) : (
+          <div className="grid gap-4">
+            {designs.map((design) => (
+              <Link
+                key={design.id}
+                href={`/editor/${design.id}`}
+                className="block p-6 bg-[var(--surface-elevated)] rounded-lg border border-[var(--accent)] hover:border-[var(--accent-bright)] transition group"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold group-hover:text-[var(--accent-bright)] transition">{design.name}</h3>
+                    <p className="text-sm text-[var(--text-secondary)] mt-1">
+                      Updated {timeAgo(design.updated_at)}
+                    </p>
+                  </div>
+                  <span className="text-2xl opacity-50 group-hover:opacity-100 transition">→</span>
                 </div>
-                <span className="text-2xl opacity-50 group-hover:opacity-100 transition">→</span>
-              </div>
-            </Link>
-          ))}
-        </div>
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )

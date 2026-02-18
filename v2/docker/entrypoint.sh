@@ -5,24 +5,28 @@ set -e
 mkdir -p /root/.openclaw
 cat > /root/.openclaw/openclaw.json <<EOF
 {
-  "version": 1,
   "gateway": {
-    "auth": {
-      "token": "${OPENCLAW_TOKEN}"
-    },
-    "host": "0.0.0.0",
     "port": 18789,
-    "allowedOrigins": ["https://agentflow-l42k.vercel.app", "https://agentflow.dev"]
-  },
-  "providers": {
-    "anthropic": {
-      "apiKey": "${ANTHROPIC_API_KEY}"
+    "mode": "local",
+    "bind": "all",
+    "controlUi": {
+      "allowedOrigins": ["https://agentflow-l42k.vercel.app", "https://agentflow.dev"]
     },
-    "openai": {
-      "apiKey": "${OPENAI_API_KEY}"
+    "auth": {
+      "mode": "token",
+      "token": "${OPENCLAW_TOKEN}"
     }
   },
-  "agents": []
+  "auth": {
+    "profiles": {
+      "anthropic:default": {
+        "provider": "anthropic",
+        "mode": "api-key",
+        "apiKey": "${ANTHROPIC_API_KEY}"
+      }
+    }
+  },
+  "agents": {}
 }
 EOF
 

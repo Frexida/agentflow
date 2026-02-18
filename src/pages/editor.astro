@@ -4012,13 +4012,12 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
         const history = await gw.getChatHistory(chatSessionKey, 20);
         const msgs = history?.messages || history || [];
         if (!Array.isArray(msgs) || msgs.length === 0) return;
+        // Detect changes by comparing last message timestamp and count
         const lastNew = msgs[msgs.length - 1];
-        const newId = lastNew.id || lastNew.messageId || null;
-        if (newId && newId !== chatLastMessageId) {
-          chatMessages_data = msgs;
-          chatLastMessageId = newId;
-          renderChatMessages();
-        } else if (!newId && msgs.length !== chatMessages_data.length) {
+        const newTs = lastNew.timestamp || lastNew.ts || 0;
+        const oldLast = chatMessages_data.length > 0 ? chatMessages_data[chatMessages_data.length - 1] : null;
+        const oldTs = oldLast ? (oldLast.timestamp || oldLast.ts || 0) : 0;
+        if (msgs.length !== chatMessages_data.length || newTs !== oldTs) {
           chatMessages_data = msgs;
           renderChatMessages();
         }

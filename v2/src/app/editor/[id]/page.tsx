@@ -18,6 +18,8 @@ import NodeEditModal from '@/components/canvas/NodeEditModal'
 import ChatPanel from '@/components/chat/ChatPanel'
 import TimelinePanel from '@/components/canvas/TimelinePanel'
 import { useOrgStore } from '@/stores/org'
+import { useGatewayStore } from '@/stores/gateway'
+import { useSessionMonitor } from '@/lib/session-monitor'
 import type { AgentNodeData } from '@/types/org'
 
 const nodeTypes = { agent: AgentNode }
@@ -72,6 +74,8 @@ const demoEdges = [
 
 function EditorCanvas() {
   const { nodes, edges, setNodes, setEdges, onNodesChange, onEdgesChange, onConnect } = useOrgStore()
+  const { connected } = useGatewayStore()
+  useSessionMonitor(connected)
   const [editNodeId, setEditNodeId] = useState<string | null>(null)
   const [chatOpen, setChatOpen] = useState(false)
   const [timelineOpen, setTimelineOpen] = useState(false)

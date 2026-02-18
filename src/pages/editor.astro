@@ -600,10 +600,18 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       <button id="gw-disconnect" style="padding:8px 16px;background:#dc2626;color:white;border:none;border-radius:6px;cursor:pointer;font-size:13px;display:none">Disconnect</button>
     </div>
     <div id="gateway-status"></div>
-    <div style="margin-top:12px;font-size:11px;color:#555">
-      Connects to your local OpenClaw gateway via WebSocket.<br/>
-      Agent status and message flow will appear on the canvas.
-    </div>
+    <details style="margin-top:12px;font-size:12px;color:#9ca3af">
+      <summary style="cursor:pointer;color:#60a5fa;font-size:12px">📖 How to connect</summary>
+      <div style="margin-top:8px;line-height:1.6">
+        <p style="margin:0 0 6px"><strong>1. Find your Gateway token:</strong></p>
+        <code style="background:#1f1f1f;padding:2px 6px;border-radius:4px;font-size:11px">cat ~/.openclaw/openclaw.json | grep -A1 '"auth"'</code>
+        <p style="margin:8px 0 6px"><strong>2. If connecting from GitHub Pages, allow the origin:</strong></p>
+        <code style="background:#1f1f1f;padding:2px 6px;border-radius:4px;font-size:11px;word-break:break-all">openclaw config set gateway.controlUi.allowedOrigins '["https://frexida.github.io"]'</code>
+        <p style="margin:8px 0 6px"><strong>3. Restart gateway:</strong></p>
+        <code style="background:#1f1f1f;padding:2px 6px;border-radius:4px;font-size:11px">openclaw gateway restart</code>
+        <p style="margin:8px 0 0;color:#6b7280">Default URL: <code>ws://127.0.0.1:18789</code> · Paste token above and click Connect.</p>
+      </div>
+    </details>
   </div>
 
   <!-- Chat history panel -->
@@ -1617,6 +1625,12 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
         lines.push(`echo "  ✓ ${agent.name || agent.id}"`);
         lines.push('');
       }
+      lines.push('# Allow AgentFlow GitHub Pages to connect to your gateway');
+      lines.push('echo "Adding AgentFlow to gateway allowedOrigins..."');
+      lines.push('if command -v openclaw &>/dev/null; then');
+      lines.push('  openclaw config set gateway.controlUi.allowedOrigins \'["https://frexida.github.io"]\' 2>/dev/null || true');
+      lines.push('fi');
+      lines.push('');
       lines.push('echo "Done. Run: openclaw gateway config.apply"');
       return lines.join('\n') + '\n';
     }

@@ -1,0 +1,15 @@
+@import "tailwindcss";
+
+:root {
+  --surface: #1a1a2e;
+  --surface-elevated: #16213e;
+  --accent: #0f3460;
+  --accent-bright: #e94560;
+  --text-primary: #e0e0e0;
+  --text-secondary: #a0a0a0;
+}
+
+body {
+  background-color: var(--surface);
+  color: var(--text-primary);
+}

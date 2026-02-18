@@ -1,0 +1,163 @@
+'use client'
+
+import { useState, useEffect, useCallback } from 'react'
+import Link from 'next/link'
+import { useGatewayStore } from '@/stores/gateway'
+import { useSessionsStore } from '@/stores/sessions'
+
+interface OrgItem {
+  id: string
+  name: string
+  agentCount: number
+  updatedAt: string
+}
+
+const demoOrgs: OrgItem[] = [
+  { id: 'demo', name: 'AgentFlow Team', agentCount: 6, updatedAt: '2026-02-18' },
+]
+
+const statusIcons = { active: '🟢', idle: '🟡', offline: '⚫' }
+
+export default function DashboardPage() {
+  const [orgs] = useState<OrgItem[]>(demoOrgs)
+  const [creating, setCreating] = useState(false)
+  const [newName, setNewName] = useState('')
+  const { connected, refreshSessions } = useGatewayStore()
+  const { agentStats, totalSessions, activeSessions } = useSessionsStore()
+
+  const syncSessions = useCallback(async () => {
+    if (!connected) return
+    await refreshSessions()
+    const sessions = useGatewayStore.getState().sessions
+    useSessionsStore.getState().setSessions(sessions)
+  }, [connected, refreshSessions])
+
+  useEffect(() => {
+    syncSessions()
+    const timer = setInterval(syncSessions, 10000)
+    return () => clearInterval(timer)
+  }, [syncSessions])
+
+  const handleCreate = () => {
+    if (!newName.trim()) return
+    setNewName('')
+    setCreating(false)
+  }
+
+  return (
+    <div className="min-h-screen p-8">
+      <div className="max-w-5xl mx-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-2xl font-bold">Dashboard</h1>
+          <div className="flex gap-3">
+            <Link href="/settings" className="px-4 py-2 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition">
+              ⚙️ Settings
+            </Link>
+            <button
+              onClick={() => setCreating(true)}
+              className="px-4 py-2 bg-[var(--accent)] rounded-lg hover:bg-[var(--accent-bright)] transition text-sm"
+            >
+              + New Organization
+            </button>
+          </div>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-4 gap-4 mb-8">
+          <StatCard label="Total Sessions" value={totalSessions} icon="📊" />
+          <StatCard label="Active Agents" value={activeSessions} icon="🟢" />
+          <StatCard label="Total Agents" value={agentStats.length} icon="🤖" />
+          <StatCard
+            label="Gateway"
+            value={connected ? 'Connected' : 'Disconnected'}
+            icon={connected ? '🔌' : '⚡'}
+            highlight={connected}
+          />
+        </div>
+
+        {/* Agent Status Table */}
+        {agentStats.length > 0 && (
+          <div className="bg-[var(--surface-elevated)] rounded-lg border border-[var(--accent)] mb-8">
+            <div className="px-4 py-3 border-b border-[var(--accent)]">
+              <h2 className="font-semibold text-sm">Agent Status</h2>
+            </div>
+            <div className="divide-y divide-[var(--accent)]/30">
+              {agentStats.map((agent) => (
+                <div key={agent.agentId} className="flex items-center justify-between px-4 py-3">
+                  <div className="flex items-center gap-3">
+                    <span>{statusIcons[agent.status]}</span>
+                    <span className="font-medium text-sm">{agent.agentId}</span>
+                  </div>
+                  <div className="flex items-center gap-6 text-xs text-[var(--text-secondary)]">
+                    <span>{agent.sessionCount} session{agent.sessionCount !== 1 ? 's' : ''}</span>
+                    <span>{agent.lastActive ? timeAgo(agent.lastActive) : 'never'}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Create org */}
+        {creating && (
+          <div className="mb-6 p-4 bg-[var(--surface-elevated)] rounded-lg border border-[var(--accent)] flex gap-2">
+            <input
+              type="text"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
+              placeholder="Organization name..."
+              className="flex-1 bg-transparent text-[var(--text-primary)] outline-none border-b border-[var(--accent)] px-2 py-1"
+              autoFocus
+            />
+            <button onClick={handleCreate} className="px-3 py-1 bg-green-600 rounded text-sm hover:bg-green-500">Create</button>
+            <button onClick={() => setCreating(false)} className="px-3 py-1 bg-red-600/50 rounded text-sm hover:bg-red-500/50">Cancel</button>
+          </div>
+        )}
+
+        {/* Org List */}
+        <h2 className="font-semibold mb-4">Organizations</h2>
+        <div className="grid gap-4">
+          {orgs.map((org) => (
+            <Link
+              key={org.id}
+              href={`/editor/${org.id}`}
+              className="block p-6 bg-[var(--surface-elevated)] rounded-lg border border-[var(--accent)] hover:border-[var(--accent-bright)] transition group"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold group-hover:text-[var(--accent-bright)] transition">{org.name}</h3>
+                  <p className="text-sm text-[var(--text-secondary)] mt-1">
+                    {org.agentCount} agents · Updated {org.updatedAt}
+                  </p>
+                </div>
+                <span className="text-2xl opacity-50 group-hover:opacity-100 transition">→</span>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function StatCard({ label, value, icon, highlight }: { label: string; value: string | number; icon: string; highlight?: boolean }) {
+  return (
+    <div className={`bg-[var(--surface-elevated)] rounded-lg border p-4 ${highlight ? 'border-green-500/50' : 'border-[var(--accent)]'}`}>
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-2xl">{icon}</span>
+      </div>
+      <div className="text-2xl font-bold">{value}</div>
+      <div className="text-xs text-[var(--text-secondary)] mt-1">{label}</div>
+    </div>
+  )
+}
+
+function timeAgo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime()
+  if (diff < 60000) return 'just now'
+  if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`
+  if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`
+  return `${Math.floor(diff / 86400000)}d ago`
+}

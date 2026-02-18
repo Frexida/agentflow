@@ -1,0 +1,111 @@
+'use client'
+
+import { useCallback, useState } from 'react'
+import { useReactFlow } from '@xyflow/react'
+import { useOrgStore } from '@/stores/org'
+import { autoLayout } from '@/lib/auto-layout'
+import type { AgentNodeData } from '@/types/org'
+import ExportModal from './ExportModal'
+
+export default function CanvasToolbar() {
+  const { nodes, edges, addAgent, setNodes, structureMode, setStructureMode } = useOrgStore()
+  const { fitView } = useReactFlow()
+  const [adding, setAdding] = useState(false)
+  const [newName, setNewName] = useState('')
+  const [exportOpen, setExportOpen] = useState(false)
+
+  const handleAddAgent = useCallback(() => {
+    if (!newName.trim()) return
+    const id = newName.trim().toLowerCase().replace(/\s+/g, '-')
+    const data: AgentNodeData = {
+      agentId: id,
+      name: newName.trim(),
+      role: 'worker',
+      status: 'offline',
+    }
+    // Place below existing nodes
+    const maxY = nodes.reduce((max, n) => Math.max(max, n.position.y), 0)
+    addAgent(data, { x: 200 + Math.random() * 200, y: maxY + 180 })
+    setNewName('')
+    setAdding(false)
+  }, [newName, nodes, addAgent])
+
+  const handleAutoLayout = useCallback(() => {
+    const laid = autoLayout(nodes, edges, { direction: 'TB' })
+    setNodes(laid)
+    setTimeout(() => fitView({ padding: 0.2 }), 50)
+  }, [nodes, edges, setNodes, fitView])
+
+  const handleFitView = useCallback(() => {
+    fitView({ padding: 0.2 })
+  }, [fitView])
+
+  return (
+    <div className="absolute top-4 left-4 z-10 flex items-center gap-2">
+      {/* Add Agent */}
+      {adding ? (
+        <div className="flex items-center gap-1 bg-[var(--surface-elevated)] border border-[var(--accent)] rounded-lg px-2 py-1">
+          <input
+            type="text"
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleAddAgent()}
+            placeholder="Agent name..."
+            className="bg-transparent text-sm text-[var(--text-primary)] outline-none w-32"
+            autoFocus
+          />
+          <button onClick={handleAddAgent} className="text-green-400 hover:text-green-300 text-sm px-1">✓</button>
+          <button onClick={() => setAdding(false)} className="text-red-400 hover:text-red-300 text-sm px-1">✕</button>
+        </div>
+      ) : (
+        <ToolButton onClick={() => setAdding(true)} title="Add Agent">➕</ToolButton>
+      )}
+
+      {/* Auto Layout */}
+      <ToolButton onClick={handleAutoLayout} title="Auto Layout">📐</ToolButton>
+
+      {/* Fit View */}
+      <ToolButton onClick={handleFitView} title="Fit View">🔍</ToolButton>
+
+      {/* Structure Mode */}
+      <ToolButton
+        onClick={() => setStructureMode(structureMode === 'tree' ? 'graph' : 'tree')}
+        title={`Mode: ${structureMode}`}
+        active={structureMode === 'tree'}
+      >
+        {structureMode === 'tree' ? '🌲' : '🔄'}
+      </ToolButton>
+      {/* Export */}
+      <ToolButton onClick={() => setExportOpen(true)} title="Export / Import">📦</ToolButton>
+
+      <ExportModal open={exportOpen} onClose={() => setExportOpen(false)} />
+    </div>
+  )
+}
+
+function ToolButton({
+  onClick,
+  title,
+  children,
+  active,
+}: {
+  onClick: () => void
+  title: string
+  children: React.ReactNode
+  active?: boolean
+}) {
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      className={`
+        w-9 h-9 flex items-center justify-center rounded-lg text-lg
+        bg-[var(--surface-elevated)] border transition-all
+        hover:border-[var(--accent-bright)] hover:shadow-md
+        ${active ? 'border-[var(--accent-bright)] shadow-sm shadow-[var(--accent-bright)]/20' : 'border-[var(--accent)]'}
+      `}
+    >
+      {children}
+    </button>
+  )
+}

@@ -27,6 +27,7 @@ import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { useOnboarding } from '@/hooks/useOnboarding'
 import OnboardingTooltip from '@/components/canvas/OnboardingTooltip'
 import Checklist from '@/components/canvas/Checklist'
+import AuthGateModal from '@/components/canvas/AuthGateModal'
 import CommandPalette from '@/components/canvas/CommandPalette'
 import VersionPanel from '@/components/canvas/VersionPanel'
 import type { AgentNodeData } from '@/types/org'
@@ -89,6 +90,7 @@ function EditorCanvas() {
   const params = useParams()
   const designId = params.id as string
   const isDemo = designId === 'demo' || designId === 'new'
+  const [authGate, setAuthGate] = useState<string | null>(null)
   const { undo, redo } = useKeyboardShortcuts(designId)
   const onboarding = useOnboarding()
 
@@ -96,11 +98,14 @@ function EditorCanvas() {
   useEffect(() => {
     const handleUndo = () => undo()
     const handleRedo = () => redo()
+    const handleAuthGate = (e: Event) => setAuthGate((e as CustomEvent).detail || 'save')
     window.addEventListener('agentflow:undo', handleUndo)
     window.addEventListener('agentflow:redo', handleRedo)
+    window.addEventListener('agentflow:auth-gate', handleAuthGate)
     return () => {
       window.removeEventListener('agentflow:undo', handleUndo)
       window.removeEventListener('agentflow:redo', handleRedo)
+      window.removeEventListener('agentflow:auth-gate', handleAuthGate)
     }
   }, [undo, redo])
   const [editNodeId, setEditNodeId] = useState<string | null>(null)
@@ -192,6 +197,7 @@ function EditorCanvas() {
       <CommandPalette />
       <VersionPanel designId={designId} />
       <Checklist />
+      <AuthGateModal open={!!authGate} onClose={() => setAuthGate(null)} action={authGate || 'save'} />
       {onboarding.step && (
         <OnboardingTooltip
           step={onboarding.step}

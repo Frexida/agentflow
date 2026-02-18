@@ -17,7 +17,13 @@ export default function CanvasToolbar() {
   const [saving, setSaving] = useState(false)
   const [saveStatus, setSaveStatus] = useState<string | null>(null)
 
+  const isDemo = typeof window !== 'undefined' && (window.location.pathname.endsWith('/demo') || window.location.pathname.endsWith('/new'))
+
   const handleSave = useCallback(async () => {
+    if (isDemo) {
+      window.dispatchEvent(new CustomEvent('agentflow:auth-gate', { detail: 'save' }))
+      return
+    }
     setSaving(true)
     try {
       const orgId = window.location.pathname.split('/').pop() || 'demo'

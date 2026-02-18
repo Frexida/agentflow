@@ -1251,21 +1251,177 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     editor.reroute_curvature = 0.5;
     editor.start();
 
-    // --- Override createCurvature for orthogonal (step) routing ---
-    // Ports are top (input) / bottom (output), so lines go vertically.
+    // --- Smart Routing: orthogonal paths with overlap prevention ---
+    // Track connection indices per port for offset calculation
+    const _portConnectionCount = {}; // key: "nodeId:port:direction" → count
+    const _connectionOffsets = {};   // key: "srcNode:srcPort:dstNode:dstPort" → offset
+
+    function _computeConnectionOffsets() {
+      // Reset
+      for (const k in _portConnectionCount) delete _portConnectionCount[k];
+      for (const k in _connectionOffsets) delete _connectionOffsets[k];
+
+      const data = editor.export()?.drawflow?.Home?.data;
+      if (!data) return;
+
+      // Count connections per output port
+      const portGroups = {}; // "nodeId:outputClass" → [{connKey, ...}]
+      for (const [nodeId, node] of Object.entries(data)) {
+        for (const [outClass, conns] of Object.entries(node.outputs || {})) {
+          for (const conn of conns.connections || []) {
+            const key = `${nodeId}:${outClass}`;
+            if (!portGroups[key]) portGroups[key] = [];
+            portGroups[key].push({ src: nodeId, dst: conn.node, srcPort: outClass, dstPort: conn.output });
+          }
+        }
+      }
+
+      // Assign offsets: spread connections from same port
+      const OFFSET_STEP = 8;
+      for (const [, group] of Object.entries(portGroups)) {
+        if (group.length <= 1) continue;
+        const half = (group.length - 1) / 2;
+        group.forEach((c, i) => {
+          _connectionOffsets[`${c.src}:${c.srcPort}:${c.dst}:${c.dstPort}`] = (i - half) * OFFSET_STEP;
+        });
+      }
+
+      // Same for input ports
+      const inGroups = {};
+      for (const [nodeId, node] of Object.entries(data)) {
+        for (const [outClass, conns] of Object.entries(node.outputs || {})) {
+          for (const conn of conns.connections || []) {
+            const key = `${conn.node}:${conn.output}`;
+            if (!inGroups[key]) inGroups[key] = [];
+            inGroups[key].push({ src: nodeId, dst: conn.node, srcPort: outClass, dstPort: conn.output });
+          }
+        }
+      }
+      for (const [, group] of Object.entries(inGroups)) {
+        if (group.length <= 1) continue;
+        const half = (group.length - 1) / 2;
+        group.forEach((c, i) => {
+          const k = `${c.src}:${c.srcPort}:${c.dst}:${c.dstPort}:in`;
+          _connectionOffsets[k] = (i - half) * OFFSET_STEP;
+        });
+      }
+    }
+
+    // Override updateConnectionNodes to compute offsets before rendering
+    const _origUpdateConnectionNodes = editor.updateConnectionNodes.bind(editor);
+    editor.updateConnectionNodes = function(id) {
+      _computeConnectionOffsets();
+      return _origUpdateConnectionNodes(id);
+    };
+
     editor.createCurvature = function(startX, startY, endX, endY, curvature, type) {
-      // Orthogonal step path: output (bottom) → down → horizontal → down → input (top)
-      // Handle all directions: when target is above source, route around
-      const gap = 40; // minimum vertical gap before turning horizontal
-      if (endY > startY + gap) {
-        // Normal case: target is below source
+      // Try to extract connection info from the current SVG being drawn
+      // Apply offsets if available (offsets are looked up by the connection element later)
+      const gap = 40;
+      const dx = endX - startX;
+      const dy = endY - startY;
+      const absDx = Math.abs(dx);
+      const absDy = Math.abs(dy);
+      const threshold = 60;
+
+      // Start direction: output port is at bottom → initially go down
+      // End direction: input port is at top → arrive from above
+      // But we can virtually route from sides based on geometry
+
+      if (dy > gap && absDx < threshold) {
+        // Case 1: Nearly straight down — direct vertical with horizontal jog
         const midY = (startY + endY) / 2;
         return ` M ${startX} ${startY} L ${startX} ${midY} L ${endX} ${midY} L ${endX} ${endY}`;
-      } else {
-        // Target is above or at same level: route around
-        const offsetY = Math.max(startY + gap, endY + gap);
-        const offsetX = (startX < endX ? -1 : 1) * 80;
-        return ` M ${startX} ${startY} L ${startX} ${offsetY} L ${startX + offsetX} ${offsetY} L ${startX + offsetX} ${endY - gap} L ${endX} ${endY - gap} L ${endX} ${endY}`;
+      }
+
+      if (dy > gap && absDx >= threshold) {
+        // Case 2: Diagonal down — L-shape or step
+        const midY = startY + gap;
+        return ` M ${startX} ${startY} L ${startX} ${midY} L ${endX} ${midY} L ${endX} ${endY}`;
+      }
+
+      if (absDy <= gap && absDx >= threshold) {
+        // Case 3: Roughly horizontal — U-shape going down then across then up
+        const dropY = Math.max(startY, endY) + gap;
+        return ` M ${startX} ${startY} L ${startX} ${dropY} L ${endX} ${dropY} L ${endX} ${endY}`;
+      }
+
+      if (dy <= 0) {
+        // Case 4: Target is above or at same level — detour around
+        const sideDir = dx >= 0 ? 1 : -1;
+        const detourX = (dx === 0 ? sideDir : (dx > 0 ? 1 : -1));
+        const sideOffset = detourX * (Math.max(80, absDx * 0.5 + 40));
+        const belowStart = startY + gap;
+        const aboveEnd = endY - gap;
+        return ` M ${startX} ${startY} L ${startX} ${belowStart} L ${startX + sideOffset} ${belowStart} L ${startX + sideOffset} ${aboveEnd} L ${endX} ${aboveEnd} L ${endX} ${endY}`;
+      }
+
+      // Fallback: simple step
+      const midY = (startY + endY) / 2;
+      return ` M ${startX} ${startY} L ${startX} ${midY} L ${endX} ${midY} L ${endX} ${endY}`;
+    };
+
+    // After connections are rendered, apply offsets by adjusting SVG paths
+    function _applyConnectionOffsets() {
+      const data = editor.export()?.drawflow?.Home?.data;
+      if (!data) return;
+
+      for (const [nodeId, node] of Object.entries(data)) {
+        for (const [outClass, conns] of Object.entries(node.outputs || {})) {
+          for (const conn of conns.connections || []) {
+            const outKey = `${nodeId}:${outClass}:${conn.node}:${conn.output}`;
+            const inKey = outKey + ':in';
+            const srcOff = _connectionOffsets[outKey] || 0;
+            const dstOff = _connectionOffsets[inKey] || 0;
+
+            if (srcOff === 0 && dstOff === 0) continue;
+
+            // Find the SVG path for this connection
+            const sel = `.connection.node_in_node-${conn.node}.node_out_node-${nodeId}.${outClass}.${conn.output} path`;
+            const pathEl = container.querySelector(sel);
+            if (!pathEl) continue;
+
+            const d = pathEl.getAttribute('d');
+            if (!d) continue;
+
+            // Parse and offset: shift start X by srcOff, end X by dstOff
+            // The path is a series of M/L commands
+            const parts = d.trim().split(/\s+/);
+            const newParts = [];
+            let i = 0;
+            let ptIndex = 0;
+            const totalPoints = parts.filter(p => p === 'M' || p === 'L').length;
+
+            while (i < parts.length) {
+              const cmd = parts[i];
+              if (cmd === 'M' || cmd === 'L') {
+                newParts.push(cmd);
+                i++;
+                let x = parseFloat(parts[i]); i++;
+                let y = parseFloat(parts[i]); i++;
+                // First point: apply srcOff, last point: apply dstOff
+                if (ptIndex === 0) x += srcOff;
+                else if (ptIndex === totalPoints - 1) x += dstOff;
+                newParts.push(x.toString(), y.toString());
+                ptIndex++;
+              } else {
+                newParts.push(parts[i]);
+                i++;
+              }
+            }
+            pathEl.setAttribute('d', newParts.join(' '));
+          }
+        }
+      }
+    }
+
+    // Hook into Drawflow's dispatch to apply offsets after connection updates
+    const _origDispatch = editor.dispatch.bind(editor);
+    editor.dispatch = function(event, details) {
+      _origDispatch(event, details);
+      if (event === 'connectionCreated' || event === 'connectionRemoved' || event === 'nodeRemoved' || event === 'nodeMoved') {
+        _computeConnectionOffsets();
+        requestAnimationFrame(_applyConnectionOffsets);
       }
     };
 

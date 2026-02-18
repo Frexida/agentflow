@@ -28,6 +28,7 @@ import { useOnboarding } from '@/hooks/useOnboarding'
 import OnboardingTooltip from '@/components/canvas/OnboardingTooltip'
 import Checklist from '@/components/canvas/Checklist'
 import CommandPalette from '@/components/canvas/CommandPalette'
+import VersionPanel from '@/components/canvas/VersionPanel'
 import type { AgentNodeData } from '@/types/org'
 
 const nodeTypes = { agent: AgentNode, group: GroupNode }
@@ -180,6 +181,7 @@ function EditorCanvas() {
       <StatusBar />
       <SidePanel editNodeId={editNodeId} onEditClose={() => setEditNodeId(null)} />
       <CommandPalette />
+      <VersionPanel designId={designId} />
       <Checklist />
       {onboarding.step && (
         <OnboardingTooltip

@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-CONFIG_DIR="/home/openclaw/.openclaw"
+CONFIG_DIR="${HOME}/.openclaw"
 CONFIG_FILE="$CONFIG_DIR/openclaw.json"
 
 # Generate config if it doesn't exist

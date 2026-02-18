@@ -6,6 +6,7 @@ import { useOrgStore } from '@/stores/org'
 import { autoLayout } from '@/lib/auto-layout'
 import type { AgentNodeData } from '@/types/org'
 import ExportModal from './ExportModal'
+import { saveOrg } from '@/lib/api'
 
 export default function CanvasToolbar() {
   const { nodes, edges, addAgent, setNodes, structureMode, setStructureMode } = useOrgStore()
@@ -13,6 +14,42 @@ export default function CanvasToolbar() {
   const [adding, setAdding] = useState(false)
   const [newName, setNewName] = useState('')
   const [exportOpen, setExportOpen] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [saveStatus, setSaveStatus] = useState<string | null>(null)
+
+  const handleSave = useCallback(async () => {
+    setSaving(true)
+    try {
+      const orgId = window.location.pathname.split('/').pop() || 'demo'
+      await saveOrg(orgId, {
+        agents: nodes.map(n => ({
+          id: n.id,
+          agentId: (n.data as AgentNodeData).agentId,
+          name: (n.data as AgentNodeData).name,
+          role: (n.data as AgentNodeData).role,
+          model: (n.data as AgentNodeData).model,
+          icon: (n.data as AgentNodeData).icon,
+          systemPrompt: (n.data as AgentNodeData).systemPrompt,
+          positionX: n.position.x,
+          positionY: n.position.y,
+        })),
+        edges: edges.map(e => ({
+          id: e.id,
+          source: e.source,
+          target: e.target,
+          sourceHandle: e.sourceHandle || undefined,
+          targetHandle: e.targetHandle || undefined,
+        })),
+      })
+      setSaveStatus('✅ Saved')
+      setTimeout(() => setSaveStatus(null), 2000)
+    } catch {
+      setSaveStatus('❌ Failed')
+      setTimeout(() => setSaveStatus(null), 3000)
+    } finally {
+      setSaving(false)
+    }
+  }, [nodes, edges])
 
   const handleAddAgent = useCallback(() => {
     if (!newName.trim()) return
@@ -75,8 +112,17 @@ export default function CanvasToolbar() {
       >
         {structureMode === 'tree' ? '🌲' : '🔄'}
       </ToolButton>
+      {/* Save */}
+      <ToolButton onClick={handleSave} title={saving ? 'Saving...' : 'Save'}>💾</ToolButton>
+
       {/* Export */}
       <ToolButton onClick={() => setExportOpen(true)} title="Export / Import">📦</ToolButton>
+
+      {saveStatus && (
+        <span className="text-xs bg-[var(--surface-elevated)] px-2 py-1 rounded border border-[var(--accent)]">
+          {saveStatus}
+        </span>
+      )}
 
       <ExportModal open={exportOpen} onClose={() => setExportOpen(false)} />
     </div>

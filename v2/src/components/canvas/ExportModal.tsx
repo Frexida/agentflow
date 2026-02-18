@@ -5,7 +5,9 @@ import { useOrgStore } from '@/stores/org'
 import { useGatewayStore } from '@/stores/gateway'
 import { graphToConfig, configToGraph } from '@/lib/config-parser'
 
-type Tab = 'export' | 'import' | 'apply'
+import { toPng, toSvg } from 'html-to-image'
+
+type Tab = 'export' | 'import' | 'apply' | 'image'
 
 export default function ExportModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { nodes, edges, setNodes, setEdges } = useOrgStore()
@@ -77,8 +79,38 @@ export default function ExportModal({ open, onClose }: { open: boolean; onClose:
     }
   }
 
+  const handleExportImage = async (format: 'png' | 'svg') => {
+    const el = document.querySelector('.react-flow') as HTMLElement
+    if (!el) { setStatus('Canvas not found'); return }
+    try {
+      setStatus(`Generating ${format.toUpperCase()}...`)
+      const opts = { backgroundColor: '#0a0a0a', quality: 1, pixelRatio: 2 }
+      const dataUrl = format === 'png' ? await toPng(el, opts) : await toSvg(el, opts)
+      const link = document.createElement('a')
+      link.download = `agentflow-org.${format}`
+      link.href = dataUrl
+      link.click()
+      setStatus(`✅ ${format.toUpperCase()} downloaded!`)
+      setTimeout(() => setStatus(null), 2000)
+    } catch (e) {
+      setStatus(`Error: ${e instanceof Error ? e.message : 'Export failed'}`)
+    }
+  }
+
+  const handleExportJSON = () => {
+    const data = JSON.stringify({ nodes, edges }, null, 2)
+    const blob = new Blob([data], { type: 'application/json' })
+    const link = document.createElement('a')
+    link.download = 'agentflow-org.json'
+    link.href = URL.createObjectURL(blob)
+    link.click()
+    setStatus('✅ JSON downloaded!')
+    setTimeout(() => setStatus(null), 2000)
+  }
+
   const tabs: { key: Tab; label: string }[] = [
-    { key: 'export', label: '📤 Export' },
+    { key: 'export', label: '📤 YAML' },
+    { key: 'image', label: '🖼️ Image' },
     { key: 'import', label: '📥 Import' },
     { key: 'apply', label: '🚀 Apply' },
   ]
@@ -112,6 +144,31 @@ export default function ExportModal({ open, onClose }: { open: boolean; onClose:
               <div className="mt-3 flex gap-2">
                 <button onClick={handleCopy} className="px-4 py-2 bg-[var(--accent)] rounded text-sm hover:bg-[var(--accent-bright)] transition">
                   📋 Copy YAML
+                </button>
+              </div>
+            </div>
+          )}
+
+          {tab === 'image' && (
+            <div>
+              <p className="text-sm text-[var(--text-secondary)] mb-4">
+                Export your organization design as an image for presentations and documentation.
+              </p>
+              <div className="grid grid-cols-3 gap-3">
+                <button onClick={() => handleExportImage('png')} className="flex flex-col items-center gap-2 p-4 bg-[var(--surface)] border border-[var(--border)] rounded-lg hover:border-[var(--accent-bright)] transition">
+                  <span className="text-2xl">🖼️</span>
+                  <span className="text-sm font-medium text-[var(--text-primary)]">PNG</span>
+                  <span className="text-[10px] text-[var(--text-secondary)]">High-res image</span>
+                </button>
+                <button onClick={() => handleExportImage('svg')} className="flex flex-col items-center gap-2 p-4 bg-[var(--surface)] border border-[var(--border)] rounded-lg hover:border-[var(--accent-bright)] transition">
+                  <span className="text-2xl">📐</span>
+                  <span className="text-sm font-medium text-[var(--text-primary)]">SVG</span>
+                  <span className="text-[10px] text-[var(--text-secondary)]">Vector / scalable</span>
+                </button>
+                <button onClick={handleExportJSON} className="flex flex-col items-center gap-2 p-4 bg-[var(--surface)] border border-[var(--border)] rounded-lg hover:border-[var(--accent-bright)] transition">
+                  <span className="text-2xl">📄</span>
+                  <span className="text-sm font-medium text-[var(--text-primary)]">JSON</span>
+                  <span className="text-[10px] text-[var(--text-secondary)]">Raw data</span>
                 </button>
               </div>
             </div>

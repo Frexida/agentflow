@@ -99,6 +99,6 @@ export async function listGateways(): Promise<Machine[]> {
 /**
  * Get the public WSS URL for a user's gateway
  */
-export function getGatewayUrl(machineName: string): string {
-  return `wss://${machineName}.${FLY_APP}.fly.dev`
+export function getGatewayUrl(_machineName: string): string {
+  return `wss://${FLY_APP}.fly.dev`
 }

@@ -11,10 +11,12 @@ if [ ! -f "$CONFIG_FILE" ]; then
   cat > "$CONFIG_FILE" << EOF
 {
   "gateway": {
-    "token": "$TOKEN",
     "mode": "local",
     "bind": "lan",
-    "port": 18789
+    "port": 18789,
+    "auth": {
+      "token": "$TOKEN"
+    }
   },
   "providers": {
     "anthropic": {

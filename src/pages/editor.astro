@@ -237,7 +237,9 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     .drawflow .connection .main-path {
       stroke: #ef4444 !important;
       stroke-width: 2 !important;
-      stroke-linecap: round !important;
+      stroke-linecap: square !important;
+      stroke-linejoin: round !important;
+      fill: none !important;
       marker-end: url(#arrow-authority) !important;
       transition: stroke-width 200ms, filter 200ms;
     }
@@ -947,11 +949,19 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     // --- Drawflow init ---
     const container = document.getElementById('drawflow');
     const editor = new Drawflow(container);
-    editor.reroute = true;
+    editor.reroute = false;
     editor.curvature = 0.5;
     editor.reroute_curvature_start_end = 0.5;
     editor.reroute_curvature = 0.5;
     editor.start();
+
+    // --- Override createCurvature for orthogonal (step) routing ---
+    // Ports are top (input) / bottom (output), so lines go vertically.
+    editor.createCurvature = function(startX, startY, endX, endY, curvature, type) {
+      // Orthogonal step path: down from output, horizontal, then down to input
+      const midY = (startY + endY) / 2;
+      return ` M ${startX} ${startY} L ${startX} ${midY} L ${endX} ${midY} L ${endX} ${endY}`;
+    };
 
     // --- Helpers ---
     function uid() { return 'a' + crypto.randomUUID().slice(0, 8); }

@@ -83,7 +83,7 @@ export default function CanvasToolbar() {
   }, [fitView])
 
   return (
-    <div className="absolute top-4 left-4 z-10 flex items-center gap-2">
+    <div className="absolute top-4 left-[220px] z-10 flex items-center gap-2">
       {/* Add Agent */}
       {adding ? (
         <div className="flex items-center gap-1 bg-[var(--surface-elevated)] border border-[var(--border)] rounded-lg px-2 py-1">

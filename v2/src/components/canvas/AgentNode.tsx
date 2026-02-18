@@ -58,10 +58,12 @@ function AgentNodeComponent({ data, selected }: NodeProps<AgentNode>) {
         </div>
       )}
 
-      {/* Last activity placeholder */}
-      <div className="text-[10px] text-[var(--text-secondary)] opacity-50 mt-1">
-        last: --:--:--
-      </div>
+      {/* Last activity - only show when connected */}
+      {data.status === 'active' && (
+        <div className="text-[10px] text-[var(--text-secondary)] opacity-50 mt-1">
+          ● active
+        </div>
+      )}
     </div>
   )
 }

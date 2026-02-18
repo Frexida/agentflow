@@ -33,6 +33,11 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   const { pathname } = request.nextUrl
 
+  // Allow unauthenticated access to demo editor (read-only experience)
+  if (!user && pathname === '/editor/demo') {
+    return supabaseResponse
+  }
+
   // Redirect unauthenticated users from protected routes
   if (!user && protectedRoutes.some(r => pathname.startsWith(r))) {
     const url = request.nextUrl.clone()

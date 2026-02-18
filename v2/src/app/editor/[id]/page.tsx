@@ -88,6 +88,7 @@ function EditorCanvas() {
   useSessionMonitor(connected)
   const params = useParams()
   const designId = params.id as string
+  const isDemo = designId === 'demo' || designId === 'new'
   const { undo, redo } = useKeyboardShortcuts(designId)
   const onboarding = useOnboarding()
 
@@ -180,6 +181,14 @@ function EditorCanvas() {
       )}
       <StatusBar />
       <SidePanel editNodeId={editNodeId} onEditClose={() => setEditNodeId(null)} />
+      {isDemo && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-40 px-4 py-2 bg-[var(--surface-elevated)] border border-[var(--accent-bright)] rounded-lg text-xs text-[var(--text-secondary)] flex items-center gap-3 shadow-lg">
+          <span>🎮 Demo mode — designs won&apos;t be saved</span>
+          <a href="/login" className="px-3 py-1 bg-[var(--accent-bright)] text-white rounded text-xs font-medium hover:brightness-110 transition">
+            Sign in for full access
+          </a>
+        </div>
+      )}
       <CommandPalette />
       <VersionPanel designId={designId} />
       <Checklist />

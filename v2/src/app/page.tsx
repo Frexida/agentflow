@@ -92,8 +92,8 @@ export default function Home() {
             <Link href="/editor/demo" className="px-8 py-3.5 bg-[var(--accent-bright)] text-white rounded-lg hover:brightness-110 transition font-semibold text-lg shadow-lg shadow-[var(--accent-bright)]/20">
               Try the Editor →
             </Link>
-            <Link href="/dashboard" className="px-8 py-3.5 border border-[var(--border)] rounded-lg hover:border-[var(--accent-bright)] hover:text-[var(--accent-bright)] transition font-semibold text-lg">
-              Dashboard
+            <Link href="/login" className="px-8 py-3.5 border border-[var(--border)] rounded-lg hover:border-[var(--accent-bright)] hover:text-[var(--accent-bright)] transition font-semibold text-lg">
+              Sign in to Save & Chat
             </Link>
           </div>
 

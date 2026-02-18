@@ -4,6 +4,11 @@ primary_region = "nrt"
 [build]
   dockerfile = "Dockerfile.gateway"
 
+[[vm]]
+  memory = "512mb"
+  cpu_kind = "shared"
+  cpus = 1
+
 [[services]]
   internal_port = 18789
   protocol = "tcp"

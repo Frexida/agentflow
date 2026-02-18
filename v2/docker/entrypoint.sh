@@ -7,7 +7,9 @@ cat > /root/.openclaw/openclaw.json <<EOF
 {
   "version": 1,
   "gateway": {
-    "token": "${OPENCLAW_TOKEN}",
+    "auth": {
+      "token": "${OPENCLAW_TOKEN}"
+    },
     "host": "0.0.0.0",
     "port": 18789,
     "allowedOrigins": ["https://agentflow-l42k.vercel.app", "https://agentflow.dev"]
@@ -24,5 +26,8 @@ cat > /root/.openclaw/openclaw.json <<EOF
 }
 EOF
 
-# Start gateway directly
-exec openclaw gateway --port 18789 --bind custom --custom-host 0.0.0.0
+# Find openclaw's dist/index.js
+OPENCLAW_INDEX=$(node -e "console.log(require.resolve('openclaw/dist/index.js'))")
+
+# Start gateway directly (no systemd needed)
+exec node "$OPENCLAW_INDEX" gateway --port 18789

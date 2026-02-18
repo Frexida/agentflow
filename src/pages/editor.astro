@@ -1470,42 +1470,12 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       return _origUpdateConnectionNodes(id);
     };
 
-    // Context for createCurvature to know which ports are connected
-    let _curvePortContext = null; // { outClass, inClass }
-
     editor.createCurvature = function(startX, startY, endX, endY, curvature, type) {
       const gap = 40;
       const dx = endX - startX;
       const dy = endY - startY;
       const absDx = Math.abs(dx);
       const absDy = Math.abs(dy);
-
-      // Detect horizontal connection (output_2 → input_2)
-      const isHorizontal = _curvePortContext &&
-        _curvePortContext.outClass === 'output_2' && _curvePortContext.inClass === 'input_2';
-
-      if (isHorizontal) {
-        // Horizontal routing: start goes right, end arrives from left
-        const hGap = 40;
-        if (dx > hGap && absDy < 60) {
-          // Nearly straight horizontal
-          const midX = (startX + endX) / 2;
-          return ` M ${startX} ${startY} L ${midX} ${startY} L ${midX} ${endY} L ${endX} ${endY}`;
-        }
-        if (dx > hGap) {
-          // Diagonal — step shape
-          const midX = startX + hGap;
-          return ` M ${startX} ${startY} L ${midX} ${startY} L ${midX} ${endY} L ${endX} ${endY}`;
-        }
-        // Target is to the left or same X — detour
-        const sideDir = dy >= 0 ? 1 : -1;
-        const sideOffset = sideDir * (Math.max(80, absDy * 0.5 + 40));
-        const rightOfStart = startX + hGap;
-        const leftOfEnd = endX - hGap;
-        return ` M ${startX} ${startY} L ${rightOfStart} ${startY} L ${rightOfStart} ${startY + sideOffset} L ${leftOfEnd} ${startY + sideOffset} L ${leftOfEnd} ${endY} L ${endX} ${endY}`;
-      }
-
-      // Vertical routing (output_1 → input_1, default)
       const threshold = 60;
 
       if (dy > gap && absDx < threshold) {
@@ -1590,13 +1560,78 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       }
     }
 
+    // Rewrite paths for horizontal connections (output_2 → input_2)
+    function _rewriteHorizontalPaths() {
+      const precanvas = editor.precanvas;
+      const zoom = editor.zoom;
+      const u = precanvas.clientWidth / (precanvas.clientWidth * zoom) || 0;
+      const p = precanvas.clientHeight / (precanvas.clientHeight * zoom) || 0;
+
+      // Find all connections using output_2 and input_2
+      const hConns = container.querySelectorAll('.connection.output_2.input_2');
+      hConns.forEach(connEl => {
+        const pathEl = connEl.querySelector('path.main-path');
+        if (!pathEl) return;
+
+        // Extract node IDs from classes
+        let outNodeId = '', inNodeId = '';
+        connEl.classList.forEach(cls => {
+          if (cls.startsWith('node_out_node-')) outNodeId = cls.replace('node_out_', '');
+          if (cls.startsWith('node_in_node-')) inNodeId = cls.replace('node_in_', '');
+        });
+        if (!outNodeId || !inNodeId) return;
+
+        // Get port elements
+        const outNodeEl = container.querySelector('#' + outNodeId);
+        const inNodeEl = container.querySelector('#' + inNodeId);
+        if (!outNodeEl || !inNodeEl) return;
+
+        const outPort = outNodeEl.querySelector('.output.output_2');
+        const inPort = inNodeEl.querySelector('.input.input_2');
+        if (!outPort || !inPort) return;
+
+        // Calculate port positions (same as Drawflow does)
+        const startX = outPort.offsetWidth / 2 + (outPort.getBoundingClientRect().x - precanvas.getBoundingClientRect().x) * u;
+        const startY = outPort.offsetHeight / 2 + (outPort.getBoundingClientRect().y - precanvas.getBoundingClientRect().y) * p;
+        const endX = inPort.offsetWidth / 2 + (inPort.getBoundingClientRect().x - precanvas.getBoundingClientRect().x) * u;
+        const endY = inPort.offsetHeight / 2 + (inPort.getBoundingClientRect().y - precanvas.getBoundingClientRect().y) * p;
+
+        // Generate horizontal step-line path
+        const gap = 40;
+        const dx = endX - startX;
+        const dy = endY - startY;
+        const absDy = Math.abs(dy);
+        let d;
+
+        if (dx > gap && absDy < 60) {
+          const midX = (startX + endX) / 2;
+          d = ` M ${startX} ${startY} L ${midX} ${startY} L ${midX} ${endY} L ${endX} ${endY}`;
+        } else if (dx > gap) {
+          const midX = startX + gap;
+          d = ` M ${startX} ${startY} L ${midX} ${startY} L ${midX} ${endY} L ${endX} ${endY}`;
+        } else {
+          // Target is left or same — detour around
+          const sideDir = dy >= 0 ? 1 : -1;
+          const sideOffset = sideDir * Math.max(80, absDy * 0.5 + 40);
+          const rightOfStart = startX + gap;
+          const leftOfEnd = endX - gap;
+          d = ` M ${startX} ${startY} L ${rightOfStart} ${startY} L ${rightOfStart} ${startY + sideOffset} L ${leftOfEnd} ${startY + sideOffset} L ${leftOfEnd} ${endY} L ${endX} ${endY}`;
+        }
+
+        pathEl.setAttributeNS(null, 'd', d);
+      });
+    }
+
     // Hook into Drawflow's dispatch to apply offsets after connection updates
     const _origDispatch = editor.dispatch.bind(editor);
     editor.dispatch = function(event, details) {
       _origDispatch(event, details);
       if (event === 'connectionCreated' || event === 'connectionRemoved' || event === 'nodeRemoved' || event === 'nodeMoved') {
         _computeConnectionOffsets();
-        requestAnimationFrame(_applyConnectionOffsets);
+        requestAnimationFrame(() => {
+          _applyConnectionOffsets();
+          _rewriteHorizontalPaths();
+        });
       }
     };
 
@@ -1774,9 +1809,50 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
           editor.updateConnectionNodes('node-' + nodeId);
         }
       }
+      // Re-route connections to optimal ports based on new position
+      rerouteConnectionsForNode(nodeId);
       scheduleSave();
       scheduleOverlayUpdate();
     });
+
+    function rerouteConnectionsForNode(nodeId) {
+      const data = editor.drawflow.drawflow[editor.module].data;
+      const node = data[nodeId];
+      if (!node) return;
+      const toReroute = [];
+
+      // Check outgoing connections
+      for (const [outClass, output] of Object.entries(node.outputs || {})) {
+        for (const conn of (output.connections || [])) {
+          const [bestOut, bestIn] = bestPorts(nodeId, conn.node);
+          if (outClass !== bestOut || conn.output !== bestIn) {
+            toReroute.push({ src: nodeId, tgt: conn.node, oldOut: outClass, oldIn: conn.output, newOut: bestOut, newIn: bestIn });
+          }
+        }
+      }
+
+      // Check incoming connections
+      for (const [inClass, input] of Object.entries(node.inputs || {})) {
+        for (const conn of (input.connections || [])) {
+          const [bestOut, bestIn] = bestPorts(conn.node, nodeId);
+          if (conn.input !== bestOut || inClass !== bestIn) {
+            toReroute.push({ src: conn.node, tgt: nodeId, oldOut: conn.input, oldIn: inClass, newOut: bestOut, newIn: bestIn });
+          }
+        }
+      }
+
+      _rerouteInProgress = true;
+      try {
+        for (const r of toReroute) {
+          try {
+            editor.removeSingleConnection(r.src, r.tgt, r.oldOut, r.oldIn);
+            editor.addConnection(r.src, r.tgt, r.newOut, r.newIn);
+          } catch(e) {}
+        }
+      } finally {
+        _rerouteInProgress = false;
+      }
+    }
 
     editor.on('nodeSelected', function(nodeId) {
       // single click - no action
@@ -1844,8 +1920,8 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     });
 
     // --- 4-port auto-routing ---
-    function bestPorts(srcId, tgtId) {
-      const data = editor.drawflow.drawflow[editor.module].data;
+    function bestPorts(srcId, tgtId, rawData) {
+      const data = rawData || editor.drawflow.drawflow[editor.module].data;
       const src = data[srcId];
       const tgt = data[tgtId];
       if (!src || !tgt) return ['output_1', 'input_1'];
@@ -2204,6 +2280,37 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
         data[id].pos_x = snapped.x;
         data[id].pos_y = snapped.y;
       });
+
+      // Re-route connections to optimal ports based on new layout
+      for (const id of nodeIds) {
+        const node = data[id];
+        const toMove = [];
+        for (const [outClass, output] of Object.entries(node.outputs || {})) {
+          for (const conn of (output.connections || [])) {
+            const [bestOut, bestIn] = bestPorts(id, conn.node);
+            if (outClass !== bestOut || conn.output !== bestIn) {
+              toMove.push({ tgt: conn.node, oldOut: outClass, oldIn: conn.output, newOut: bestOut, newIn: bestIn });
+            }
+          }
+        }
+        for (const m of toMove) {
+          // Move connection from old ports to new ports in data
+          const oldOutConns = node.outputs[m.oldOut]?.connections || [];
+          const idx = oldOutConns.findIndex(c => String(c.node) === String(m.tgt) && c.output === m.oldIn);
+          if (idx >= 0) oldOutConns.splice(idx, 1);
+          if (!node.outputs[m.newOut]) node.outputs[m.newOut] = { connections: [] };
+          node.outputs[m.newOut].connections.push({ node: m.tgt, output: m.newIn });
+          // Also fix input side
+          const tgtNode = data[m.tgt];
+          if (tgtNode) {
+            const oldInConns = tgtNode.inputs[m.oldIn]?.connections || [];
+            const iIdx = oldInConns.findIndex(c => String(c.node) === String(id) && c.input === m.oldOut);
+            if (iIdx >= 0) oldInConns.splice(iIdx, 1);
+            if (!tgtNode.inputs[m.newIn]) tgtNode.inputs[m.newIn] = { connections: [] };
+            tgtNode.inputs[m.newIn].connections.push({ node: id, input: m.newOut });
+          }
+        }
+      }
 
       editor.import({ drawflow: { Home: { data } } });
       // Re-apply colors after import
@@ -2765,6 +2872,41 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
         nodeToAgent = state.nodeToAgent || {};
         connectionTypes = state.connectionTypes || {};
         if (state.drawflow) {
+          // Migrate old nodes from 1 input/1 output to 2/2
+          const data = state.drawflow?.drawflow?.Home?.data;
+          if (data) {
+            for (const [nid, node] of Object.entries(data)) {
+              if (!node.inputs.input_2) node.inputs.input_2 = { connections: [] };
+              if (!node.outputs.output_2) node.outputs.output_2 = { connections: [] };
+            }
+            // Re-route existing connections to optimal ports
+            for (const [nid, node] of Object.entries(data)) {
+              const toMove = [];
+              for (const [outClass, output] of Object.entries(node.outputs || {})) {
+                for (const conn of (output.connections || [])) {
+                  const [bestOut, bestIn] = bestPorts(nid, conn.node, data);
+                  if (outClass !== bestOut || conn.output !== bestIn) {
+                    toMove.push({ tgt: conn.node, oldOut: outClass, oldIn: conn.output, newOut: bestOut, newIn: bestIn });
+                  }
+                }
+              }
+              for (const m of toMove) {
+                const oldOutConns = node.outputs[m.oldOut]?.connections || [];
+                const idx = oldOutConns.findIndex(c => String(c.node) === String(m.tgt) && c.output === m.oldIn);
+                if (idx >= 0) oldOutConns.splice(idx, 1);
+                if (!node.outputs[m.newOut]) node.outputs[m.newOut] = { connections: [] };
+                node.outputs[m.newOut].connections.push({ node: m.tgt, output: m.newIn });
+                const tgtNode = data[m.tgt];
+                if (tgtNode) {
+                  const oldInConns = tgtNode.inputs[m.oldIn]?.connections || [];
+                  const iIdx = oldInConns.findIndex(c => String(c.node) === String(nid) && c.input === m.oldOut);
+                  if (iIdx >= 0) oldInConns.splice(iIdx, 1);
+                  if (!tgtNode.inputs[m.newIn]) tgtNode.inputs[m.newIn] = { connections: [] };
+                  tgtNode.inputs[m.newIn].connections.push({ node: nid, input: m.newOut });
+                }
+              }
+            }
+          }
           editor.import(state.drawflow);
           setTimeout(() => { applyAllConnectionColors(); renderGroupOverlays(); }, 100);
         }

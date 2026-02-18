@@ -20,7 +20,11 @@ if [ ! -f "$CONFIG_FILE" ]; then
     "port": 18789,
     "auth": {
       "token": "$TOKEN"
-    }
+    },
+    "controlUi": {
+      "allowedOrigins": ["*"]
+    },
+    "trustedProxies": ["172.16.0.0/12", "10.0.0.0/8"]
   }
 }
 EOF

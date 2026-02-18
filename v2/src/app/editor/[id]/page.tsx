@@ -19,6 +19,7 @@ import NodeEditModal from '@/components/canvas/NodeEditModal'
 import NodeContextMenu from '@/components/canvas/NodeContextMenu'
 import ChatPanel from '@/components/chat/ChatPanel'
 import TimelinePanel from '@/components/canvas/TimelinePanel'
+import StatusBar from '@/components/canvas/StatusBar'
 import { useOrgStore } from '@/stores/org'
 import { useGatewayStore } from '@/stores/gateway'
 import { useSessionMonitor } from '@/lib/session-monitor'
@@ -136,6 +137,7 @@ function EditorCanvas() {
       )}
       <ChatPanel open={chatOpen} onClose={() => setChatOpen(false)} />
       <TimelinePanel open={timelineOpen} onClose={() => setTimelineOpen(false)} />
+      <StatusBar />
       {/* Float buttons */}
       <div className="fixed bottom-4 right-4 z-30 flex flex-col gap-2">
         <button

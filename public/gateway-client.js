@@ -171,6 +171,10 @@ class GatewayClient extends EventTarget {
     return await this.rpc('chat.history', { sessionKey, limit });
   }
 
+  async getConfig() {
+    return await this.rpc('config.get', {});
+  }
+
   async sendMessage(sessionKey, message) {
     return await this.rpc('chat.send', { sessionKey, message, idempotencyKey: crypto.randomUUID() });
   }

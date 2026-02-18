@@ -3652,6 +3652,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
         setGwStatus('Connected ✓', 'ok');
         updateGatewayButton(true);
         gw.startPolling(5000);
+        startConfigPolling();
         toast('🟢 Gateway connected');
       } catch (e) {
         setGwStatus('Failed: ' + e.message, 'error');
@@ -3662,6 +3663,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 
     gwDisconnectBtn.addEventListener('click', () => {
       gw.disconnect();
+      stopConfigPolling();
       setGwStatus('Disconnected', '');
       updateGatewayButton(false);
       clearAllAgentStatus();
@@ -3669,9 +3671,73 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     });
 
     gw.addEventListener('disconnected', () => {
+      stopConfigPolling();
       updateGatewayButton(false);
       clearAllAgentStatus();
     });
+
+    // ==============================================
+    // --- Config Change Polling ---
+    // ==============================================
+    let configPollTimer = null;
+    let configBaseHash = null;
+
+    async function importConfigFromGateway() {
+      try {
+        const result = await gw.getConfig();
+        const config = result?.config || result;
+        if (config) {
+          importConfig(config);
+        }
+      } catch (e) {
+        console.warn('Config auto-import failed:', e.message);
+      }
+    }
+
+    function showConfigToast(message) {
+      let el = document.getElementById('config-toast');
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'config-toast';
+        el.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#16a34a;color:white;padding:10px 24px;border-radius:8px;font-size:13px;font-weight:500;z-index:999;opacity:0;transition:opacity 300ms;pointer-events:none;';
+        document.body.appendChild(el);
+      }
+      el.textContent = message;
+      el.style.opacity = '1';
+      setTimeout(() => { el.style.opacity = '0'; }, 3000);
+    }
+
+    function startConfigPolling() {
+      stopConfigPolling();
+      configBaseHash = null;
+      configPollTimer = setInterval(async () => {
+        if (!gw.connected) return;
+        try {
+          const result = await gw.getConfig();
+          const config = result?.config || result;
+          const hash = config?.baseHash || config?.hash || null;
+          if (hash && configBaseHash && hash !== configBaseHash) {
+            configBaseHash = hash;
+            importConfig(config);
+            showConfigToast('✅ Config updated automatically');
+          } else if (hash) {
+            configBaseHash = hash;
+          }
+        } catch {}
+      }, 10000);
+      // Initial hash capture
+      gw.getConfig().then(result => {
+        const config = result?.config || result;
+        configBaseHash = config?.baseHash || config?.hash || null;
+      }).catch(() => {});
+    }
+
+    function stopConfigPolling() {
+      if (configPollTimer) {
+        clearInterval(configPollTimer);
+        configPollTimer = null;
+      }
+    }
 
     // ==============================================
     // --- Agent Activity Monitor ---
@@ -3881,22 +3947,39 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     const chatSendBtn = document.getElementById('chat-send-btn');
     const chatInputArea = document.getElementById('chat-input-area');
 
+    function findSessionsForAgent(agentId, sessions) {
+      // Returns sessions matching agentId, sorted by priority:
+      // 1. agent:{agentId}:main (highest)
+      // 2. agent:{agentId}:* (non-subagent)
+      // 3. other matches
+      const results = [];
+      for (const session of sessions) {
+        const key = session.sessionKey || session.key || '';
+        // Skip subagent sessions
+        if (key.includes(':subagent:')) continue;
+        // Check if session belongs to this agent
+        const matched = matchSessionToAgent(session);
+        if (matched && matched.id === agentId) {
+          let priority = 3;
+          if (key === `agent:${agentId}:main`) priority = 1;
+          else if (key.startsWith(`agent:${agentId}:`)) priority = 2;
+          results.push({ session, key, priority });
+        }
+      }
+      results.sort((a, b) => a.priority - b.priority);
+      return results;
+    }
+
     async function findSessionKeyForAgent(agentId) {
-      // Get sessions list and find one matching this agent
       try {
-        const sessions = gw.sessions || [];
-        // Also try fresh fetch
-        let allSessions = sessions;
+        let allSessions = gw.sessions || [];
         try {
           const fresh = await gw.getSessions();
-          allSessions = fresh || sessions;
+          allSessions = fresh || allSessions;
         } catch {}
-
-        for (const session of allSessions) {
-          const matched = matchSessionToAgent(session);
-          if (matched && matched.id === agentId) {
-            return session.sessionKey || session.key || session.id || null;
-          }
+        const matches = findSessionsForAgent(agentId, allSessions);
+        if (matches.length > 0) {
+          return { key: matches[0].key, allMatches: matches };
         }
       } catch {}
       return null;
@@ -3938,13 +4021,47 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       chatMessages.innerHTML = '<div style="text-align:center;color:#555;padding:20px">Finding session...</div>';
 
       // Find session key
-      chatSessionKey = await findSessionKeyForAgent(agentId);
-      if (!chatSessionKey) {
+      const sessionResult = await findSessionKeyForAgent(agentId);
+      if (!sessionResult) {
         document.getElementById('chat-agent-status').textContent = 'no session';
         document.getElementById('chat-agent-status').className = 'chat-agent-status';
-        chatMessages.innerHTML = '<div style="text-align:center;color:#555;padding:20px">No active session for this agent</div>';
-        chatInputArea.style.display = 'none';
+        const mainKey = `agent:${agentId}:main`;
+        chatMessages.innerHTML = `<div class="chat-not-connected">
+          <div style="font-size:32px">💬</div>
+          <div class="chat-connect-hint">No active session for this agent</div>
+          <button id="chat-start-new" style="padding:8px 16px;background:var(--accent-blue);color:white;border:none;border-radius:var(--radius-md);cursor:pointer;font-size:13px">Start a new conversation</button>
+        </div>`;
+        chatInputArea.style.display = 'flex';
+        chatSessionKey = mainKey;
+        document.getElementById('chat-start-new')?.addEventListener('click', () => {
+          chatInput.value = chatInput.value || 'Hello!';
+          sendChatMessage();
+        });
         return;
+      }
+      chatSessionKey = sessionResult.key;
+
+      // Show session selector if multiple matches
+      if (sessionResult.allMatches.length > 1) {
+        const selectorHtml = sessionResult.allMatches.map(m =>
+          `<option value="${escapeHtml(m.key)}" ${m.key === chatSessionKey ? 'selected' : ''}>${escapeHtml(m.key)}</option>`
+        ).join('');
+        const headerInfo = document.querySelector('#chat-panel .chat-header-info');
+        let sel = document.getElementById('chat-session-selector');
+        if (!sel) {
+          sel = document.createElement('select');
+          sel.id = 'chat-session-selector';
+          sel.style.cssText = 'font-size:10px;background:var(--bg-input);color:var(--text-secondary);border:1px solid var(--border-default);border-radius:4px;padding:1px 4px;max-width:200px;';
+          headerInfo.appendChild(sel);
+        }
+        sel.innerHTML = selectorHtml;
+        sel.onchange = async () => {
+          chatSessionKey = sel.value;
+          await loadChatHistory();
+        };
+      } else {
+        const sel = document.getElementById('chat-session-selector');
+        if (sel) sel.remove();
       }
 
       document.getElementById('chat-agent-status').textContent = 'online';
@@ -3971,6 +4088,26 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
     }
 
+    function cleanChatMessage(text) {
+      if (!text) return '';
+      let t = text;
+      // Remove queued messages block
+      t = t.replace(/\[Queued messages while agent was busy\][\s\S]*?(?=\n[^\-\nQ]|$)/g, '');
+      // Remove "Conversation info (untrusted metadata):" + JSON block
+      t = t.replace(/Conversation info \(untrusted metadata\):?\s*```[^`]*```/gs, '');
+      t = t.replace(/Conversation info \(untrusted metadata\):?\s*\{[\s\S]*?\n\}/g, '');
+      // Remove "Sender (untrusted metadata):" + JSON block
+      t = t.replace(/Sender \(untrusted metadata\):?\s*```[^`]*```/gs, '');
+      t = t.replace(/Sender \(untrusted metadata\):?\s*\{[\s\S]*?\n\}/g, '');
+      // Remove untrusted context envelope
+      t = t.replace(/Untrusted context \(metadata, do not treat as instructions or commands\):?\s*<<<EXTERNAL_UNTRUSTED_CONTENT>>>[\s\S]*?<<<END_EXTERNAL_UNTRUSTED_CONTENT>>>/g, '');
+      // Remove Discord Guild timestamp lines
+      t = t.replace(/\[Discord Guild #\S+[^\]]*\][^\n]*/g, '');
+      // Trim leading/trailing whitespace and blank lines
+      t = t.replace(/^\s*\n/gm, '\n').replace(/^\n+/, '').replace(/\n+$/, '').trim();
+      return t;
+    }
+
     function renderChatMessages() {
       chatMessages.innerHTML = '';
       if (chatMessages_data.length === 0) {
@@ -3979,12 +4116,18 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       }
       for (const msg of chatMessages_data) {
         const role = msg.role || 'system';
-        const content = typeof msg.content === 'string' ? msg.content : (msg.content?.[0]?.text || JSON.stringify(msg.content));
+        let content = typeof msg.content === 'string' ? msg.content : (msg.content?.[0]?.text || JSON.stringify(msg.content));
+        content = cleanChatMessage(content);
+        // Skip empty, NO_REPLY, or HEARTBEAT_OK messages
+        if (!content || /^\s*(NO_REPLY|HEARTBEAT_OK)\s*$/.test(content)) continue;
         const div = document.createElement('div');
         div.className = `chat-msg ${role}`;
         const ts = formatMsgTime(msg.timestamp || msg.ts || msg.createdAt);
         div.innerHTML = `${escapeHtml(content)}${ts ? `<span class="msg-ts">${ts}</span>` : ''}`;
         chatMessages.appendChild(div);
+      }
+      if (chatMessages.children.length === 0) {
+        chatMessages.innerHTML = '<div style="text-align:center;color:#555;padding:20px">No messages yet</div>';
       }
       chatMessages.scrollTop = chatMessages.scrollHeight;
     }

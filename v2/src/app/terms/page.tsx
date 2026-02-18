@@ -223,11 +223,14 @@ export default function TermsPage() {
           <section>
             <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-3">15. Contact</h2>
             <p>
-              Questions? Open an issue on
+              Questions? Open an issue on{' '}
               <a href="https://github.com/Frexida/agentflow" className="text-[var(--accent-bright)] hover:underline" target="_blank" rel="noopener">
                 GitHub
-              </a>
-              
+              </a>{' '}
+              or email us at{' '}
+              <a href="mailto:admin@frexida.com" className="text-[var(--accent-bright)] hover:underline">
+                admin@frexida.com
+              </a>.
             </p>
           </section>
         </div>

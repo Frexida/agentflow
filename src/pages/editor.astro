@@ -500,7 +500,8 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       border-radius: var(--radius-pill);
       background: var(--border-default);
       border: 1.5px solid var(--text-muted);
-      transition: background var(--duration-slow) var(--ease-out);
+      transition: background var(--duration-slow) var(--ease-out),
+                  box-shadow var(--duration-slow) var(--ease-out);
     }
     .agent-card .agent-status.active {
       background: var(--accent-green);
@@ -508,10 +509,41 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       box-shadow: 0 0 6px var(--accent-green-glow);
     }
     .agent-card .agent-status.idle { background: var(--text-tertiary); border-color: var(--text-muted); }
+    .agent-card .agent-status.recent {
+      background: var(--accent-yellow);
+      border-color: #d97706;
+      box-shadow: 0 0 6px rgba(245,158,11,0.4);
+    }
     .agent-card .agent-status.busy {
       background: var(--accent-yellow);
       border-color: #d97706;
       box-shadow: 0 0 6px rgba(245,158,11,0.4);
+    }
+
+    /* Activity monitor — pulse animations */
+    @keyframes pulse-glow-green {
+      0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+      70% { box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+    }
+    @keyframes pulse-glow-blue {
+      0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); }
+      70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+    }
+    .agent-card.pulse-green {
+      animation: pulse-glow-green 1s ease-out 3;
+    }
+    .agent-card.pulse-blue {
+      animation: pulse-glow-blue 1s ease-out 3;
+    }
+    /* Last activity timestamp */
+    .agent-card .agent-last-activity {
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 9px;
+      color: var(--text-muted);
+      margin-top: var(--sp-1);
+      letter-spacing: 0.03em;
     }
 
     /* Modal open/close animation */
@@ -1161,8 +1193,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       localStorage.setItem('agentflow-canvas-mode', mode);
       document.getElementById('btn-mode-graph').classList.toggle('active', mode === 'graph');
       document.getElementById('btn-mode-tree').classList.toggle('active', mode === 'tree');
-      if (org.canvas) org.canvas.mode = mode; else org.canvas = { mode };
-      scheduleSave();
+      try { if (org.canvas) org.canvas.mode = mode; else org.canvas = { mode }; scheduleSave(); } catch(e) { /* org not yet initialized */ }
     }
     document.getElementById('btn-mode-graph').addEventListener('click', () => setCanvasMode('graph'));
     document.getElementById('btn-mode-tree').addEventListener('click', () => setCanvasMode('tree'));
@@ -2883,21 +2914,43 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       clearAllAgentStatus();
     });
 
-    // --- Session → Agent mapping & status updates ---
+    // ==============================================
+    // --- Agent Activity Monitor ---
+    // ==============================================
+    // Tracks session activity per agent, detects new messages,
+    // triggers pulse animations and status indicator updates.
+
+    const activityState = {
+      // agentId → { lastMessageId, lastMessageTs, lastSeenTs, hasActiveSession }
+      agents: {},
+      previousSnapshot: {}, // sessionKey → last message id/ts
+      pollTimer: null,
+    };
+
     function clearAllAgentStatus() {
       document.querySelectorAll('.agent-status').forEach(el => {
         el.className = 'agent-status';
         el.title = 'Not connected';
       });
+      document.querySelectorAll('.agent-last-activity').forEach(el => el.remove());
+      activityState.agents = {};
+      activityState.previousSnapshot = {};
     }
 
     function matchSessionToAgent(session) {
-      // Match by agent ID or name
+      // Extract agent name from session key pattern: "agent:<name>-<n>:..."
+      const sid = session.sessionKey || session.key || '';
+      const sAgent = session.agentId || session.agent || '';
+
       for (const agent of org.agents) {
-        const sid = session.sessionKey || session.key || '';
-        const sAgent = session.agentId || '';
-        if (sAgent && (sAgent === agent.id || agent.name.toLowerCase().includes(sAgent.toLowerCase()))) return agent;
+        // Direct agent ID match
+        if (sAgent && (sAgent === agent.id || sAgent === agent.name)) return agent;
         if (sid.includes(agent.id)) return agent;
+
+        // Match agent name in session key (e.g. "agent:pm-1:discord:...")
+        const nameLower = agent.name.toLowerCase().replace(/\s+/g, '');
+        if (nameLower && sid.toLowerCase().includes(nameLower)) return agent;
+
         // Try matching by name in session label
         const label = session.label || session.name || '';
         if (label && agent.name && label.toLowerCase().includes(agent.name.toLowerCase())) return agent;
@@ -2905,31 +2958,158 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       return null;
     }
 
-    gw.addEventListener('sessions-updated', (e) => {
-      const sessions = e.detail || [];
-      clearAllAgentStatus();
+    function getSessionMessageFingerprint(session) {
+      // Get a unique fingerprint for the latest message in this session
+      const msgs = session.messages || session.recentMessages || [];
+      if (msgs.length > 0) {
+        const latest = msgs[msgs.length - 1] || msgs[0];
+        return {
+          id: latest.id || latest.messageId || null,
+          ts: latest.timestamp || latest.ts || latest.createdAt || null,
+          content: (typeof latest.content === 'string' ? latest.content : '')?.slice(0, 50),
+        };
+      }
+      // Fallback: use session-level last activity
+      return {
+        id: null,
+        ts: session.lastActivity || session.updatedAt || null,
+        content: null,
+      };
+    }
+
+    function triggerPulse(agentId, type) {
+      // type: 'green' (new message) or 'blue' (thinking)
+      const card = document.querySelector(`.agent-card[data-agent-id="${agentId}"]`);
+      if (!card) return;
+      const cls = `pulse-${type}`;
+      card.classList.remove('pulse-green', 'pulse-blue');
+      // Force reflow to restart animation
+      void card.offsetWidth;
+      card.classList.add(cls);
+      setTimeout(() => card.classList.remove(cls), 3000);
+    }
+
+    function updateAgentStatusIndicator(agentId, state) {
+      const statusEl = document.getElementById(`status-${agentId}`);
+      if (!statusEl) return;
+
+      if (state === 'active') {
+        statusEl.className = 'agent-status active';
+        statusEl.title = '● Active session';
+      } else if (state === 'recent') {
+        statusEl.className = 'agent-status recent';
+        statusEl.title = '● Recent activity (< 60s)';
+      } else if (state === 'busy') {
+        statusEl.className = 'agent-status busy';
+        statusEl.title = '● Processing...';
+      } else {
+        statusEl.className = 'agent-status idle';
+        statusEl.title = '○ Idle';
+      }
+    }
+
+    function updateLastActivityLabel(agentId, timestamp) {
+      if (!timestamp) return;
+      const card = document.querySelector(`.agent-card[data-agent-id="${agentId}"]`);
+      if (!card) return;
+      let label = card.querySelector('.agent-last-activity');
+      if (!label) {
+        label = document.createElement('div');
+        label.className = 'agent-last-activity';
+        card.appendChild(label);
+      }
+      const d = new Date(timestamp);
+      if (isNaN(d.getTime())) return;
+      const hh = String(d.getHours()).padStart(2, '0');
+      const mm = String(d.getMinutes()).padStart(2, '0');
+      const ss = String(d.getSeconds()).padStart(2, '0');
+      label.textContent = `last: ${hh}:${mm}:${ss}`;
+    }
+
+    function processSessionsUpdate(sessions) {
+      const now = Date.now();
+      const agentSeen = new Set();
 
       for (const session of sessions) {
         const agent = matchSessionToAgent(session);
         if (!agent) continue;
+        agentSeen.add(agent.id);
 
-        const statusEl = document.getElementById(`status-${agent.id}`);
-        if (!statusEl) continue;
+        const sessionKey = session.sessionKey || session.key || session.id || '';
+        const fingerprint = getSessionMessageFingerprint(session);
+        const prev = activityState.previousSnapshot[sessionKey];
 
-        const isActive = session.active || session.status === 'active' || session.lastActivity;
+        // Detect new message
+        const isNew = prev && (
+          (fingerprint.id && fingerprint.id !== prev.id) ||
+          (fingerprint.ts && fingerprint.ts !== prev.ts) ||
+          (fingerprint.content && fingerprint.content !== prev.content)
+        );
+
+        // Detect thinking/busy state
         const isBusy = session.busy || session.status === 'busy' || session.running;
 
+        if (isNew) {
+          triggerPulse(agent.id, 'green');
+          activityState.agents[agent.id] = {
+            lastMessageTs: fingerprint.ts || now,
+            hasActiveSession: true,
+          };
+        } else if (isBusy) {
+          triggerPulse(agent.id, 'blue');
+        }
+
+        // Update snapshot
+        activityState.previousSnapshot[sessionKey] = fingerprint;
+
+        // Track activity
+        if (!activityState.agents[agent.id]) {
+          activityState.agents[agent.id] = { lastMessageTs: null, hasActiveSession: false };
+        }
+        activityState.agents[agent.id].hasActiveSession = true;
+        if (fingerprint.ts) {
+          const ts = new Date(fingerprint.ts).getTime();
+          if (!isNaN(ts)) {
+            const existing = activityState.agents[agent.id].lastMessageTs;
+            if (!existing || ts > new Date(existing).getTime()) {
+              activityState.agents[agent.id].lastMessageTs = fingerprint.ts;
+            }
+          }
+        }
+
+        // Update status indicator
         if (isBusy) {
-          statusEl.className = 'agent-status busy';
-          statusEl.title = 'Busy (processing)';
-        } else if (isActive) {
-          statusEl.className = 'agent-status active';
-          statusEl.title = 'Active';
+          updateAgentStatusIndicator(agent.id, 'busy');
         } else {
-          statusEl.className = 'agent-status idle';
-          statusEl.title = 'Idle';
+          const lastTs = activityState.agents[agent.id]?.lastMessageTs;
+          const lastTime = lastTs ? new Date(lastTs).getTime() : 0;
+          if (lastTime && (now - lastTime) < 60000) {
+            updateAgentStatusIndicator(agent.id, 'active');
+          } else if (lastTime) {
+            updateAgentStatusIndicator(agent.id, 'recent');
+          } else {
+            updateAgentStatusIndicator(agent.id, 'active');
+          }
+        }
+
+        // Update timestamp label
+        updateLastActivityLabel(agent.id, activityState.agents[agent.id]?.lastMessageTs);
+      }
+
+      // Reset agents not seen in any session
+      for (const agent of org.agents) {
+        if (!agentSeen.has(agent.id)) {
+          updateAgentStatusIndicator(agent.id, 'idle');
+          if (activityState.agents[agent.id]) {
+            activityState.agents[agent.id].hasActiveSession = false;
+          }
         }
       }
+    }
+
+    gw.addEventListener('sessions-updated', (e) => {
+      const sessions = e.detail || [];
+      processSessionsUpdate(sessions);
     });
 
     // --- Chat history panel (click agent while connected) ---

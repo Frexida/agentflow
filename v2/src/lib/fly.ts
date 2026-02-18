@@ -54,7 +54,7 @@ export async function createGateway(config: MachineConfig): Promise<Machine> {
     config: {
       image: 'registry.fly.io/agentflow-gateways:latest',
       env: {
-        OPENCLAW_TOKEN: config.gatewayToken,
+        OPENCLAW_GATEWAY_TOKEN: config.gatewayToken,
         ANTHROPIC_API_KEY: config.anthropicKey || '',
         OPENAI_API_KEY: config.openaiKey || '',
       },

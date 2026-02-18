@@ -4,8 +4,8 @@ set -e
 CONFIG_DIR="${HOME}/.openclaw"
 CONFIG_FILE="$CONFIG_DIR/openclaw.json"
 
-# Generate config if it doesn't exist
-if [ ! -f "$CONFIG_FILE" ]; then
+# Always regenerate config to pick up latest changes
+if true; then
   TOKEN=${OPENCLAW_GATEWAY_TOKEN:-${OPENCLAW_TOKEN:-$(openssl rand -hex 24)}}
   
   cat > "$CONFIG_FILE" << EOF

@@ -6,7 +6,7 @@ CONFIG_FILE="$CONFIG_DIR/openclaw.json"
 
 # Generate config if it doesn't exist
 if [ ! -f "$CONFIG_FILE" ]; then
-  TOKEN=${OPENCLAW_TOKEN:-$(openssl rand -hex 24)}
+  TOKEN=${OPENCLAW_GATEWAY_TOKEN:-${OPENCLAW_TOKEN:-$(openssl rand -hex 24)}}
   
   cat > "$CONFIG_FILE" << EOF
 {

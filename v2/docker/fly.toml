@@ -19,5 +19,5 @@ primary_region = "nrt"
 
 [env]
   # These are overridden per-machine via Machines API
-  OPENCLAW_TOKEN = ""
+  OPENCLAW_GATEWAY_TOKEN = ""
   ANTHROPIC_API_KEY = ""

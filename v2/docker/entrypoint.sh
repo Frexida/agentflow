@@ -15,6 +15,7 @@ cat > /root/.openclaw/openclaw.json <<EOF
     "controlUi": {
       "allowedOrigins": ["*"]
     },
+    "trustedProxies": ["172.16.0.0/12", "10.0.0.0/8"],
     "auth": {
       "mode": "token",
       "token": "${GW_TOKEN}"

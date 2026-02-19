@@ -154,9 +154,9 @@ export default function SettingsPage() {
                     ) : (
                       <button
                         onClick={() => connect({ url: gateway.url, token: gateway.token })}
-                        className="px-4 py-2 bg-[var(--accent)] rounded hover:bg-[var(--accent-bright)] transition text-sm"
+                        className="px-6 py-3 bg-green-600 rounded-lg hover:bg-green-500 transition text-base font-bold shadow-lg shadow-green-900/30 animate-pulse"
                       >
-                        Reconnect
+                        🔌 Reconnect Gateway
                       </button>
                     )}
                     <button onClick={handleDestroyGateway} className="px-4 py-2 text-red-400 border border-red-600/30 rounded hover:bg-red-900/20 transition text-sm">

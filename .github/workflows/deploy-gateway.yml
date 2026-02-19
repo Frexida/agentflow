@@ -17,6 +17,11 @@ jobs:
 
       - run: |
           cd v2/docker
-          flyctl deploy --remote-only
+          # Build and push with :latest tag so fly.ts can reference it
+          flyctl auth docker
+          docker build -t registry.fly.io/agentflow-gateways:latest -f Dockerfile.gateway .
+          docker push registry.fly.io/agentflow-gateways:latest
+          # Deploy using that image
+          flyctl deploy --image registry.fly.io/agentflow-gateways:latest
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

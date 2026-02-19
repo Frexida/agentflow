@@ -320,3 +320,20 @@ export default function Home() {
             <h4 className="font-semibold text-sm mb-3">Company</h4>
             <div className="flex flex-col gap-2 text-sm text-[var(--text-secondary)]">
               <a href="https://dev.to/mtdnot_9442010c0f26a0df93/we-built-a-visual-org-designer-for-ai-agent-teams-heres-what-we-learned-5hh" target="_blank" rel="noopener" className="hover:text-[var(--accent-bright)] transition">Blog</a>
+            </div>
+          </div>
+          <div>
+            <h4 className="font-semibold text-sm mb-3">Legal</h4>
+            <div className="flex flex-col gap-2 text-sm text-[var(--text-secondary)]">
+              <Link href="/terms" className="hover:text-[var(--accent-bright)] transition">Terms of Service</Link>
+              <Link href="/privacy" className="hover:text-[var(--accent-bright)] transition">Privacy Policy</Link>
+            </div>
+          </div>
+        </div>
+        <div className="max-w-5xl mx-auto mt-8 pt-6 border-t border-[var(--border)] text-center text-xs text-[var(--text-secondary)]">
+          © {new Date().getFullYear()} Frexida. MIT License.
+        </div>
+      </footer>
+    </main>
+  )
+}

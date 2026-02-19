@@ -146,14 +146,12 @@ export default function SettingsPage() {
                       <span className="font-mono text-xs">{gateway.url}</span>
                     </div>
                   </div>
-                  <div className="flex gap-2">
-                    {connected ? (
-                      <button onClick={disconnect} className="px-4 py-2 bg-red-600/50 rounded hover:bg-red-500/50 transition text-sm">
-                        Disconnect
-                      </button>
-                    ) : (
-                      <button
-                        onClick={async () => {
+                  <div className="flex gap-3 items-center">
+                    <button
+                      onClick={async () => {
+                        if (connected) {
+                          disconnect()
+                        } else {
                           setError(null)
                           setConnecting(true)
                           try {
@@ -163,14 +161,21 @@ export default function SettingsPage() {
                           } finally {
                             setConnecting(false)
                           }
-                        }}
-                        disabled={connecting}
-                        className="px-6 py-3 bg-green-600 rounded-lg hover:bg-green-500 transition text-base font-bold shadow-lg shadow-green-900/30 disabled:opacity-50 min-h-[44px]"
-                      >
-                        {connecting ? '⏳ Connecting...' : '🔌 Reconnect Gateway'}
-                      </button>
-                    )}
-                    <button onClick={handleDestroyGateway} className="px-4 py-3 text-red-400 border border-red-600/30 rounded-lg hover:bg-red-900/20 transition text-sm min-h-[44px]">
+                        }
+                      }}
+                      disabled={connecting}
+                      className={`relative w-16 h-9 rounded-full transition-colors duration-200 min-h-[44px] ${
+                        connected ? 'bg-green-500' : 'bg-gray-600'
+                      } ${connecting ? 'opacity-50' : 'cursor-pointer'}`}
+                    >
+                      <span className={`absolute top-1 left-1 w-7 h-7 rounded-full bg-white shadow transition-transform duration-200 ${
+                        connected ? 'translate-x-7' : 'translate-x-0'
+                      }`} />
+                    </button>
+                    <span className="text-sm">
+                      {connecting ? '⏳ Connecting...' : connected ? '● Connected' : '○ Disconnected'}
+                    </span>
+                    <button onClick={handleDestroyGateway} className="ml-auto px-4 py-2 text-red-400 border border-red-600/30 rounded-lg hover:bg-red-900/20 transition text-sm min-h-[44px]">
                       Destroy
                     </button>
                   </div>

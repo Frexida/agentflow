@@ -11,11 +11,13 @@ export async function GET() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const { data: gw } = await supabase
+    const { data: gw, error: gwError } = await supabase
       .from('gateways')
       .select('*')
       .eq('user_id', user.id)
       .single()
+
+    console.log('GET /api/gateway debug:', { userId: user.id, gw: !!gw, gwError: gwError?.message })
 
     if (!gw) return NextResponse.json({ gateway: null })
 

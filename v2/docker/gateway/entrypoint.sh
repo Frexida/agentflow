@@ -22,7 +22,7 @@ if true; then
       "token": "$TOKEN"
     },
     "controlUi": {
-      "allowedOrigins": ["*"]
+      "allowedOrigins": ["https://agentflow.frexida.com", "https://agentflow-l42k.vercel.app", "http://localhost:3000", "http://localhost:3001"]
     },
     "trustedProxies": ["172.16.0.0/12", "10.0.0.0/8"]
   }

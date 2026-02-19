@@ -153,10 +153,21 @@ export default function SettingsPage() {
                       </button>
                     ) : (
                       <button
-                        onClick={() => connect({ url: gateway.url, token: gateway.token })}
-                        className="px-6 py-3 bg-green-600 rounded-lg hover:bg-green-500 transition text-base font-bold shadow-lg shadow-green-900/30 animate-pulse"
+                        onClick={async () => {
+                          setError(null)
+                          setConnecting(true)
+                          try {
+                            await connect({ url: gateway.url, token: gateway.token })
+                          } catch (e) {
+                            setError(e instanceof Error ? e.message : 'Connection failed')
+                          } finally {
+                            setConnecting(false)
+                          }
+                        }}
+                        disabled={connecting}
+                        className="px-6 py-3 bg-green-600 rounded-lg hover:bg-green-500 transition text-base font-bold shadow-lg shadow-green-900/30 disabled:opacity-50 min-h-[44px]"
                       >
-                        🔌 Reconnect Gateway
+                        {connecting ? '⏳ Connecting...' : '🔌 Reconnect Gateway'}
                       </button>
                     )}
                     <button onClick={handleDestroyGateway} className="px-4 py-3 text-red-400 border border-red-600/30 rounded-lg hover:bg-red-900/20 transition text-sm min-h-[44px]">

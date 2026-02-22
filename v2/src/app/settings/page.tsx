@@ -22,6 +22,15 @@ export default function SettingsPage() {
   const [gateway, setGateway] = useState<GatewayInfo | null>(null)
   const [provisioning, setProvisioning] = useState(false)
   const [gwLoading, setGwLoading] = useState(true)
+  const [currentPlan, setCurrentPlan] = useState('free')
+
+  // Fetch current subscription plan
+  useEffect(() => {
+    fetch('/api/billing')
+      .then(r => r.json())
+      .then(({ plan }) => { if (plan) setCurrentPlan(plan) })
+      .catch(() => {}) // fallback to 'free'
+  }, [])
 
   // Check existing gateway on mount
   const fetchGateway = useCallback(async () => {
@@ -283,7 +292,7 @@ export default function SettingsPage() {
         {/* Plan & Billing */}
         <section className="mt-6 bg-[var(--surface-elevated)] rounded-lg border border-[var(--accent)] p-4 sm:p-6">
           <h2 className="text-lg font-semibold mb-4">Plan & Billing</h2>
-          <PricingCards currentPlan="free" />
+          <PricingCards currentPlan={currentPlan} />
         </section>
 
         {/* Navigation */}

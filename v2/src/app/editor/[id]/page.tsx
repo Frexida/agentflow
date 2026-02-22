@@ -24,6 +24,7 @@ import { useOrgStore } from '@/stores/org'
 import { useGatewayStore } from '@/stores/gateway'
 import { useSessionMonitor } from '@/lib/session-monitor'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
+import { useGatewayAutoConnect } from '@/hooks/useGatewayAutoConnect'
 import { useOnboarding } from '@/hooks/useOnboarding'
 import OnboardingTooltip from '@/components/canvas/OnboardingTooltip'
 import Checklist from '@/components/canvas/Checklist'
@@ -87,6 +88,7 @@ const demoEdges = [
 function EditorCanvas() {
   const { nodes, edges, setNodes, setEdges, onNodesChange, onEdgesChange, onConnect } = useOrgStore()
   const { connected } = useGatewayStore()
+  useGatewayAutoConnect()
   useSessionMonitor(connected)
   const params = useParams()
   const designId = params.id as string

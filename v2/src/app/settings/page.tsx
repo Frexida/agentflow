@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useGatewayStore } from '@/stores/gateway'
+import { PricingCards } from '@/components/PricingCards'
 
 type GatewayInfo = {
   id: string
@@ -277,6 +278,12 @@ export default function SettingsPage() {
             <p className="mb-1">💡 <strong>Bring Your Own Key</strong> — use your own API keys for direct billing from the provider.</p>
             <p>Or skip this and use AgentFlow credits (coming soon).</p>
           </div>
+        </section>
+
+        {/* Plan & Billing */}
+        <section className="mt-6 bg-[var(--surface-elevated)] rounded-lg border border-[var(--accent)] p-4 sm:p-6">
+          <h2 className="text-lg font-semibold mb-4">Plan & Billing</h2>
+          <PricingCards currentPlan="free" />
         </section>
 
         {/* Navigation */}

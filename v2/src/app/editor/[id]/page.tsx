@@ -197,19 +197,19 @@ function EditorCanvas() {
         </div>
       )}
       {/* Chat Toggle Button */}
-      {connected && (
-        <button
-          onClick={() => setChatOpen(!chatOpen)}
-          className={`fixed bottom-16 right-4 z-40 w-12 h-12 rounded-full shadow-lg flex items-center justify-center text-lg transition-all ${
-            chatOpen
-              ? 'bg-[var(--accent-bright)] text-white'
-              : 'bg-[var(--surface-elevated)] border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--accent-bright)] hover:border-[var(--accent-bright)]'
-          }`}
-          title="Chat with agents"
-        >
-          💬
-        </button>
-      )}
+      <button
+        onClick={() => setChatOpen(!chatOpen)}
+        className={`fixed bottom-16 right-4 z-40 w-12 h-12 rounded-full shadow-lg flex items-center justify-center text-lg transition-all ${
+          chatOpen
+            ? 'bg-[var(--accent-bright)] text-white'
+            : connected
+              ? 'bg-[var(--surface-elevated)] border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--accent-bright)] hover:border-[var(--accent-bright)]'
+              : 'bg-[var(--surface-elevated)] border border-[var(--border)] text-[var(--text-secondary)]/50'
+        }`}
+        title={connected ? 'Chat with agents' : 'Connect to Gateway first'}
+      >
+        💬
+      </button>
       <ChatPanel open={chatOpen} onClose={() => setChatOpen(false)} />
       <CommandPalette />
       <VersionPanel designId={designId} />

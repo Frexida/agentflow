@@ -162,6 +162,37 @@ graph TD
 | **Machine2** | nix | 開発用 | 開発環境特化 |
 | **Machine3** | red | 全権付与、sandbox | 自由に動ける実験環境 |
 
+### Trust Level（信頼レベル）
+
+```mermaid
+graph TD
+    subgraph Trust["信頼レベル"]
+        HIGH[High Trust<br/>全権/Sandbox]
+        MED[Medium Trust<br/>開発権限]
+        LOW[Low Trust<br/>制限付き/秘書]
+    end
+
+    RED[red] --> HIGH
+    NIX[nix] --> MED
+    LEITH18[leith18] --> LOW
+```
+
+### Role Type（役割タイプ）
+
+| Role Type | 特性 | 例 |
+|-----------|------|-----|
+| **Secretary** | 個人情報アクセス可、外部制限あり | leith18 |
+| **Developer** | 開発環境特化、本番不可 | nix |
+| **Sandbox** | 全権、実験用、隔離環境 | red |
+
+### Capability（機能特性）
+
+| エージェント | 強み | 環境変更 |
+|-------------|------|---------|
+| **nix** | CUI、CI/CD、パイプライン系 | ✅ 可能 |
+| **red** | ブラウザ操作、自律性 | ✅ 可能 |
+| **leith18** | 秘書、調整、プライベート情報管理 | ❌ 制限 |
+
 ### 設計への影響
 
 - **Gateway間通信なし** — Discord経由でのみ連携

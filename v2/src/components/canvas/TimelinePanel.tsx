@@ -36,7 +36,7 @@ export default function TimelinePanel({ open, onClose, embedded }: { open: boole
       agentId: s.agentId || 'unknown',
       action: s.status === 'active' ? 'active' : s.status,
       timestamp: s.activeAt ? new Date(s.activeAt).getTime() : Date.now(),
-      detail: s.lastMessage?.content?.slice(0, 80),
+      detail: typeof s.lastMessage?.content === 'string' ? s.lastMessage.content.slice(0, 80) : undefined,
     }))
     newEntries.sort((a, b) => b.timestamp - a.timestamp)
     setEntries(newEntries.slice(0, 50))

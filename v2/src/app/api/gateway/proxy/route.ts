@@ -1,24 +1,21 @@
 /**
  * Gateway Proxy — server-side bridge between authenticated users and Gateway
  *
- * POST /api/gateway/proxy — send a frame to Gateway, return response
- * GET  /api/gateway/proxy — SSE stream of Gateway events
+ * POST /api/gateway/proxy — send a frame to Gateway, return response (fresh WS per request)
+ * GET  /api/gateway/proxy — SSE stream of Gateway events (long-lived WS)
  *
  * Auth: Supabase JWT (user must be logged in)
  * Gateway connection: uses GATEWAY_INTERNAL_URL + GATEWAY_INTERNAL_TOKEN env vars
- * → Token never exposed to the browser. No DB↔Fly sync needed.
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import WebSocket from 'ws'
 
 export const runtime = 'nodejs'
+export const maxDuration = 60 // Vercel Pro: up to 60s for SSE
 
 const GATEWAY_URL = process.env.GATEWAY_INTERNAL_URL || ''
 const GATEWAY_TOKEN = process.env.GATEWAY_INTERNAL_TOKEN || ''
-
-// Per-user WS connection pool
-const connections = new Map<string, WebSocket>()
 
 function getGatewayWsUrl(): string {
   if (GATEWAY_URL.startsWith('wss://') || GATEWAY_URL.startsWith('ws://')) return GATEWAY_URL
@@ -27,91 +24,79 @@ function getGatewayWsUrl(): string {
   return `wss://${GATEWAY_URL}`
 }
 
-function getOrCreateConnection(userId: string): WebSocket {
-  const existing = connections.get(userId)
-  if (existing && existing.readyState === WebSocket.OPEN) return existing
-
-  if (existing) {
-    try { existing.close() } catch { /* ignore */ }
-    connections.delete(userId)
-  }
-
-  const ws = new WebSocket(getGatewayWsUrl(), {
-    headers: { 'Origin': process.env.NEXT_PUBLIC_APP_URL || 'https://agentflow.frexida.com' },
-  })
-
-  ws.on('close', () => connections.delete(userId))
-  ws.on('error', () => connections.delete(userId))
-
-  connections.set(userId, ws)
-  return ws
+const WS_OPTIONS = {
+  headers: { 'Origin': process.env.NEXT_PUBLIC_APP_URL || 'https://agentflow.frexida.com' },
 }
 
-async function waitForOpen(ws: WebSocket): Promise<void> {
-  if (ws.readyState === WebSocket.OPEN) return
-  if (ws.readyState !== WebSocket.CONNECTING) throw new Error('WebSocket not connecting')
-
-  await new Promise<void>((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error('Connection timeout')), 10000)
-    ws.once('open', () => { clearTimeout(timeout); resolve() })
-    ws.once('error', (err) => { clearTimeout(timeout); reject(err) })
-  })
+const CONNECT_PARAMS = {
+  minProtocol: 3,
+  maxProtocol: 3,
+  client: { id: 'webchat-ui', version: '2.0', mode: 'ui', platform: 'web' },
+  auth: { token: GATEWAY_TOKEN },
+  role: 'operator',
+  scopes: ['operator.admin', 'operator.write', 'operator.read'],
+  caps: [],
 }
 
-async function ensureHandshake(ws: WebSocket): Promise<void> {
-  await waitForOpen(ws)
+/**
+ * Create a fresh WS, handshake, and return the ready connection.
+ * Caller is responsible for closing it.
+ */
+function createReadyConnection(): Promise<WebSocket> {
+  return new Promise((resolve, reject) => {
+    const ws = new WebSocket(getGatewayWsUrl(), WS_OPTIONS)
+    const timeout = setTimeout(() => {
+      ws.close()
+      reject(new Error('Connection timeout'))
+    }, 15000)
 
-  const handshakeId = `hs-${Date.now()}`
-  ws.send(JSON.stringify({
-    type: 'req',
-    id: handshakeId,
-    method: 'connect',
-    params: {
-      minProtocol: 3,
-      maxProtocol: 3,
-      client: {
-        id: 'webchat-ui',
-        version: '2.0',
-        mode: 'ui',
-        platform: 'web',
-      },
-      auth: { token: GATEWAY_TOKEN },
-      role: 'operator',
-      scopes: ['operator.admin', 'operator.write', 'operator.read'],
-      caps: [],
-    },
-  }))
+    let handshakeSent = false
 
-  // Wait for handshake response or challenge
-  await new Promise<void>((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error('Handshake timeout')), 10000)
-    const handler = (raw: WebSocket.RawData) => {
+    ws.on('error', (err) => {
+      clearTimeout(timeout)
+      reject(err)
+    })
+
+    ws.on('open', () => {
+      // Send connect handshake immediately
+      const hsId = `hs-${Date.now()}`
+      ws.send(JSON.stringify({
+        type: 'req',
+        id: hsId,
+        method: 'connect',
+        params: CONNECT_PARAMS,
+      }))
+      handshakeSent = true
+    })
+
+    ws.on('message', (raw: WebSocket.RawData) => {
+      if (!handshakeSent) return
       try {
         const data = JSON.parse(raw.toString())
-        if (data.id === handshakeId || data.event === 'connect.challenge') {
-          clearTimeout(timeout)
-          ws.off('message', handler)
-          if (data.event === 'connect.challenge') {
-            ws.send(JSON.stringify({
-              type: 'req',
-              id: `hs2-${Date.now()}`,
-              method: 'connect',
-              params: {
-                minProtocol: 3,
-                maxProtocol: 3,
-                client: { id: 'webchat-ui', version: '2.0', mode: 'ui', platform: 'web' },
-                auth: { token: GATEWAY_TOKEN },
-                role: 'operator',
-                scopes: ['operator.admin', 'operator.write', 'operator.read'],
-                caps: [],
-              },
-            }))
-          }
-          resolve()
+
+        // Handle challenge event — re-send connect
+        if (data.type === 'event' && data.event === 'connect.challenge') {
+          ws.send(JSON.stringify({
+            type: 'req',
+            id: `hs2-${Date.now()}`,
+            method: 'connect',
+            params: CONNECT_PARAMS,
+          }))
+          return
         }
-      } catch { /* ignore */ }
-    }
-    ws.on('message', handler)
+
+        // Handle connect response (success or res with ok)
+        if (data.type === 'res') {
+          clearTimeout(timeout)
+          if (data.ok === false) {
+            ws.close()
+            reject(new Error(data.error?.message || 'Handshake rejected'))
+          } else {
+            resolve(ws)
+          }
+        }
+      } catch { /* ignore parse errors */ }
+    })
   })
 }
 
@@ -122,8 +107,9 @@ async function getUser() {
   return user
 }
 
-// POST — send a frame to Gateway, return response
+// POST — send a frame to Gateway (fresh WS per request)
 export async function POST(request: NextRequest) {
+  let ws: WebSocket | null = null
   try {
     if (!GATEWAY_URL || !GATEWAY_TOKEN) {
       return NextResponse.json({ error: 'Gateway not configured' }, { status: 503 })
@@ -133,25 +119,23 @@ export async function POST(request: NextRequest) {
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const body = await request.json()
-    const ws = getOrCreateConnection(user.id)
-    await ensureHandshake(ws)
+    ws = await createReadyConnection()
 
+    // Send the frame
     ws.send(JSON.stringify(body.frame))
 
     // Wait for matching response
     const response = await new Promise<unknown>((resolve, reject) => {
       const timeout = setTimeout(() => reject(new Error('Response timeout')), 30000)
-      const handler = (raw: WebSocket.RawData) => {
+      ws!.on('message', (raw: WebSocket.RawData) => {
         try {
           const data = JSON.parse(raw.toString())
-          if (data.id === body.frame.id || (data.type === 'res' && !body.frame.id)) {
+          if (data.id === body.frame.id) {
             clearTimeout(timeout)
-            ws.off('message', handler)
             resolve(data)
           }
         } catch { /* ignore */ }
-      }
-      ws.on('message', handler)
+      })
     })
 
     return NextResponse.json({ response })
@@ -159,10 +143,12 @@ export async function POST(request: NextRequest) {
     console.error('POST /api/gateway/proxy error:', err)
     const message = err instanceof Error ? err.message : 'Internal error'
     return NextResponse.json({ error: message }, { status: 500 })
+  } finally {
+    if (ws) try { ws.close() } catch { /* ignore */ }
   }
 }
 
-// GET — SSE stream of Gateway events
+// GET — SSE stream of Gateway events (long-lived WS)
 export async function GET() {
   try {
     if (!GATEWAY_URL || !GATEWAY_TOKEN) {
@@ -180,8 +166,7 @@ export async function GET() {
         }
 
         try {
-          const ws = getOrCreateConnection(user.id)
-          await ensureHandshake(ws)
+          const ws = await createReadyConnection()
 
           sendSSE(JSON.stringify({ type: 'connected' }))
 

@@ -1,0 +1,156 @@
+digraph AgentFlowV3 {
+    // グローバル設定
+    graph [
+        bgcolor="#0D1117"
+        rankdir=TB
+        splines=ortho
+        nodesep=0.6
+        ranksep=0.8
+        fontname="Courier New"
+        fontcolor="#E6EDF3"
+        fontsize=12
+        pad=0.5
+        compound=true
+        label="AgentFlow v3 組織図"
+        labelfontsize=16
+        labelfontcolor="#8B949E"
+        labelloc=t
+    ]
+    node [
+        shape=box
+        style="filled,rounded"
+        fontname="Courier New"
+        fontsize=11
+        margin="0.2,0.12"
+        penwidth=1.5
+        width=2.2
+    ]
+    edge [
+        fontname="Courier New"
+        fontsize=9
+        fontcolor="#8B949E"
+        color="#5D6D7E"
+        penwidth=1.2
+        arrowsize=0.8
+    ]
+
+    // CEO
+    NATSU [
+        label="▪ ナツ\nCEO / PO"
+        fillcolor="#0D2C6E"
+        fontcolor="#FFFFFF"
+        color="#388BFD"
+        penwidth=2.5
+        width=2.5
+    ]
+
+    // ナツ個人用 サブグラフ
+    subgraph cluster_personal {
+        label="── ナツ個人用 ──"
+        fontcolor="#6E7681"
+        fontsize=10
+        color="#21262D"
+        bgcolor="#12161C"
+        style="rounded,filled"
+
+        LEITH [
+            label="leith18\n秘書"
+            fillcolor="#1B2333"
+            fontcolor="#8B949E"
+            color="#30363D"
+        ]
+        KICHIKU [
+            label="鬼畜\n秘書 / PM"
+            fillcolor="#1B2333"
+            fontcolor="#8B949E"
+            color="#30363D"
+        ]
+        NIX [
+            label="nix\n個人開発・監視"
+            fillcolor="#1B2333"
+            fontcolor="#8B949E"
+            color="#30363D"
+        ]
+    }
+
+    // v3標準化チーム サブグラフ
+    subgraph cluster_v3 {
+        label="── AgentFlow v3 標準化チーム ──"
+        fontcolor="#6E7681"
+        fontsize=10
+        color="#21262D"
+        bgcolor="#12161C"
+        style="rounded,filled"
+
+        RED [
+            label="🔴 red / manager-1\n組織設計・進捗監視・PM監査"
+            fillcolor="#4A0E0E"
+            fontcolor="#FFFFFF"
+            color="#F85149"
+            penwidth=2.0
+            width=3.0
+        ]
+
+        // 開発チーム サブグラフ
+        subgraph cluster_devteam {
+            label="── 開発チーム ──"
+            fontcolor="#6E7681"
+            fontsize=9
+            color="#21262D"
+            bgcolor="#0D1117"
+            style="rounded,filled"
+
+            PM1 [
+                label="📋 pm-1\nPM"
+                fillcolor="#0C3823"
+                fontcolor="#FFFFFF"
+                color="#2EA043"
+            ]
+            DEV1 [
+                label="💻 dev-1\nDev"
+                fillcolor="#0A2218"
+                fontcolor="#C9D1D9"
+                color="#238636"
+            ]
+            QA1 [
+                label="✅ qa-1\nQA"
+                fillcolor="#2E1A00"
+                fontcolor="#CCA750"
+                color="#7D4E00"
+            ]
+            DESIGN1 [
+                label="🎨 design-1\nDesign"
+                fillcolor="#1F1040"
+                fontcolor="#C9A8FF"
+                color="#5A2EC4"
+            ]
+            OPS1 [
+                label="⚙️ ops-1\nOps"
+                fillcolor="#151D2B"
+                fontcolor="#C9D1D9"
+                color="#3D4450"
+            ]
+            DOCS1 [
+                label="📝 docs-1\nDocs"
+                fillcolor="#151D2B"
+                fontcolor="#C9D1D9"
+                color="#3D4450"
+            ]
+        }
+    }
+
+    // エッジ定義
+    NATSU -> LEITH [lhead=cluster_personal]
+    NATSU -> KICHIKU
+    NATSU -> NIX
+    NATSU -> RED [lhead=cluster_v3 ltail=""]
+
+    RED -> PM1
+
+    PM1 -> DEV1
+    PM1 -> DESIGN1
+    PM1 -> OPS1
+    PM1 -> DOCS1
+    PM1 -> QA1 [style=dashed label="エスカレ権" fontcolor="#555E6A"]
+    QA1 -> RED [style=dashed label="NG時直接" fontcolor="#555E6A" constraint=false]
+}

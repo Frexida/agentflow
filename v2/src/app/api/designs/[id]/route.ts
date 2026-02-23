@@ -1,37 +1,38 @@
-import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+
+// No-auth mode: in-memory store (shared with route.ts via globalThis)
+interface Design {
+  id: string
+  name: string
+  data: unknown
+  created_at: string
+  updated_at: string
+}
+
+declare global {
+  // eslint-disable-next-line no-var
+  var __designs: Map<string, Design> | undefined
+}
+if (!globalThis.__designs) globalThis.__designs = new Map()
+const store = globalThis.__designs
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
-// GET /api/designs/:id — get single design
+// GET /api/designs/:id
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   if (!UUID_RE.test(id)) return NextResponse.json({ error: 'Invalid ID' }, { status: 400 })
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const { data, error } = await supabase
-    .from('designs')
-    .select('*')
-    .eq('id', id)
-    .eq('user_id', user.id)
-    .single()
-
-  if (error) console.error('[API] GET /designs/:id error:', error)
-  if (error || !data) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-  return NextResponse.json({ design: data })
+  const design = store.get(id)
+  if (!design) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  return NextResponse.json({ design })
 }
 
-// PUT /api/designs/:id — update design
+// PUT /api/designs/:id
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   if (!UUID_RE.test(id)) return NextResponse.json({ error: 'Invalid ID' }, { status: 400 })
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const design = store.get(id)
+  if (!design) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   let body: Record<string, unknown>
   try {
@@ -39,48 +40,23 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
-  const updates: Record<string, unknown> = { updated_at: new Date().toISOString() }
   if (body.name !== undefined) {
     if (typeof body.name !== 'string' || body.name.length > 255) {
       return NextResponse.json({ error: 'Invalid name (max 255 chars)' }, { status: 400 })
     }
-    updates.name = body.name
+    design.name = body.name
   }
-  if (body.data !== undefined) updates.data = body.data
-
-  const { data, error } = await supabase
-    .from('designs')
-    .update(updates)
-    .eq('id', id)
-    .eq('user_id', user.id)
-    .select('id, name, updated_at')
-    .single()
-
-  if (error) {
-    console.error('[API] PUT /designs/:id error:', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
-  }
-  return NextResponse.json({ design: data })
+  if (body.data !== undefined) design.data = body.data
+  design.updated_at = new Date().toISOString()
+  store.set(id, design)
+  return NextResponse.json({ design: { id: design.id, name: design.name, updated_at: design.updated_at } })
 }
 
-// DELETE /api/designs/:id — delete design
+// DELETE /api/designs/:id
 export async function DELETE(_: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   if (!UUID_RE.test(id)) return NextResponse.json({ error: 'Invalid ID' }, { status: 400 })
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const { error } = await supabase
-    .from('designs')
-    .delete()
-    .eq('id', id)
-    .eq('user_id', user.id)
-
-  if (error) {
-    console.error('[API] DELETE /designs/:id error:', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
-  }
+  if (!store.has(id)) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  store.delete(id)
   return NextResponse.json({ ok: true })
 }

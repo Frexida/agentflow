@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useGatewayStore } from '@/stores/gateway'
 import { useSessionsStore } from '@/stores/sessions'
-import { createClient } from '@/lib/supabase/client'
+// import { createClient } from '@/lib/supabase/client' // no-auth mode
 
 interface Design {
   id: string
@@ -66,12 +66,7 @@ export default function DashboardPage() {
     }
   }
 
-  const handleSignOut = async () => {
-    const supabase = createClient()
-    await supabase.auth.signOut()
-    router.push('/login')
-    router.refresh()
-  }
+  // no-auth mode: sign-out removed
 
   return (
     <div className="min-h-screen p-8">
@@ -80,12 +75,6 @@ export default function DashboardPage() {
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-2xl font-bold">Dashboard</h1>
           <div className="flex gap-3">
-            <button
-              onClick={handleSignOut}
-              className="px-4 py-2 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition"
-            >
-              Sign Out
-            </button>
             <Link href="/settings" className="px-4 py-2 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition">
               ⚙️ Settings
             </Link>

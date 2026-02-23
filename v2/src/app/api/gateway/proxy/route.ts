@@ -1,18 +1,17 @@
 /**
- * Gateway Proxy — server-side bridge between authenticated users and Gateway
+ * Gateway Proxy — server-side bridge between browser and Gateway
  *
  * POST /api/gateway/proxy — send a frame to Gateway, return response (fresh WS per request)
  * GET  /api/gateway/proxy — SSE stream of Gateway events (long-lived WS)
  *
- * Auth: Supabase JWT (user must be logged in)
+ * Auth: none (self-hosted mode)
  * Gateway connection: uses GATEWAY_INTERNAL_URL + GATEWAY_INTERNAL_TOKEN env vars
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import WebSocket from 'ws'
 
 export const runtime = 'nodejs'
-export const maxDuration = 60 // Vercel Pro: up to 60s for SSE
+export const maxDuration = 60
 
 const GATEWAY_URL = process.env.GATEWAY_INTERNAL_URL || ''
 const GATEWAY_TOKEN = process.env.GATEWAY_INTERNAL_TOKEN || ''
@@ -25,7 +24,7 @@ function getGatewayWsUrl(): string {
 }
 
 const WS_OPTIONS = {
-  headers: { 'Origin': process.env.NEXT_PUBLIC_APP_URL || 'https://agentflow.frexida.com' },
+  headers: { 'Origin': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000' },
 }
 
 const CONNECT_PARAMS = {
@@ -38,10 +37,6 @@ const CONNECT_PARAMS = {
   caps: [],
 }
 
-/**
- * Create a fresh WS, handshake, and return the ready connection.
- * Caller is responsible for closing it.
- */
 function createReadyConnection(): Promise<WebSocket> {
   return new Promise((resolve, reject) => {
     const ws = new WebSocket(getGatewayWsUrl(), WS_OPTIONS)
@@ -58,7 +53,6 @@ function createReadyConnection(): Promise<WebSocket> {
     })
 
     ws.on('open', () => {
-      // Send connect handshake immediately
       const hsId = `hs-${Date.now()}`
       ws.send(JSON.stringify({
         type: 'req',
@@ -73,8 +67,6 @@ function createReadyConnection(): Promise<WebSocket> {
       if (!handshakeSent) return
       try {
         const data = JSON.parse(raw.toString())
-
-        // Handle challenge event — re-send connect
         if (data.type === 'event' && data.event === 'connect.challenge') {
           ws.send(JSON.stringify({
             type: 'req',
@@ -84,8 +76,6 @@ function createReadyConnection(): Promise<WebSocket> {
           }))
           return
         }
-
-        // Handle connect response (success or res with ok)
         if (data.type === 'res') {
           clearTimeout(timeout)
           if (data.ok === false) {
@@ -100,13 +90,6 @@ function createReadyConnection(): Promise<WebSocket> {
   })
 }
 
-// ── Auth helper ──
-async function getUser() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  return user
-}
-
 // POST — send a frame to Gateway (fresh WS per request)
 export async function POST(request: NextRequest) {
   let ws: WebSocket | null = null
@@ -115,16 +98,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Gateway not configured' }, { status: 503 })
     }
 
-    const user = await getUser()
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
     const body = await request.json()
     ws = await createReadyConnection()
 
-    // Send the frame
     ws.send(JSON.stringify(body.frame))
 
-    // Wait for matching response (10s timeout — if Gateway doesn't respond, fail fast)
     const response = await new Promise<unknown>((resolve, reject) => {
       const timeout = setTimeout(() => reject(new Error('Response timeout')), 10000)
       ws!.on('message', (raw: WebSocket.RawData) => {
@@ -155,9 +133,6 @@ export async function GET() {
       return NextResponse.json({ error: 'Gateway not configured' }, { status: 503 })
     }
 
-    const user = await getUser()
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
     const stream = new ReadableStream({
       async start(controller) {
         const encoder = new TextEncoder()
@@ -167,7 +142,6 @@ export async function GET() {
 
         try {
           const ws = await createReadyConnection()
-
           sendSSE(JSON.stringify({ type: 'connected' }))
 
           ws.on('message', (raw: WebSocket.RawData) => {

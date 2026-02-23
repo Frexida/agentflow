@@ -108,11 +108,11 @@ function SessionSelector() {
             )}
             <div className="w-2 h-2 rounded-full bg-emerald-500 opacity-80" />
             <span className="font-medium text-[var(--text-primary)] group-hover:text-[var(--accent-bright)]">
-              {s.agentId || s.sessionKey}
+              {String(s.agentId || s.sessionKey)}
             </span>
           </div>
           <span className="text-xs text-[var(--text-secondary)] ml-4">
-            {s.kind}
+            {String(s.kind || '')}
           </span>
         </button>
       ))}

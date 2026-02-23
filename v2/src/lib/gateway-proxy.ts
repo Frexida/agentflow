@@ -128,16 +128,19 @@ export class GatewayProxyClient {
     await this.request('chat.send', {
       sessionKey,
       message,
-      idempotencyKey: crypto.randomUUID(),
     })
   }
 
   async chatHistory(sessionKey: string, limit = 20): Promise<ChatMessage[]> {
-    const result = await this.request('chat.history', {
-      sessionKey,
-      limit,
-    }) as { messages: ChatMessage[] }
-    return result.messages || []
+    try {
+      const result = await this.request('chat.history', {
+        sessionKey,
+        limit,
+      }) as { messages: ChatMessage[] }
+      return Array.isArray(result?.messages) ? result.messages : []
+    } catch {
+      return [] // session may not exist yet
+    }
   }
 
   async configGet(): Promise<{ config: string; hash: string }> {

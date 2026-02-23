@@ -32,6 +32,7 @@ import AuthGateModal from '@/components/canvas/AuthGateModal'
 import CommandPalette from '@/components/canvas/CommandPalette'
 import VersionPanel from '@/components/canvas/VersionPanel'
 import ChatPanel from '@/components/chat/ChatPanel'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 import type { AgentNodeData } from '@/types/org'
 
 const nodeTypes = { agent: AgentNode, group: GroupNode }
@@ -212,7 +213,7 @@ function EditorCanvas() {
       >
         💬
       </button>
-      <ChatPanel open={chatOpen} onClose={() => setChatOpen(false)} />
+      <ErrorBoundary><ChatPanel open={chatOpen} onClose={() => setChatOpen(false)} /></ErrorBoundary>
       <CommandPalette />
       <VersionPanel designId={designId} />
       <Checklist />

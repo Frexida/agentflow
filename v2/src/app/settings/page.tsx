@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useGatewayStore } from '@/stores/gateway'
 import { PricingCards } from '@/components/PricingCards'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 
 type GatewayInfo = {
   id: string
@@ -105,6 +106,7 @@ export default function SettingsPage() {
   }
 
   return (
+    <ErrorBoundary>
     <div className="min-h-screen p-4 sm:p-8">
       <div className="max-w-2xl mx-auto">
         <h1 className="text-xl sm:text-2xl font-bold mb-6 sm:mb-8">Settings</h1>
@@ -302,6 +304,7 @@ export default function SettingsPage() {
         </div>
       </div>
     </div>
+    </ErrorBoundary>
   )
 }
 

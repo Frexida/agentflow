@@ -31,7 +31,7 @@ const WS_OPTIONS = {
 const CONNECT_PARAMS = {
   minProtocol: 3,
   maxProtocol: 3,
-  client: { id: 'webchat-ui', version: '2.0', mode: 'ui', platform: 'web' },
+  client: { id: 'openclaw-control-ui', version: '2.0', mode: 'ui', platform: 'web' },
   auth: { token: GATEWAY_TOKEN },
   role: 'operator',
   scopes: ['operator.admin', 'operator.write', 'operator.read'],

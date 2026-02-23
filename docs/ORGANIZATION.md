@@ -95,7 +95,15 @@ escalation_to: manager-1
 
 ## エージェント作成状況
 
-### v3 標準化チーム
+### Frexida 経営層
+
+| ID | 状態 | 役割 | workspace |
+|----|------|------|-----------|
+| cfo-1 | ✅ 作成済み | Chief Financial Officer | `~/.openclaw/workspace-cfo-1` |
+| cso-1 | ✅ 作成済み | Chief Strategy Officer | `~/.openclaw/workspace-cso-1` |
+| coo-1 | ✅ 作成済み | Chief Operating Officer | `~/.openclaw/workspace-coo-1` |
+
+### v3 標準化チーム（AgentFlow 開発）
 
 | ID | 状態 | workspace |
 |----|------|-----------|

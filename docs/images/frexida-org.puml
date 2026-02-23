@@ -1,0 +1,80 @@
+@startuml FrexidaOrg2
+
+skinparam backgroundColor #0D1117
+skinparam defaultFontName Courier New
+skinparam defaultFontSize 12
+skinparam defaultFontColor #E6EDF3
+skinparam linetype ortho
+skinparam arrowColor #4A5568
+skinparam arrowThickness 1.8
+skinparam nodesep 30
+skinparam ranksep 65
+
+skinparam component {
+    BorderThickness 1.5
+    BackgroundColor #161B22
+    BorderColor #30363D
+    FontColor #C9D1D9
+    Style rectangle
+}
+
+title <color:#555E6A><size:13>Frexida  |  Organization Chart</size></color>
+
+' ========== L0: オーナー層 ==========
+together {
+    component " Natsu\n CEO " as NATSU #0D2C6E
+    component " kumu\n Co-Owner " as KUMU #0D4A2E
+}
+
+' ========== L1: Frexida C-Suite ==========
+together {
+    component " cfo-1\n Finance " as CFO #1A3050
+    component " cso-1\n Strategy " as CSO #1A3050
+    component " coo-1\n Operations " as COO #1A3050
+}
+
+' ========== L2: Manager ==========
+component " red / manager-1\n Org Design  |  Monitor  |  Audit " as RED #4A0E0E
+
+' ========== L3: プロジェクト ==========
+together {
+    component " AgentFlow\n AI Dev Tool " as AF #0C2640
+    component " Sakagura\n Client Project " as SAK #2E1A00
+}
+
+' ========== L4: PM ==========
+component " pm-1\n Project Manager " as PM1 #0C3823
+
+' ========== L5: Dev Team ==========
+together {
+    component " dev-1\n Developer " as DEV1 #0A2218
+    component " design-1\n Designer " as DESIGN1 #1F1040
+    component " ops-1\n DevOps " as OPS1 #151D2B
+    component " docs-1\n Docs " as DOCS1 #151D2B
+    component " qa-1\n QA " as QA1 #2E1A00
+}
+
+' ========== 指揮命令 ==========
+NATSU --> CFO
+NATSU --> CSO
+NATSU --> COO
+COO   --> RED
+RED   --> PM1
+
+' ========== プロジェクト関与 ==========
+NATSU --> AF
+NATSU --> SAK
+KUMU  --> SAK
+
+' ========== AgentFlow 開発チーム ==========
+AF  --> PM1
+PM1 --> DEV1
+PM1 --> DESIGN1
+PM1 --> OPS1
+PM1 --> DOCS1
+
+' ========== エスカレーション ==========
+PM1 ..> QA1 : escalation
+QA1 ..> RED : direct NG
+
+@enduml

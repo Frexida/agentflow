@@ -23,14 +23,21 @@ function getAgentColor(agentId: string, agents: string[]): string {
 }
 
 function cleanMessage(content: unknown): string {
+  if (content == null) return ''
   if (typeof content === 'string') return content
   if (Array.isArray(content)) {
     return content
-      .filter((b: { type: string }) => b.type === 'text')
-      .map((b: { text: string }) => b.text)
+      .filter((b: Record<string, unknown>) => b && b.type === 'text')
+      .map((b: Record<string, unknown>) => String(b.text || ''))
       .join('\n')
       .replace(/\[(?:message_id|envelope|openclaw)[^\]]*\]/g, '')
       .trim()
+  }
+  if (typeof content === 'object') {
+    // Handle {type: 'text', text: '...'} single block
+    const obj = content as Record<string, unknown>
+    if (obj.type === 'text' && typeof obj.text === 'string') return obj.text
+    try { return JSON.stringify(content) } catch { return '' }
   }
   return String(content)
 }
@@ -219,10 +226,14 @@ function SingleAgentChat() {
     if (!client?.isConnected() || !activeSession) return
     try {
       const history = await client.chatHistory(activeSession, 30)
+      if (!Array.isArray(history)) return
       const cleaned: ChatMessage[] = history.map(
         (m: ChatMessage & { content: unknown }) => ({
-          ...m,
+          role: m.role === 'user' ? 'user' as const : 'assistant' as const,
           content: cleanMessage(m.content),
+          timestamp: typeof m.timestamp === 'number' ? m.timestamp : Date.now(),
+          agentId: typeof m.agentId === 'string' ? m.agentId : undefined,
+          sessionKey: typeof m.sessionKey === 'string' ? m.sessionKey : undefined,
         })
       )
       useChatStore.getState().setMessages(activeSession, cleaned)
@@ -342,10 +353,10 @@ function MultiAgentChat() {
 
         for (const m of history) {
           allMessages.push({
-            role: m.role,
+            role: m.role === 'user' ? 'user' as const : 'assistant' as const,
             content: cleanMessage(m.content),
-            timestamp: m.timestamp,
-            agentId: m.role === 'assistant' ? agentId : undefined,
+            timestamp: typeof m.timestamp === 'number' ? m.timestamp : Date.now(),
+            agentId: m.role === 'assistant' ? String(agentId || '') : undefined,
             sessionKey: m.role === 'assistant' ? sessionKey : undefined,
           })
         }

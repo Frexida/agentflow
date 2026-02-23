@@ -143,11 +143,24 @@ function SessionSelector() {
         </button>
       )}
 
-      {sessions.length === 0 && (
+      {/* New Chat button — always shown when connected */}
+      {connected && (
+        <button
+          onClick={() => {
+            const sessionKey = `agent:assistant:webchat:ui-${Date.now()}`
+            useChatStore.getState().setActiveSession(sessionKey, 'assistant')
+          }}
+          className="w-full p-3 rounded-lg bg-[var(--accent-bright)] hover:bg-[var(--accent-glow)] text-white text-sm font-medium transition-colors"
+        >
+          💬 New Chat with Assistant
+        </button>
+      )}
+
+      {sessions.length === 0 && !connected && (
         <div className="text-center py-8">
           <div className="text-2xl mb-2">💬</div>
           <p className="text-xs text-[var(--text-secondary)]">
-            {connected ? 'No sessions found' : 'Connect to Gateway first'}
+            Connect to Gateway first
           </p>
         </div>
       )}

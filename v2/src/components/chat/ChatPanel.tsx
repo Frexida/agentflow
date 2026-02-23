@@ -1,16 +1,8 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useChatStore } from '@/stores/chat'
 import { useGatewayStore } from '@/stores/gateway'
-import {
-  useExternalStoreRuntime,
-  AssistantRuntimeProvider,
-  ThreadPrimitive,
-  MessagePrimitive,
-  ComposerPrimitive,
-} from '@assistant-ui/react'
-import type { ThreadMessageLike } from '@assistant-ui/react'
 import type { ChatMessage } from '@/types/gateway'
 
 // Agent color palette for multi-agent view
@@ -41,15 +33,6 @@ function cleanMessage(content: unknown): string {
       .trim()
   }
   return String(content)
-}
-
-function convertMessage(msg: ChatMessage): ThreadMessageLike {
-  return {
-    role: msg.role === 'user' ? 'user' : 'assistant',
-    content: cleanMessage(msg.content),
-    createdAt: msg.timestamp ? new Date(msg.timestamp) : undefined,
-    metadata: msg.agentId ? { custom: { agentId: msg.agentId } } : undefined,
-  }
 }
 
 // ── Session / Channel Selector ──────────────────────────────────
@@ -168,28 +151,6 @@ function SessionSelector() {
   )
 }
 
-// ── Message Components ──────────────────────────────────────────
-
-function UserMessage() {
-  return (
-    <MessagePrimitive.Root className="flex justify-end mb-3 px-4">
-      <div className="max-w-[85%] rounded-2xl rounded-br-md px-4 py-2.5 text-sm bg-[var(--accent-bright)] text-white shadow-sm">
-        <MessagePrimitive.Content />
-      </div>
-    </MessagePrimitive.Root>
-  )
-}
-
-function AssistantMessage() {
-  return (
-    <MessagePrimitive.Root className="flex justify-start mb-3 px-4">
-      <div className="max-w-[85%] rounded-2xl rounded-bl-md px-4 py-2.5 text-sm bg-[var(--surface)] text-[var(--text-primary)] border border-[var(--border)] shadow-sm">
-        <MessagePrimitive.Content />
-      </div>
-    </MessagePrimitive.Root>
-  )
-}
-
 // ── Multi-agent message (with agent label) ──────────────────────
 
 function MultiAgentMessage({
@@ -239,45 +200,7 @@ function MultiAgentMessage({
   )
 }
 
-// ── Chat Thread (assistant-ui powered) ──────────────────────────
-
-function ChatThread() {
-  return (
-    <ThreadPrimitive.Root className="flex flex-col h-full">
-      <ThreadPrimitive.Viewport className="flex-1 overflow-y-auto py-4">
-        <ThreadPrimitive.Messages
-          components={{
-            UserMessage,
-            AssistantMessage,
-          }}
-        />
-        <ThreadPrimitive.Empty>
-          <div className="flex flex-col items-center justify-center h-full text-center px-4">
-            <div className="text-3xl mb-3">🤖</div>
-            <p className="text-sm text-[var(--text-secondary)]">
-              Send a message to start
-            </p>
-          </div>
-        </ThreadPrimitive.Empty>
-      </ThreadPrimitive.Viewport>
-
-      <div className="p-3 border-t border-[var(--border)]">
-        <ComposerPrimitive.Root className="flex gap-2">
-          <ComposerPrimitive.Input
-            placeholder="Message..."
-            className="flex-1 bg-[var(--surface)] border border-[var(--border)] rounded-lg px-3 py-2.5 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--accent-bright)] transition-colors resize-none placeholder:text-[var(--text-secondary)]/50"
-            autoFocus
-          />
-          <ComposerPrimitive.Send className="px-4 py-2.5 bg-[var(--accent-bright)] hover:bg-[var(--accent-glow)] rounded-lg text-sm text-white font-medium transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
-            ↑
-          </ComposerPrimitive.Send>
-        </ComposerPrimitive.Root>
-      </div>
-    </ThreadPrimitive.Root>
-  )
-}
-
-// ── Single Agent Chat ───────────────────────────────────────────
+// ── Single Agent Chat (simple, no assistant-ui) ─────────────────
 
 function SingleAgentChat() {
   const { activeSession } = useChatStore()
@@ -285,7 +208,11 @@ function SingleAgentChat() {
   const messages = useChatStore((s) =>
     activeSession ? s.messages.get(activeSession) || [] : []
   )
-  const [isRunning, setIsRunning] = useState(false)
+  const [input, setInput] = useState('')
+  const [sending, setSending] = useState(false)
+  const scrollRef = useCallback((node: HTMLDivElement | null) => {
+    if (node) node.scrollTop = node.scrollHeight
+  }, [])
 
   const pollMessages = useCallback(async () => {
     if (!client?.isConnected() || !activeSession) return
@@ -299,7 +226,7 @@ function SingleAgentChat() {
       )
       useChatStore.getState().setMessages(activeSession, cleaned)
     } catch {
-      // ignore
+      // ignore — session may not exist yet
     }
   }, [client, activeSession])
 
@@ -309,49 +236,80 @@ function SingleAgentChat() {
     return () => clearInterval(interval)
   }, [pollMessages])
 
-  const convertedMessages = useMemo(
-    () => messages.map(convertMessage),
-    [messages]
-  )
-
-  const handleSend = useCallback(
-    async (message: {
-      content: ReadonlyArray<{ type: string; text?: string }>
-    }) => {
-      if (!client?.isConnected() || !activeSession) return
-      const text = message.content
-        .filter((p) => p.type === 'text')
-        .map((p) => p.text || '')
-        .join('\n')
-        .trim()
-      if (!text) return
-
-      setIsRunning(true)
-      try {
-        await client.chatSend(activeSession, text)
-        setTimeout(pollMessages, 1000)
-        setTimeout(pollMessages, 3000)
-        setTimeout(pollMessages, 6000)
-      } catch {
-        // ignore
-      } finally {
-        setTimeout(() => setIsRunning(false), 5000)
-      }
-    },
-    [client, activeSession, pollMessages]
-  )
-
-  const runtime = useExternalStoreRuntime({
-    messages: convertedMessages,
-    isRunning,
-    convertMessage: (m) => m,
-    onNew: handleSend,
-  })
+  const handleSend = async () => {
+    if (!input.trim() || !client?.isConnected() || !activeSession) return
+    setSending(true)
+    try {
+      await client.chatSend(activeSession, input.trim())
+      // Optimistic: add user message locally
+      useChatStore.getState().addMessage(activeSession, {
+        role: 'user',
+        content: input.trim(),
+        timestamp: Date.now(),
+      })
+      setInput('')
+      setTimeout(pollMessages, 1000)
+      setTimeout(pollMessages, 3000)
+      setTimeout(pollMessages, 6000)
+    } catch (err) {
+      console.error('Chat send failed:', err)
+    } finally {
+      setSending(false)
+    }
+  }
 
   return (
-    <AssistantRuntimeProvider runtime={runtime}>
-      <ChatThread />
-    </AssistantRuntimeProvider>
+    <div className="flex flex-col h-full">
+      {/* Messages */}
+      <div ref={scrollRef} className="flex-1 overflow-y-auto py-4">
+        {messages.map((msg, i) => (
+          msg.role === 'user' ? (
+            <div key={`${msg.timestamp}-${i}`} className="flex justify-end mb-3 px-4">
+              <div className="max-w-[85%] rounded-2xl rounded-br-md px-4 py-2.5 text-sm bg-[var(--accent-bright)] text-white shadow-sm">
+                <p className="whitespace-pre-wrap break-words">{msg.content}</p>
+              </div>
+            </div>
+          ) : (
+            <div key={`${msg.timestamp}-${i}`} className="flex justify-start mb-3 px-4">
+              <div className="max-w-[85%] rounded-2xl rounded-bl-md px-4 py-2.5 text-sm bg-[var(--surface)] text-[var(--text-primary)] border border-[var(--border)] shadow-sm">
+                <p className="whitespace-pre-wrap break-words">{msg.content}</p>
+              </div>
+            </div>
+          )
+        ))}
+        {messages.length === 0 && (
+          <div className="flex flex-col items-center justify-center h-full text-center px-4">
+            <div className="text-3xl mb-3">🤖</div>
+            <p className="text-sm text-[var(--text-secondary)]">
+              Send a message to start chatting
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Input */}
+      <div className="p-3 border-t border-[var(--border)]">
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
+            placeholder="Message..."
+            className="flex-1 bg-[var(--surface)] border border-[var(--border)] rounded-lg px-3 py-2.5 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--accent-bright)] transition-colors placeholder:text-[var(--text-secondary)]/50"
+            disabled={sending}
+            autoFocus
+          />
+          <button
+            onClick={handleSend}
+            disabled={sending || !input.trim()}
+            className="px-4 py-2.5 bg-[var(--accent-bright)] hover:bg-[var(--accent-glow)] rounded-lg text-sm text-white font-medium transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            {sending ? '...' : '↑'}
+          </button>
+        </div>
+      </div>
+    </div>
   )
 }
 

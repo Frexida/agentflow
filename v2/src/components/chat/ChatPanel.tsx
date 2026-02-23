@@ -218,6 +218,8 @@ function SingleAgentChat() {
   )
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
+  const [hasSentMessage, setHasSentMessage] = useState(false)
+  const [sendError, setSendError] = useState<string | null>(null)
   const scrollRef = useCallback((node: HTMLDivElement | null) => {
     if (node) node.scrollTop = node.scrollHeight
   }, [])
@@ -242,17 +244,21 @@ function SingleAgentChat() {
     }
   }, [client, activeSession])
 
+  // Only poll after first message sent (new sessions don't exist on Gateway yet)
   useEffect(() => {
+    if (!hasSentMessage) return
     pollMessages()
     const interval = setInterval(pollMessages, 5000)
     return () => clearInterval(interval)
-  }, [pollMessages])
+  }, [pollMessages, hasSentMessage])
 
   const handleSend = async () => {
     if (!input.trim() || !client?.isConnected() || !activeSession) return
     setSending(true)
+    setSendError(null)
     try {
       await client.chatSend(activeSession, input.trim())
+      setHasSentMessage(true)
       // Optimistic: add user message locally
       useChatStore.getState().addMessage(activeSession, {
         role: 'user',
@@ -265,6 +271,7 @@ function SingleAgentChat() {
       setTimeout(pollMessages, 6000)
     } catch (err) {
       console.error('Chat send failed:', err)
+      setSendError(err instanceof Error ? err.message : 'Send failed')
     } finally {
       setSending(false)
     }
@@ -295,6 +302,11 @@ function SingleAgentChat() {
             <p className="text-sm text-[var(--text-secondary)]">
               Send a message to start chatting
             </p>
+            {sendError && (
+              <p className="text-xs text-red-400 mt-2 bg-red-500/10 px-3 py-1.5 rounded">
+                {sendError}
+              </p>
+            )}
           </div>
         )}
       </div>

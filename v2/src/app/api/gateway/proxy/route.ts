@@ -77,7 +77,7 @@ async function ensureHandshake(ws: WebSocket): Promise<void> {
       },
       auth: { token: GATEWAY_TOKEN },
       role: 'operator',
-      scopes: ['operator.admin'],
+      scopes: ['operator.admin', 'operator.write', 'operator.read'],
       caps: [],
     },
   }))
@@ -102,7 +102,7 @@ async function ensureHandshake(ws: WebSocket): Promise<void> {
                 client: { id: 'webchat-ui', version: '2.0', mode: 'ui', platform: 'web' },
                 auth: { token: GATEWAY_TOKEN },
                 role: 'operator',
-                scopes: ['operator.admin'],
+                scopes: ['operator.admin', 'operator.write', 'operator.read'],
                 caps: [],
               },
             }))

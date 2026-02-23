@@ -29,7 +29,24 @@ cat > /root/.openclaw/openclaw.json <<EOF
       }
     }
   },
-  "agents": {},
+  "agents": {
+    "defaults": {
+      "model": {
+        "primary": "anthropic/claude-sonnet-4-20250514"
+      }
+    },
+    "list": [
+      {
+        "id": "assistant",
+        "name": "Assistant",
+        "workspace": "/root/.openclaw/workspace",
+        "identity": {
+          "name": "Assistant",
+          "avatar": "🤖"
+        }
+      }
+    ]
+  },
   "commands": {
     "native": "auto",
     "nativeSkills": "auto"
@@ -37,7 +54,7 @@ cat > /root/.openclaw/openclaw.json <<EOF
 }
 EOF
 
-echo "Config generated. Token prefix: ${GW_TOKEN:0:8}..."
+echo "Config generated with assistant agent. Token prefix: ${GW_TOKEN:0:8}..."
 echo "Listening on 0.0.0.0:18789"
 
 # Find openclaw global install path and run gateway

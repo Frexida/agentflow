@@ -1,0 +1,47 @@
+version: "3.8"
+
+services:
+  gateway:
+    image: node:22-slim
+    working_dir: /app
+    command: >
+      bash -c "
+        npm install -g openclaw &&
+        cat > openclaw.json << 'CONF'
+        {
+          \"gateway\": {
+            \"port\": 8080,
+            \"auth\": {
+              \"mode\": \"token\",
+              \"token\": \"local-dev-token\"
+            },
+            \"controlUi\": {
+              \"allowedOrigins\": [\"http://localhost:3000\"]
+            }
+          },
+          \"agents\": {
+            \"defaults\": { \"model\": \"anthropic/claude-sonnet-4-20250514\" },
+            \"list\": []
+          }
+        }
+        CONF
+        npx openclaw gateway start --foreground
+      "
+    ports:
+      - "8080:8080"
+    environment:
+      - OPENCLAW_TOKEN=local-dev-token
+
+  app:
+    image: node:22-slim
+    working_dir: /app
+    volumes:
+      - ./:/app
+    command: bash -c "npm install && npm run dev"
+    ports:
+      - "3000:3000"
+    environment:
+      - GATEWAY_INTERNAL_URL=ws://gateway:8080
+      - GATEWAY_INTERNAL_TOKEN=local-dev-token
+    depends_on:
+      - gateway

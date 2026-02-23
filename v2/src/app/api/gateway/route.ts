@@ -162,7 +162,12 @@ export async function DELETE() {
 
     if (!gw) return NextResponse.json({ error: 'No gateway found' }, { status: 404 })
 
-    await destroyGateway(gw.machine_id)
+    try {
+      await destroyGateway(gw.machine_id)
+    } catch {
+      // Machine may already be destroyed — continue to clean up DB record
+      console.warn(`Failed to destroy Fly machine ${gw.machine_id}, cleaning up DB anyway`)
+    }
     await supabase.from('gateways').delete().eq('id', gw.id)
 
     return NextResponse.json({ success: true })

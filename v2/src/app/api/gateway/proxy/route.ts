@@ -67,7 +67,7 @@ async function ensureHandshake(ws: WebSocket): Promise<void> {
       minProtocol: 3,
       maxProtocol: 3,
       client: {
-        id: 'agentflow-proxy',
+        id: 'webchat-ui',
         version: '2.0',
         mode: 'ui',
         platform: 'web',
@@ -98,7 +98,7 @@ async function ensureHandshake(ws: WebSocket): Promise<void> {
               params: {
                 minProtocol: 3,
                 maxProtocol: 3,
-                client: { id: 'agentflow-proxy', version: '2.0', mode: 'ui', platform: 'web' },
+                client: { id: 'webchat-ui', version: '2.0', mode: 'ui', platform: 'web' },
                 auth: { token: GATEWAY_TOKEN },
                 role: 'operator',
                 scopes: ['operator.admin'],

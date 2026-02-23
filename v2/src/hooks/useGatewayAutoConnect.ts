@@ -3,12 +3,11 @@
 import { useEffect, useRef, useCallback } from 'react'
 import { useGatewayStore } from '@/stores/gateway'
 
-const RETRY_DELAYS = [2000, 5000, 10000] // ms — exponential-ish backoff
+const RETRY_DELAYS = [2000, 5000, 10000]
 
 /**
- * Auto-connect to Gateway if a running instance exists.
- * Retries on transient failures (502, network errors).
- * Re-attempts when gateway status changes (e.g. reconnected via Settings).
+ * Auto-connect to Gateway via server-side proxy.
+ * No URL/token needed — the proxy handles auth.
  */
 export function useGatewayAutoConnect() {
   const { connected, connect } = useGatewayStore()
@@ -19,29 +18,26 @@ export function useGatewayAutoConnect() {
     if (useGatewayStore.getState().connected) return
 
     try {
+      // Check if gateway exists and is running
       const res = await fetch('/api/gateway')
-      if (!res.ok) {
-        scheduleRetry()
-        return
-      }
+      if (!res.ok) { scheduleRetry(); return }
       const { gateway } = await res.json()
-      if (gateway && (gateway.status === 'started' || gateway.status === 'running')) {
-        await connect({ url: gateway.url, token: gateway.token })
-        retryCount.current = 0 // reset on success
-      }
+      if (!gateway || (gateway.status !== 'started' && gateway.status !== 'running')) return
+
+      await connect()
+      retryCount.current = 0
     } catch {
       scheduleRetry()
     }
   }, [connect])
 
   function scheduleRetry() {
-    if (retryCount.current >= RETRY_DELAYS.length) return // give up after max retries
+    if (retryCount.current >= RETRY_DELAYS.length) return
     const delay = RETRY_DELAYS[retryCount.current] ?? RETRY_DELAYS[RETRY_DELAYS.length - 1]
     retryCount.current++
     timerRef.current = setTimeout(() => attemptConnect(), delay)
   }
 
-  // Initial mount attempt
   useEffect(() => {
     if (!connected) {
       retryCount.current = 0

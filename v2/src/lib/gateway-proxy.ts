@@ -1,73 +1,97 @@
 /**
  * Gateway Proxy Client
- * 
- * Wraps the WSS proxy API to provide a WebSocket-like interface
- * for the frontend. Solves Mixed Content (HTTPS → ws://) by
- * routing through our server-side proxy.
- * 
- * Usage:
- *   const gw = new GatewayProxy()
- *   gw.onMessage = (data) => console.log(data)
- *   await gw.connect()
- *   await gw.send({ type: 'req', id: '1', method: 'getSessions', params: {} })
+ *
+ * Replaces direct WebSocket connection to Gateway.
+ * Routes all traffic through /api/gateway/proxy (server-side proxy)
+ * so the browser never needs the Gateway token.
+ *
+ * Implements the same interface as GatewayClient for drop-in use.
  */
 
-type MessageHandler = (data: Record<string, unknown>) => void
+import type { GatewaySession, ChatMessage } from '@/types/gateway'
 
-export class GatewayProxy {
+type EventHandler = (...args: unknown[]) => void
+
+export class GatewayProxyClient {
   private eventSource: EventSource | null = null
+  private handlers = new Map<string, Set<EventHandler>>()
   private _connected = false
   private _requestId = 0
 
-  onMessage: MessageHandler | null = null
-  onConnect: (() => void) | null = null
-  onDisconnect: (() => void) | null = null
-  onError: ((error: string) => void) | null = null
-
-  get connected(): boolean {
+  isConnected(): boolean {
     return this._connected
   }
 
   /** Start SSE stream from proxy */
-  connect(): void {
-    this.disconnect()
+  connect(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      this.disconnect()
 
-    this.eventSource = new EventSource('/api/gateway/proxy')
+      this.eventSource = new EventSource('/api/gateway/proxy')
+      let resolved = false
 
-    this.eventSource.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data)
+      this.eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data)
 
-        if (data.type === 'connected') {
-          this._connected = true
-          this.onConnect?.()
-          return
-        }
-
-        if (data.type === 'disconnected' || data.type === 'error') {
-          this._connected = false
-          if (data.type === 'error') {
-            this.onError?.(data.message || 'Connection error')
+          if (data.type === 'connected') {
+            this._connected = true
+            this.emit('connected')
+            if (!resolved) { resolved = true; resolve() }
+            return
           }
-          this.onDisconnect?.()
-          return
+
+          if (data.type === 'disconnected') {
+            this._connected = false
+            this.emit('disconnected')
+            return
+          }
+
+          if (data.type === 'error') {
+            this._connected = false
+            this.emit('disconnected')
+            if (!resolved) { resolved = true; reject(new Error(data.message || 'Connection error')) }
+            return
+          }
+
+          // Forward gateway events
+          if (data.type === 'event') {
+            this.emit('event', data)
+          }
+
+          // Forward all messages for general listeners
+          this.emit('message', data)
+        } catch {
+          // ignore parse errors
         }
-
-        this.onMessage?.(data)
-      } catch {
-        // ignore parse errors
       }
-    }
 
-    this.eventSource.onerror = () => {
-      this._connected = false
-      this.onError?.('SSE connection lost')
-      this.onDisconnect?.()
-    }
+      this.eventSource.onerror = () => {
+        this._connected = false
+        this.emit('disconnected')
+        if (!resolved) { resolved = true; reject(new Error('SSE connection failed')) }
+      }
+
+      // Timeout after 10s
+      setTimeout(() => {
+        if (!resolved) { resolved = true; reject(new Error('Connection timeout')) }
+      }, 10000)
+    })
   }
 
-  /** Send a frame through the proxy */
-  async send(frame: Record<string, unknown>): Promise<Record<string, unknown>> {
+  disconnect() {
+    if (this.eventSource) {
+      this.eventSource.close()
+      this.eventSource = null
+    }
+    this._connected = false
+  }
+
+  /** Send a request through the HTTP proxy and get response */
+  async request(method: string, params?: Record<string, unknown>): Promise<unknown> {
+    const id = `proxy-${++this._requestId}`
+    const frame = { type: 'req', id, method, params }
+
     const res = await fetch('/api/gateway/proxy', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -75,42 +99,68 @@ export class GatewayProxy {
     })
 
     if (!res.ok) {
-      const err = await res.json()
+      const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }))
       throw new Error(err.error || `Proxy error ${res.status}`)
     }
 
     const { response } = await res.json()
-    return response
-  }
 
-  /** Send a request and get response */
-  async request(method: string, params: Record<string, unknown> = {}): Promise<unknown> {
-    const id = `proxy-${++this._requestId}`
-    const response = await this.send({
-      type: 'req',
-      id,
-      method,
-      params,
-    })
-    return response
-  }
-
-  /** Disconnect SSE stream */
-  disconnect(): void {
-    if (this.eventSource) {
-      this.eventSource.close()
-      this.eventSource = null
+    if (response?.ok === false) {
+      throw new Error(response?.error?.message || 'Request failed')
     }
-    this._connected = false
-  }
-}
 
-// Singleton for app-wide use
-let instance: GatewayProxy | null = null
-
-export function getGatewayProxy(): GatewayProxy {
-  if (!instance) {
-    instance = new GatewayProxy()
+    return response?.payload || response
   }
-  return instance
+
+  // ── Convenience methods (same as GatewayClient) ──
+
+  async sessionsList(): Promise<GatewaySession[]> {
+    const result = await this.request('sessions.list', {
+      includeLastMessage: true,
+    }) as { sessions: Array<Record<string, unknown>> }
+    return (result.sessions || []).map(s => ({
+      ...s,
+      sessionKey: (s.key as string) || '',
+    })) as unknown as GatewaySession[]
+  }
+
+  async chatSend(sessionKey: string, message: string): Promise<void> {
+    await this.request('chat.send', {
+      sessionKey,
+      message,
+      idempotencyKey: crypto.randomUUID(),
+    })
+  }
+
+  async chatHistory(sessionKey: string, limit = 20): Promise<ChatMessage[]> {
+    const result = await this.request('chat.history', {
+      sessionKey,
+      limit,
+    }) as { messages: ChatMessage[] }
+    return result.messages || []
+  }
+
+  async configGet(): Promise<{ config: string; hash: string }> {
+    const result = await this.request('config.get') as { raw: string; hash: string }
+    return { config: result.raw, hash: result.hash }
+  }
+
+  async configApply(raw: string, baseHash: string): Promise<void> {
+    await this.request('config.apply', { raw, baseHash })
+  }
+
+  // ── Event emitter ──
+
+  on(event: string, handler: EventHandler) {
+    if (!this.handlers.has(event)) this.handlers.set(event, new Set())
+    this.handlers.get(event)!.add(handler)
+  }
+
+  off(event: string, handler: EventHandler) {
+    this.handlers.get(event)?.delete(handler)
+  }
+
+  private emit(event: string, ...args: unknown[]) {
+    this.handlers.get(event)?.forEach((h) => h(...args))
+  }
 }

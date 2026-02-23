@@ -42,7 +42,7 @@ export default function SettingsPage() {
         // Auto-connect if gateway exists and running
         if (gw && (gw.status === 'started' || gw.status === 'running') && !connected) {
           try {
-            await connect({ url: gw.url, token: gw.token })
+            await connect()
           } catch { /* ignore auto-connect failures */ }
         }
       }
@@ -68,7 +68,7 @@ export default function SettingsPage() {
       // Wait a moment for gateway to boot, then connect
       setTimeout(async () => {
         try {
-          await connect({ url: data.gateway.url, token: data.gateway.token })
+          await connect()
         } catch (e) {
           setError('Gateway started but connection failed. It may need a few seconds to boot.')
         }
@@ -95,7 +95,8 @@ export default function SettingsPage() {
     setError(null)
     setConnecting(true)
     try {
-      await connect({ url, token })
+      // TODO: Self-host mode needs direct WS client, not proxy
+      await connect()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Connection failed')
     } finally {
@@ -165,7 +166,7 @@ export default function SettingsPage() {
                           setError(null)
                           setConnecting(true)
                           try {
-                            await connect({ url: gateway.url, token: gateway.token })
+                            await connect()
                           } catch (e) {
                             setError(e instanceof Error ? e.message : 'Connection failed')
                           } finally {

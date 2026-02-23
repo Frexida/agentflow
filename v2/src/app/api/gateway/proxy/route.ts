@@ -36,7 +36,9 @@ function getOrCreateConnection(userId: string): WebSocket {
     connections.delete(userId)
   }
 
-  const ws = new WebSocket(getGatewayWsUrl())
+  const ws = new WebSocket(getGatewayWsUrl(), {
+    headers: { 'Origin': process.env.NEXT_PUBLIC_APP_URL || 'https://agentflow.frexida.com' },
+  })
 
   ws.on('close', () => connections.delete(userId))
   ws.on('error', () => connections.delete(userId))

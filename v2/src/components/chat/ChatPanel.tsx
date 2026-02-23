@@ -162,10 +162,11 @@ function MultiAgentMessage({
   agents: string[]
   sessions: { sessionKey: string; agentId?: string }[]
 }) {
-  const agentName =
+  const rawName =
     gwSessions.find((s) => s.sessionKey === msg.sessionKey)?.agentId ||
     msg.agentId ||
     'Agent'
+  const agentName = typeof rawName === 'string' ? rawName : String(rawName)
   const color = getAgentColor(msg.sessionKey || '', agents)
 
   if (msg.role === 'user') {

@@ -172,7 +172,7 @@ function MultiAgentMessage({
     return (
       <div className="flex justify-end mb-3 px-4">
         <div className="max-w-[85%] rounded-2xl rounded-br-md px-4 py-2.5 text-sm bg-[var(--accent-bright)] text-white shadow-sm">
-          <p className="whitespace-pre-wrap break-words">{msg.content}</p>
+          <p className="whitespace-pre-wrap break-words">{cleanMessage(msg.content)}</p>
         </div>
       </div>
     )
@@ -192,7 +192,7 @@ function MultiAgentMessage({
             {agentName}
           </span>
           <div className="rounded-2xl rounded-tl-md px-4 py-2.5 text-sm bg-[var(--surface)] text-[var(--text-primary)] border border-[var(--border)] shadow-sm">
-            <p className="whitespace-pre-wrap break-words">{msg.content}</p>
+            <p className="whitespace-pre-wrap break-words">{cleanMessage(msg.content)}</p>
           </div>
         </div>
       </div>
@@ -266,13 +266,13 @@ function SingleAgentChat() {
           msg.role === 'user' ? (
             <div key={`${msg.timestamp}-${i}`} className="flex justify-end mb-3 px-4">
               <div className="max-w-[85%] rounded-2xl rounded-br-md px-4 py-2.5 text-sm bg-[var(--accent-bright)] text-white shadow-sm">
-                <p className="whitespace-pre-wrap break-words">{msg.content}</p>
+                <p className="whitespace-pre-wrap break-words">{cleanMessage(msg.content)}</p>
               </div>
             </div>
           ) : (
             <div key={`${msg.timestamp}-${i}`} className="flex justify-start mb-3 px-4">
               <div className="max-w-[85%] rounded-2xl rounded-bl-md px-4 py-2.5 text-sm bg-[var(--surface)] text-[var(--text-primary)] border border-[var(--border)] shadow-sm">
-                <p className="whitespace-pre-wrap break-words">{msg.content}</p>
+                <p className="whitespace-pre-wrap break-words">{cleanMessage(msg.content)}</p>
               </div>
             </div>
           )

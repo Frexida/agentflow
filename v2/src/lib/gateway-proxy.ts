@@ -67,9 +67,16 @@ export class GatewayProxyClient {
       }
 
       this.eventSource.onerror = () => {
-        this._connected = false
-        this.emit('disconnected')
-        if (!resolved) { resolved = true; reject(new Error('SSE connection failed')) }
+        // SSE auto-reconnects on error. Only reject if we never connected.
+        if (!resolved) {
+          resolved = true
+          reject(new Error('SSE connection failed'))
+        }
+        // If we were connected, mark as disconnected but let EventSource retry
+        if (this._connected) {
+          this._connected = false
+          this.emit('disconnected')
+        }
       }
 
       // Timeout after 10s

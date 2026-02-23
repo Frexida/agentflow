@@ -124,9 +124,9 @@ export async function POST(request: NextRequest) {
     // Send the frame
     ws.send(JSON.stringify(body.frame))
 
-    // Wait for matching response
+    // Wait for matching response (10s timeout — if Gateway doesn't respond, fail fast)
     const response = await new Promise<unknown>((resolve, reject) => {
-      const timeout = setTimeout(() => reject(new Error('Response timeout')), 30000)
+      const timeout = setTimeout(() => reject(new Error('Response timeout')), 10000)
       ws!.on('message', (raw: WebSocket.RawData) => {
         try {
           const data = JSON.parse(raw.toString())

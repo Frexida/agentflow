@@ -10,15 +10,17 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import WebSocket from 'ws'
+
+export const runtime = 'nodejs'
 
 const GATEWAY_URL = process.env.GATEWAY_INTERNAL_URL || ''
 const GATEWAY_TOKEN = process.env.GATEWAY_INTERNAL_TOKEN || ''
 
-// Per-user WS connection pool (Vercel serverless = ephemeral, but works for SSE lifetime)
+// Per-user WS connection pool
 const connections = new Map<string, WebSocket>()
 
 function getGatewayWsUrl(): string {
-  // Convert https:// to wss:// if needed
   if (GATEWAY_URL.startsWith('wss://') || GATEWAY_URL.startsWith('ws://')) return GATEWAY_URL
   if (GATEWAY_URL.startsWith('https://')) return GATEWAY_URL.replace('https://', 'wss://')
   if (GATEWAY_URL.startsWith('http://')) return GATEWAY_URL.replace('http://', 'ws://')
@@ -36,8 +38,8 @@ function getOrCreateConnection(userId: string): WebSocket {
 
   const ws = new WebSocket(getGatewayWsUrl())
 
-  ws.addEventListener('close', () => connections.delete(userId))
-  ws.addEventListener('error', () => connections.delete(userId))
+  ws.on('close', () => connections.delete(userId))
+  ws.on('error', () => connections.delete(userId))
 
   connections.set(userId, ws)
   return ws
@@ -49,15 +51,14 @@ async function waitForOpen(ws: WebSocket): Promise<void> {
 
   await new Promise<void>((resolve, reject) => {
     const timeout = setTimeout(() => reject(new Error('Connection timeout')), 10000)
-    ws.addEventListener('open', () => { clearTimeout(timeout); resolve() }, { once: true })
-    ws.addEventListener('error', () => { clearTimeout(timeout); reject(new Error('Connection failed')) }, { once: true })
+    ws.once('open', () => { clearTimeout(timeout); resolve() })
+    ws.once('error', (err) => { clearTimeout(timeout); reject(err) })
   })
 }
 
 async function ensureHandshake(ws: WebSocket): Promise<void> {
   await waitForOpen(ws)
 
-  // Send connect handshake with token
   const handshakeId = `hs-${Date.now()}`
   ws.send(JSON.stringify({
     type: 'req',
@@ -79,17 +80,15 @@ async function ensureHandshake(ws: WebSocket): Promise<void> {
     },
   }))
 
-  // Wait for handshake response
+  // Wait for handshake response or challenge
   await new Promise<void>((resolve, reject) => {
     const timeout = setTimeout(() => reject(new Error('Handshake timeout')), 10000)
-    const handler = (event: MessageEvent) => {
+    const handler = (raw: WebSocket.RawData) => {
       try {
-        const data = JSON.parse(event.data)
-        // Accept either connect response or challenge event
+        const data = JSON.parse(raw.toString())
         if (data.id === handshakeId || data.event === 'connect.challenge') {
           clearTimeout(timeout)
-          ws.removeEventListener('message', handler)
-          // If challenge, respond to it
+          ws.off('message', handler)
           if (data.event === 'connect.challenge') {
             ws.send(JSON.stringify({
               type: 'req',
@@ -110,7 +109,7 @@ async function ensureHandshake(ws: WebSocket): Promise<void> {
         }
       } catch { /* ignore */ }
     }
-    ws.addEventListener('message', handler)
+    ws.on('message', handler)
   })
 }
 
@@ -135,23 +134,22 @@ export async function POST(request: NextRequest) {
     const ws = getOrCreateConnection(user.id)
     await ensureHandshake(ws)
 
-    // Send frame
     ws.send(JSON.stringify(body.frame))
 
     // Wait for matching response
     const response = await new Promise<unknown>((resolve, reject) => {
       const timeout = setTimeout(() => reject(new Error('Response timeout')), 30000)
-      const handler = (event: MessageEvent) => {
+      const handler = (raw: WebSocket.RawData) => {
         try {
-          const data = JSON.parse(event.data)
+          const data = JSON.parse(raw.toString())
           if (data.id === body.frame.id || (data.type === 'res' && !body.frame.id)) {
             clearTimeout(timeout)
-            ws.removeEventListener('message', handler)
+            ws.off('message', handler)
             resolve(data)
           }
         } catch { /* ignore */ }
       }
-      ws.addEventListener('message', handler)
+      ws.on('message', handler)
     })
 
     return NextResponse.json({ response })
@@ -185,16 +183,16 @@ export async function GET() {
 
           sendSSE(JSON.stringify({ type: 'connected' }))
 
-          ws.addEventListener('message', (event) => {
-            sendSSE(typeof event.data === 'string' ? event.data : JSON.stringify(event.data))
+          ws.on('message', (raw: WebSocket.RawData) => {
+            sendSSE(raw.toString())
           })
 
-          ws.addEventListener('close', () => {
+          ws.on('close', () => {
             sendSSE(JSON.stringify({ type: 'disconnected' }))
             try { controller.close() } catch { /* already closed */ }
           })
 
-          ws.addEventListener('error', () => {
+          ws.on('error', () => {
             sendSSE(JSON.stringify({ type: 'error', message: 'Gateway connection lost' }))
             try { controller.close() } catch { /* already closed */ }
           })

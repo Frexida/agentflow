@@ -22,7 +22,7 @@ graph TD
     end
 
     subgraph MGR["全体管理"]
-        MGR1[manager-1<br/>組織設計・監査<br/>red引継ぎ]
+        MGR1[manager-1<br/>組織設計・監査<br/>🔴 red]
     end
 
     subgraph DEV["開発チーム"]
@@ -99,13 +99,13 @@ escalation_to: manager-1
 
 | ID | 状態 | workspace |
 |----|------|-----------|
-| manager-1 | 🔲 red引継ぎ予定 | `/workspace-manager-1` |
-| pm-1 | 🔲 未作成 | `/workspace-pm-1` |
-| dev-1 | 🔲 未作成 | `/workspace-dev-1` |
-| qa-1 | 🔲 未作成 | `/workspace-qa-1` |
-| design-1 | 🔲 未作成 | `/workspace-design-1` |
-| ops-1 | 🔲 未作成 | `/workspace-ops-1` |
-| docs-1 | 🔲 未作成 | `/workspace-docs-1` |
+| manager-1 | ✅ 稼働中（🔴 red = main） | `~/.openclaw/workspace` |
+| pm-1 | ✅ 作成済み | `~/.openclaw/workspace-pm-1` |
+| dev-1 | ✅ 作成済み | `~/.openclaw/workspace-dev-1` |
+| qa-1 | ✅ 作成済み | `~/.openclaw/workspace-qa-1` |
+| design-1 | ✅ 作成済み | `~/.openclaw/workspace-design-1` |
+| ops-1 | ✅ 作成済み | `~/.openclaw/workspace-ops-1` |
+| docs-1 | ✅ 作成済み | `~/.openclaw/workspace-docs-1` |
 
 ### ナツ個人用（継続稼働）
 

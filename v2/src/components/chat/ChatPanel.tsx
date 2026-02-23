@@ -535,7 +535,7 @@ export default function ChatPanel({
             <h3 className="font-semibold text-sm">Chat</h3>
             {mode === 'single' && activeAgentId && (
               <span className="text-xs text-[var(--text-secondary)] bg-[var(--surface)] px-2 py-0.5 rounded-full">
-                {activeAgentId}
+                {String(activeAgentId)}
               </span>
             )}
             {mode === 'multi' && channel && (
